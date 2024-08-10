@@ -20,6 +20,7 @@ struct Dude
 	Texture2D		  texShadow;
 	AnimJump		  aJump;
 	AnimJumpShadow	  aJumpShadow;
+	AnimBreathe		  aBreathe;
 	PlayerInteraction activeHint = NONE;
 
 	v2 vel;
@@ -34,6 +35,7 @@ struct Dude
 		e = &entities.instances[iPtr];
 		ss.init(tDude, {8, 8}, 2, 10, true);
 		texShadow = tShadow;
+        aBreathe.activate(true);
 		return true;
 	}
 	void kill() { entities.remove(e->instancePtr); }
@@ -41,6 +43,10 @@ struct Dude
 	{
 		vel.x = right - left;
 		vel.y = up - down;
+        if(vel.getLengthSquared() > 0.1f)
+            aBreathe.anim.tempo = 10.f;
+        else
+            aBreathe.anim.tempo = 1.f;
 		if (jump && !aJump.anim.active)
 		{
 			aJump.activate();
@@ -70,12 +76,13 @@ struct Dude
 		if (interact)
 			entities.interact(closestEntityPtr);
 	}
-	void update()
+	void update(f32 dt)
 	{
-		aJump.update(0.016f);
-		aJumpShadow.update(0.016f);
+		aJump.update(dt);
+		aJumpShadow.update(dt);
+		aBreathe.update(dt);
 		e->pos += vel;
-		ss.update(0.016f);
+		ss.update(dt);
 	}
 	void draw()
 	{
@@ -87,12 +94,13 @@ struct Dude
 					  aJumpShadow.getScale(),
 					  WHITE);
 
-		v2 drawPos = e->pos + aJump.getPos();
+		v2	drawPos	  = e->pos + aJump.getPos();
+		f32 drawScale = aBreathe.getScale();
 		if (vel.getLengthSquared() < 1.f)
-			return ss.Draw(drawPos, WHITE, e->rot, 1.0, 0, 0);
+			return ss.Draw(drawPos, WHITE, e->rot, drawScale, 0, 0);
 		if (vel.y < 0)
-			return ss.Draw(drawPos, WHITE, e->rot, 1.0, 3, -1);
-		ss.Draw(drawPos, WHITE, e->rot, 1.0, 2, -1);
+			return ss.Draw(drawPos, WHITE, e->rot, drawScale, 3, -1);
+		ss.Draw(drawPos, WHITE, e->rot, drawScale, 2, -1);
 	};
 	void drawOverlay()
 	{
@@ -145,12 +153,12 @@ struct Table
 				props.interaction = RESTORE;
 			else
 				props.interaction = FLIP;
-            flipped = !flipped;
+			flipped = !flipped;
 		}
 	}
 	void draw()
 	{
-        v2 flipPos = flip.getPos() * (flip.anim.reversed ? .25f : 1.f);
+		v2	flipPos = flip.getPos() * (flip.anim.reversed ? .25f : 1.f);
 		v2	drawPos = e->pos + flipPos;
 		f32 drawrot = math::radToDeg(e->rot + flip.getRot());
 		DrawTexturePro(*tex,

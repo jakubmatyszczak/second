@@ -103,16 +103,19 @@ struct Animation
 {
 	bool reversed  = false;
 	bool active	   = false;
+    bool looped = false;
 	f32	 scale	   = 1.f;
 	v2	 posOffset = {};
 	f32	 rotOffset = {};
 
 	f32 timer = 0.f;
+    f32 tempo = 1.f;
 	i32 frame = 0;
 
-	void activate(u32 nKeyFrames)
+	void activate(u32 nKeyFrames, bool loop = false)
 	{
 		active = true;
+        looped = loop;
 		timer  = 0.f;
 		frame  = 1;
 		if (reversed)
@@ -125,7 +128,7 @@ struct Animation
 	{
 		if (!active)
 			return false;
-		timer += dt;
+		timer += dt * tempo;
 		if (timer > keyFrames[frame].duration)
 		{
 			timer = 0.f;
@@ -161,6 +164,8 @@ struct Animation
 		if (finished)
 		{
 			active = false;
+            if(looped)
+                activate(nKeyFrames, looped);
 			return true;
 		}
 		return false;
@@ -210,6 +215,22 @@ struct AnimJumpShadow
 		{.scale = 1.f, .duration = 0.1f},
 	};
 	void activate() { anim.activate(nKeyFrames); }
+	// returns true if completed
+	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
+	f32	 getScale() { return anim.scale; }
+};
+struct AnimBreathe
+{
+	Animation		 anim;
+	static const u32 nKeyFrames			   = 5;
+	Keyframe		 keyFrames[nKeyFrames] = {
+		{.scale = 1.f, .duration = 0.5f},
+		{.scale = 1.05f, .duration = 0.5f},
+		{.scale = 1.05f, .duration = 0.5f},
+		{.scale = 1.f, .duration = 0.5f},
+		{.scale = 1.f, .duration = 0.5f},
+	};
+	void activate(bool loop) { anim.activate(nKeyFrames, loop); }
 	// returns true if completed
 	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	f32	 getScale() { return anim.scale; }

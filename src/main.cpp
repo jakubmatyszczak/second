@@ -34,7 +34,7 @@ int main(void)
 				   IsKeyDown(KEY_L),
 				   IsKeyPressed(KEY_E),
 				   IsKeyDown(KEY_W));
-		dude.update();
+		dude.update(dt);
 		table.update(dt);
 		table2.update(dt);
 		table3.update(dt);
