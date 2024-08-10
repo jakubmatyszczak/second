@@ -11,9 +11,10 @@ namespace math
 	constexpr f32 pi2 = pi / 2.f;
 	constexpr f32 pi4 = pi / 4.f;
 	constexpr f32 tau = 2.f * M_PIf;
-	inline f32	  radToDeg(f32 value) { return value * 180.f / pi; };
-	f32			  sq(f32 value) { return value * value; }
-	float		  limit(float value, float min, float max)
+
+	inline f32 radToDeg(f32 value) { return value * 180.f / pi; };
+	inline f32 sq(f32 value) { return value * value; }
+	f32		   limit(float value, float min, float max)
 	{
 		if (value > max)
 			return max;

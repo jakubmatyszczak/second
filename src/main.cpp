@@ -9,12 +9,17 @@ int main(void)
 	Texture2D texture		= LoadTexture("art/dude_ss.png");
 	Texture2D texture2		= LoadTexture("art/table_tex.png");
 	Texture2D textureShadow = LoadTexture("art/shadow_tex.png");
-	Dude	  dude;
-	Table	  table;
-	Table	  table2;
+
+	Dude  dude;
+	Table table;
+	Table table2;
+	Table table3;
+	Table table4;
 	dude.init(texture, textureShadow, {100, 100});
 	table.init(texture2, {110, 110});
 	table2.init(texture2, {130, 130});
+	table3.init(texture2, {50, 100});
+	table4.init(texture2, {90, 120});
 	GLOBAL.camera.zoom	 = 6.f;
 	GLOBAL.camera.offset = {400, 300};
 	while (!done)
@@ -22,6 +27,7 @@ int main(void)
 		entities.refresh();
 
 		f32 dt = GetFrameTime();
+        dt = 0.016f;
 		dude.input(IsKeyDown(KEY_K),
 				   IsKeyDown(KEY_J),
 				   IsKeyDown(KEY_H),
@@ -31,6 +37,8 @@ int main(void)
 		dude.update();
 		table.update(dt);
 		table2.update(dt);
+		table3.update(dt);
+		table4.update(dt);
 
 		BeginDrawing();
 		{
@@ -41,6 +49,8 @@ int main(void)
 				dude.draw();
 				table.draw();
 				table2.draw();
+				table3.draw();
+				table4.draw();
 			}
 			EndMode2D();
 		}

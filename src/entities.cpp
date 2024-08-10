@@ -110,7 +110,7 @@ struct Table
 
 	Color	 tint = WHITE;
 	AnimFlip flip;
-	bool	 flipped = false;
+	bool	 flipped = true;
 
 	bool init(Texture& t, v2 pos)
 	{
@@ -128,23 +128,35 @@ struct Table
 			tint = RED;
 		else
 			tint = WHITE;
-		if (entities.interactPtr == e->instancePtr && !flipped)
+		if (!flip.anim.active && entities.interactPtr == e->instancePtr)
 		{
+			if (flipped)
+				flip.anim.reversed = false;
+			else
+				flip.anim.reversed = true;
 			entities.selectable[e->instancePtr] = false;
 			props.interaction					= NONE;
-			flipped								= true;
 			flip.activate();
 		}
-		flip.update(dt);
+		if (flip.update(dt))
+		{
+			entities.selectable[e->instancePtr] = true;
+			if (flipped)
+				props.interaction = RESTORE;
+			else
+				props.interaction = FLIP;
+            flipped = !flipped;
+		}
 	}
 	void draw()
 	{
-		v2	drawPos = e->pos + flip.getPos();
+        v2 flipPos = flip.getPos() * (flip.anim.reversed ? .25f : 1.f);
+		v2	drawPos = e->pos + flipPos;
 		f32 drawrot = math::radToDeg(e->rot + flip.getRot());
 		DrawTexturePro(*tex,
 					   {0, 0, (f32)tex->width, (f32)tex->height},
 					   {drawPos.x, drawPos.y, (f32)tex->width, (f32)tex->height},
-					   {(f32)tex->width / 2, (f32)tex->height / 2},
+					   {tex->width / 2.f, 1.f + tex->height / 2.f},
 					   drawrot,
 					   tint);
 	};

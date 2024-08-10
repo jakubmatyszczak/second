@@ -101,44 +101,69 @@ struct Keyframe
 };
 struct Animation
 {
+	bool reversed  = false;
 	bool active	   = false;
 	f32	 scale	   = 1.f;
 	v2	 posOffset = {};
 	f32	 rotOffset = {};
 
 	f32 timer = 0.f;
-	u32 frame = 0;
+	i32 frame = 0;
 
-	void activate()
+	void activate(u32 nKeyFrames)
 	{
-		active	  = true;
-		timer	  = 0.f;
-		frame	  = 1;
+		active = true;
+		timer  = 0.f;
+		frame  = 1;
+		if (reversed)
+			frame = nKeyFrames - 2;
 		posOffset = {};
 		rotOffset = 0.f;
 	}
-	void update(f32 dt, Keyframe keyFrames[], u32 nKeyFrames)
+	[[nodiscard]]
+	bool update(f32 dt, Keyframe keyFrames[], u32 nKeyFrames)
 	{
 		if (!active)
-			return;
+			return false;
 		timer += dt;
 		if (timer > keyFrames[frame].duration)
 		{
 			timer = 0.f;
 			frame++;
+			if (reversed)
+				frame -= 2;
 		}
-		if (frame >= nKeyFrames)
+		bool finished = false;
+		if (frame >= (i32)nKeyFrames)
 		{
-			frame  = nKeyFrames - 1;
-			timer  = keyFrames[frame].duration;
-			active = false;
+			finished = true;
+			frame	 = nKeyFrames - 1;
+			timer	 = keyFrames[frame].duration;
 		}
-		Keyframe& previous = keyFrames[frame - 1];
+		if (frame < 0)	// reversed animation end
+		{
+			finished = true;
+			frame	 = 0;
+			timer	 = keyFrames[frame].duration;
+		}
+
+		u32 prevFrame = frame - 1;
+		if (reversed)
+			prevFrame = frame + 1;
+		Keyframe& previous = keyFrames[prevFrame];
 		Keyframe& current  = keyFrames[frame];
 
-		posOffset = lerp(previous.pos, current.pos, timer / current.duration);
-		rotOffset = lerp(previous.rot, current.rot, timer / current.duration);
-		scale	  = lerp(previous.scale, current.scale, timer / current.duration);
+		f32 timeNorm = math::limit((timer / current.duration), 0.f, 1.f);
+		posOffset	 = lerp(previous.pos, current.pos, timeNorm);
+		rotOffset	 = lerp(previous.rot, current.rot, timeNorm);
+		scale		 = lerp(previous.scale, current.scale, timeNorm);
+
+		if (finished)
+		{
+			active = false;
+			return true;
+		}
+		return false;
 	}
 };
 struct AnimFlip
@@ -146,14 +171,15 @@ struct AnimFlip
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 4;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.pos = {0.f, 0.f}, .rot = 0.f},
+		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.1},
 		{.pos = {0.f, -10.f}, .rot = 1.f, .duration = 0.1f},
 		{.pos = {0.f, -10.f}, .rot = 3.14159f, .duration = 0.05f},
 		{.pos = {0.f, 0.f}, .rot = 3.14159f, .duration = 0.1f},
 	};
 
-	void activate() { anim.activate(); }
-	void update(f32 dt) { anim.update(dt, keyFrames, nKeyFrames); }
+	void activate() { anim.activate(nKeyFrames); }
+	// returns true if completed
+	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	v2	 getPos() { return anim.posOffset; }
 	f32	 getRot() { return anim.rotOffset; }
 };
@@ -162,13 +188,14 @@ struct AnimJump
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 4;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.pos = {0.f, 0.f}, .rot = 0.f},
+		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.1},
 		{.pos = {0.f, -7.f}, .rot = 0.f, .duration = 0.08f},
 		{.pos = {0.f, -10.f}, .rot = 0.f, .duration = 0.08f},
 		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.1f},
 	};
-	void activate() { anim.activate(); }
-	void update(f32 dt) { anim.update(dt, keyFrames, nKeyFrames); }
+	void activate() { anim.activate(nKeyFrames); }
+	// returns true if completed
+	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	v2	 getPos() { return anim.posOffset; }
 	f32	 getRot() { return anim.rotOffset; }
 };
@@ -177,12 +204,13 @@ struct AnimJumpShadow
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 4;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.scale = 1.f},
+		{.scale = 1.f, .duration = 0.1f},
 		{.scale = 0.6f, .duration = 0.08f},
 		{.scale = 0.5f, .duration = 0.08f},
 		{.scale = 1.f, .duration = 0.1f},
 	};
-	void activate() { anim.activate(); }
-	void update(f32 dt) { anim.update(dt, keyFrames, nKeyFrames); }
+	void activate() { anim.activate(nKeyFrames); }
+	// returns true if completed
+	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	f32	 getScale() { return anim.scale; }
 };
