@@ -5,7 +5,8 @@
 struct Dude
 {
 	Entity*		e;
-	SpriteSheet ss;
+	SpriteSheet ss; 
+    Jump aJump;
 
 	v2 vel;
 
@@ -19,10 +20,12 @@ struct Dude
 		return true;
 	}
 	void kill() { entities.remove(e->instancePtr); }
-	void input(bool up, bool down, bool left, bool right, bool interact)
+	void input(bool up, bool down, bool left, bool right, bool interact, bool jump)
 	{
 		vel.x = right - left;
 		vel.y = up - down;
+        if(jump && !aJump.anim.active)
+            aJump.activate();
 
 		i32 closestEntity	= -1;
 		f32 closestDistance = MAXFLOAT;
@@ -44,16 +47,18 @@ struct Dude
 	}
 	void update()
 	{
+        aJump.update(0.016f);
 		e->pos += vel;
 		ss.update(0.016f);
 	}
 	void draw()
 	{
+        v2 drawPos = e->pos + aJump.getPos();
 		if (vel.getLengthSquared() < 1.f)
-			return ss.Draw(e->pos, WHITE, e->rot, 1.0, 0, 0);
+			return ss.Draw(drawPos, WHITE, e->rot, 1.0, 0, 0);
 		if (vel.y < 0)
-			return ss.Draw(e->pos, WHITE, e->rot, 1.0, 3, -1);
-		ss.Draw(e->pos, WHITE, e->rot, 1.0, 2, -1);
+			return ss.Draw(drawPos, WHITE, e->rot, 1.0, 3, -1);
+		ss.Draw(drawPos, WHITE, e->rot, 1.0, 2, -1);
 	};
 };
 
@@ -86,8 +91,8 @@ struct Table
     }
 	void draw()
 	{
-        v2 drawPos = e->pos + flip.posOffset;
-        f32 drawrot = math::radToDeg(e->rot + flip.rotOffset);
+        v2 drawPos = e->pos + flip.getPos();
+        f32 drawrot = math::radToDeg(e->rot + flip.getRot());
 		DrawTexturePro(*tex,
 					   {0, 0, (f32)tex->width, (f32)tex->height},
 					   {drawPos.x, drawPos.y, (f32)tex->width, (f32)tex->height},

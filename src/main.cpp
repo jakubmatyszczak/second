@@ -10,8 +10,10 @@ int main(void)
 	Texture2D texture2 = LoadTexture("art/table_tex.png");
 	Dude	  dude;
 	Table	  table;
+	Table	  table2;
 	dude.init(texture, {100, 100});
 	table.init(texture2, {110, 110});
+	table2.init(texture2, {130, 130});
 	GLOBAL.camera.zoom	 = 6.f;
 	GLOBAL.camera.offset = {400, 300};
 	while (!done)
@@ -23,9 +25,11 @@ int main(void)
 				   IsKeyDown(KEY_J),
 				   IsKeyDown(KEY_H),
 				   IsKeyDown(KEY_L),
-				   IsKeyPressed(KEY_E));
+				   IsKeyPressed(KEY_E),
+				   IsKeyDown(KEY_W));
 		dude.update();
 		table.update(dt);
+		table2.update(dt);
 
 		BeginDrawing();
 		{
@@ -34,6 +38,7 @@ int main(void)
 			ClearBackground(RAYWHITE);
 			dude.draw();
 			table.draw();
+			table2.draw();
 			EndMode2D();
 		}
 		EndDrawing();

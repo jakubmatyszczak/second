@@ -92,19 +92,12 @@ struct Keyframe
 	f32 rot		 = 0.f;
 	f32 duration = 1.f;
 };
-struct Flip
+struct Animation
 {
-	bool			 active				   = false;
-	f32				 scale				   = 1.f;
-	v2				 posOffset			   = {};
-	f32				 rotOffset			   = {};
-	static const u32 nKeyFrames			   = 4;
-	Keyframe		 keyFrames[nKeyFrames] = {
-		{.pos = {0.f, 0.f}, .rot = 0.f },
-		{.pos = {0.f, -10.f}, .rot = 1.f, .duration = 0.1f},
-		{.pos = {0.f, -10.f}, .rot = 3.14159f, .duration = 0.05f},
-		{.pos = {0.f, 0.f}, .rot = 3.14159f, .duration = 0.1f},
-	};
+	bool active	   = false;
+	f32	 scale	   = 1.f;
+	v2	 posOffset = {};
+	f32	 rotOffset = {};
 
 	f32 timer = 0.f;
 	u32 frame = 0;
@@ -117,7 +110,7 @@ struct Flip
 		posOffset = {};
 		rotOffset = 0.f;
 	}
-	void update(f32 dt)
+	void update(f32 dt, Keyframe keyFrames[], u32 nKeyFrames)
 	{
 		if (!active)
 			return;
@@ -138,6 +131,34 @@ struct Flip
 		posOffset		   = lerp(previous.pos, current.pos, timer / current.duration);
 		rotOffset		   = lerp(previous.rot, current.rot, timer / current.duration);
 	}
-	v2	getPos() { return posOffset; }
-	f32 getRot() { return rotOffset; }
+};
+struct Flip
+{
+	Animation		 anim;
+	static const u32 nKeyFrames			   = 4;
+	Keyframe		 keyFrames[nKeyFrames] = {
+		{.pos = {0.f, 0.f}, .rot = 0.f},
+		{.pos = {0.f, -10.f}, .rot = 1.f, .duration = 0.1f},
+		{.pos = {0.f, -10.f}, .rot = 3.14159f, .duration = 0.05f},
+		{.pos = {0.f, 0.f}, .rot = 3.14159f, .duration = 0.1f},
+	};
+
+	void activate() { anim.activate(); }
+	void update(f32 dt) { anim.update(dt, keyFrames, nKeyFrames); }
+	v2	 getPos() { return anim.posOffset; }
+	f32	 getRot() { return anim.rotOffset; }
+};
+struct Jump
+{
+	Animation		 anim;
+	static const u32 nKeyFrames			   = 3;
+	Keyframe		 keyFrames[nKeyFrames] = {
+		{.pos = {0.f, 0.f}, .rot = 0.f},
+		{.pos = {0.f, -10.f}, .rot = 0.f, .duration = 0.1f},
+		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.1f},
+	};
+	void activate() { anim.activate(); }
+	void update(f32 dt) { anim.update(dt, keyFrames, nKeyFrames); }
+	v2	 getPos() { return anim.posOffset; }
+	f32	 getRot() { return anim.rotOffset; }
 };
