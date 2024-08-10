@@ -16,10 +16,10 @@ int main(void)
 	Table table3;
 	Table table4;
 	dude.init(texture, textureShadow, {100, 100});
-	table.init(texture2, {110, 110});
-	table2.init(texture2, {130, 130});
-	table3.init(texture2, {50, 100});
-	table4.init(texture2, {90, 120});
+	table.init(texture2, textureShadow, {110, 110});
+	table2.init(texture2, textureShadow, {130, 130});
+	table3.init(texture2, textureShadow, {50, 100});
+	table4.init(texture2, textureShadow, {90, 120});
 	GLOBAL.camera.zoom	 = 6.f;
 	GLOBAL.camera.offset = {400, 300};
 	while (!done)
@@ -27,7 +27,7 @@ int main(void)
 		entities.refresh();
 
 		f32 dt = GetFrameTime();
-        dt = 0.016f;
+		dt	   = 0.016f;
 		dude.input(IsKeyDown(KEY_K),
 				   IsKeyDown(KEY_J),
 				   IsKeyDown(KEY_H),
@@ -46,11 +46,11 @@ int main(void)
 			GLOBAL.camera.target = dude.e->pos.toVector2();
 			BeginMode2D(GLOBAL.camera);
 			{
-				dude.draw();
 				table.draw();
 				table2.draw();
 				table3.draw();
 				table4.draw();
+				dude.draw();
 			}
 			EndMode2D();
 		}

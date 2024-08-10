@@ -35,7 +35,7 @@ struct Dude
 		e = &entities.instances[iPtr];
 		ss.init(tDude, {8, 8}, 2, 10, true);
 		texShadow = tShadow;
-        aBreathe.activate(true);
+		aBreathe.activate(true);
 		return true;
 	}
 	void kill() { entities.remove(e->instancePtr); }
@@ -43,10 +43,10 @@ struct Dude
 	{
 		vel.x = right - left;
 		vel.y = up - down;
-        if(vel.getLengthSquared() > 0.1f)
-            aBreathe.anim.tempo = 10.f;
-        else
-            aBreathe.anim.tempo = 1.f;
+		if (vel.getLengthSquared() > 0.1f)
+			aBreathe.anim.tempo = 10.f;
+		else
+			aBreathe.anim.tempo = 1.f;
 		if (jump && !aJump.anim.active)
 		{
 			aJump.activate();
@@ -114,18 +114,21 @@ struct Table
 {
 	Entity*			 e;
 	Texture2D*		 tex;
+	Texture2D*		 texShadow;
 	EntityProperties props;
 
-	Color	 tint = WHITE;
-	AnimFlip flip;
-	bool	 flipped = true;
+	Color		   tint = WHITE;
+	AnimFlip	   aFlip;
+	AnimJumpShadow aJumpShadow;
+	bool		   flipped = true;
 
-	bool init(Texture& t, v2 pos)
+	bool init(Texture& tTable, Texture& tShadow, v2 pos)
 	{
 		int iPtr = entities.add(Entity::Id::OBJECT, this, &props, pos, 0.f, true, true, true);
 		if (iPtr < 0)
 			return false;
-		tex				  = &t;
+		tex				  = &tTable;
+		texShadow		  = &tShadow;
 		e				  = &entities.instances[iPtr];
 		props.interaction = FLIP;
 		return true;
@@ -136,17 +139,18 @@ struct Table
 			tint = RED;
 		else
 			tint = WHITE;
-		if (!flip.anim.active && entities.interactPtr == e->instancePtr)
+		if (!aFlip.anim.active && entities.interactPtr == e->instancePtr)
 		{
 			if (flipped)
-				flip.anim.reversed = false;
+				aFlip.anim.reversed = false;
 			else
-				flip.anim.reversed = true;
+				aFlip.anim.reversed = true;
 			entities.selectable[e->instancePtr] = false;
 			props.interaction					= NONE;
-			flip.activate();
+			aJumpShadow.activate();
+			aFlip.activate();
 		}
-		if (flip.update(dt))
+		if (aFlip.update(dt))
 		{
 			entities.selectable[e->instancePtr] = true;
 			if (flipped)
@@ -155,12 +159,21 @@ struct Table
 				props.interaction = FLIP;
 			flipped = !flipped;
 		}
+		aJumpShadow.update(dt);
 	}
 	void draw()
 	{
-		v2	flipPos = flip.getPos() * (flip.anim.reversed ? .25f : 1.f);
+		v2 shadowSize	= v2(texShadow->width, texShadow->height) * aJumpShadow.getScale();
+		v2 shadowOffset = v2(0, 1.f) / aJumpShadow.getScale();
+		DrawTextureEx(*texShadow,
+					  (e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
+					  0.f,
+					  aJumpShadow.getScale(),
+					  WHITE);
+
+		v2	flipPos = aFlip.getPos() * (aFlip.anim.reversed ? .25f : 1.f);
 		v2	drawPos = e->pos + flipPos;
-		f32 drawrot = math::radToDeg(e->rot + flip.getRot());
+		f32 drawrot = math::radToDeg(e->rot + aFlip.getRot());
 		DrawTexturePro(*tex,
 					   {0, 0, (f32)tex->width, (f32)tex->height},
 					   {drawPos.x, drawPos.y, (f32)tex->width, (f32)tex->height},
