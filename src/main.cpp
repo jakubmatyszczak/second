@@ -18,7 +18,7 @@ int main(void)
 	GLOBAL.camera.offset = {400, 300};
 	while (!done)
 	{
-        entities.refresh();
+		entities.refresh();
 
 		f32 dt = GetFrameTime();
 		dude.input(IsKeyDown(KEY_K),
@@ -33,14 +33,17 @@ int main(void)
 
 		BeginDrawing();
 		{
+			ClearBackground(RAYWHITE);
 			GLOBAL.camera.target = dude.e->pos.toVector2();
 			BeginMode2D(GLOBAL.camera);
-			ClearBackground(RAYWHITE);
-			dude.draw();
-			table.draw();
-			table2.draw();
+			{
+				dude.draw();
+				table.draw();
+				table2.draw();
+			}
 			EndMode2D();
 		}
+        dude.drawOverlay();
 		EndDrawing();
 		usleep(16000);
 		if (IsKeyPressed(KEY_Q))

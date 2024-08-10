@@ -20,6 +20,7 @@ struct Entity
 	Id	  id		  = Id::UNKNOWN;
 	u32	  instancePtr = 0;
 	void* data		  = nullptr;
+	void* properties  = nullptr;
 };
 struct Entities
 {
@@ -28,6 +29,7 @@ struct Entities
 	Entity instances[maxEntities]	 = {};
 	u8	   active[maxEntities]		 = {};
 	u8	   drawable[maxEntities]	 = {};
+	u8	   selectable[maxEntities]	 = {};
 	u8	   interactable[maxEntities] = {};
 
 	u32 nActive		= 0;
@@ -36,9 +38,11 @@ struct Entities
 
 	i32 add(Entity::Id idType,
 			void*	   entityData,
+			void*	   entityProperties,
 			v2		   position	   = {},
 			f32		   rotation	   = 0.f,
 			bool	   canDraw	   = false,
+			bool	   canSelect   = false,
 			bool	   canInteract = false)
 	{
 		for (int i = 0; i < maxEntities; i++)
@@ -48,11 +52,13 @@ struct Entities
 			Entity& e		= instances[i];
 			e.id			= idType;
 			e.data			= entityData;
+			e.properties	= entityProperties;
 			e.pos			= position;
 			e.rot			= rotation;
 			e.instancePtr	= i;
 			active[i]		= true;
 			drawable[i]		= canDraw;
+            selectable[i]   = canSelect;
 			interactable[i] = canInteract;
 			nActive++;
 			return i;
@@ -69,13 +75,13 @@ struct Entities
 	void select(u32 instancePtr)
 	{
 		if (instancePtr < maxEntities)
-			if (active[instancePtr])
+			if (active[instancePtr] && selectable[instancePtr])
 				selectedPtr = instancePtr;
 	}
 	void interact(u32 instancePtr)
 	{
 		if (instancePtr < maxEntities)
-			if (active[instancePtr])
+			if (active[instancePtr] && interactable[instancePtr])
 				interactPtr = instancePtr;
 	}
 	void refresh()
@@ -151,10 +157,11 @@ struct Flip
 struct Jump
 {
 	Animation		 anim;
-	static const u32 nKeyFrames			   = 3;
+	static const u32 nKeyFrames			   = 4;
 	Keyframe		 keyFrames[nKeyFrames] = {
 		{.pos = {0.f, 0.f}, .rot = 0.f},
-		{.pos = {0.f, -10.f}, .rot = 0.f, .duration = 0.1f},
+		{.pos = {0.f, -7.f}, .rot = 0.f, .duration = 0.08f},
+		{.pos = {0.f, -10.f}, .rot = 0.f, .duration = 0.08f},
 		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.1f},
 	};
 	void activate() { anim.activate(); }
