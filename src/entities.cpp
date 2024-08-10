@@ -17,23 +17,23 @@ struct Dude
 {
 	Entity*			  e;
 	SpriteSheet		  ss;
-	Jump			  aJump;
+	Texture2D		  texShadow;
+	AnimJump		  aJump;
+	AnimJumpShadow	  aJumpShadow;
 	PlayerInteraction activeHint = NONE;
 
 	v2 vel;
 
-	constexpr static const char* interactHint[4] = {"INTERACT",
-													"FLIP",
-													"RESTORE",
-													"USRAJ"};
+	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "TEST"};
 
-	bool init(Texture& t, v2 pos)
+	bool init(Texture& tDude, Texture& tShadow, v2 pos)
 	{
 		int iPtr = entities.add(Entity::Id::PLAYER, this, nullptr, pos, 0.f, true, true);
 		if (iPtr < 0)
 			return false;
 		e = &entities.instances[iPtr];
-		ss.init(t, {8, 8}, 2, 10, true);
+		ss.init(tDude, {8, 8}, 2, 10, true);
+		texShadow = tShadow;
 		return true;
 	}
 	void kill() { entities.remove(e->instancePtr); }
@@ -42,7 +42,10 @@ struct Dude
 		vel.x = right - left;
 		vel.y = up - down;
 		if (jump && !aJump.anim.active)
+		{
 			aJump.activate();
+			aJumpShadow.activate();
+		}
 
 		activeHint			 = NONE;
 		i32 closestEntityPtr = -1;
@@ -70,11 +73,20 @@ struct Dude
 	void update()
 	{
 		aJump.update(0.016f);
+		aJumpShadow.update(0.016f);
 		e->pos += vel;
 		ss.update(0.016f);
 	}
 	void draw()
 	{
+		v2 shadowSize	= v2(texShadow.width, texShadow.height) * aJumpShadow.getScale();
+		v2 shadowOffset = v2(0, 1) / aJumpShadow.getScale();
+		DrawTextureEx(texShadow,
+					  (e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
+					  0.f,
+					  aJumpShadow.getScale(),
+					  WHITE);
+
 		v2 drawPos = e->pos + aJump.getPos();
 		if (vel.getLengthSquared() < 1.f)
 			return ss.Draw(drawPos, WHITE, e->rot, 1.0, 0, 0);
@@ -96,9 +108,9 @@ struct Table
 	Texture2D*		 tex;
 	EntityProperties props;
 
-	Color tint = WHITE;
-	Flip  flip;
-	bool  flipped = false;
+	Color	 tint = WHITE;
+	AnimFlip flip;
+	bool	 flipped = false;
 
 	bool init(Texture& t, v2 pos)
 	{
@@ -118,9 +130,9 @@ struct Table
 			tint = WHITE;
 		if (entities.interactPtr == e->instancePtr && !flipped)
 		{
-            entities.selectable[e->instancePtr] = false;
-            props.interaction = NONE;
-			flipped = true;
+			entities.selectable[e->instancePtr] = false;
+			props.interaction					= NONE;
+			flipped								= true;
 			flip.activate();
 		}
 		flip.update(dt);

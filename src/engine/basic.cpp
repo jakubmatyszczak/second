@@ -58,7 +58,7 @@ struct Entities
 			e.instancePtr	= i;
 			active[i]		= true;
 			drawable[i]		= canDraw;
-            selectable[i]   = canSelect;
+			selectable[i]	= canSelect;
 			interactable[i] = canInteract;
 			nActive++;
 			return i;
@@ -96,6 +96,7 @@ struct Keyframe
 {
 	v2	pos		 = {};
 	f32 rot		 = 0.f;
+	f32 scale	 = 1.f;
 	f32 duration = 1.f;
 };
 struct Animation
@@ -134,11 +135,13 @@ struct Animation
 		}
 		Keyframe& previous = keyFrames[frame - 1];
 		Keyframe& current  = keyFrames[frame];
-		posOffset		   = lerp(previous.pos, current.pos, timer / current.duration);
-		rotOffset		   = lerp(previous.rot, current.rot, timer / current.duration);
+
+		posOffset = lerp(previous.pos, current.pos, timer / current.duration);
+		rotOffset = lerp(previous.rot, current.rot, timer / current.duration);
+		scale	  = lerp(previous.scale, current.scale, timer / current.duration);
 	}
 };
-struct Flip
+struct AnimFlip
 {
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 4;
@@ -154,7 +157,7 @@ struct Flip
 	v2	 getPos() { return anim.posOffset; }
 	f32	 getRot() { return anim.rotOffset; }
 };
-struct Jump
+struct AnimJump
 {
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 4;
@@ -168,4 +171,18 @@ struct Jump
 	void update(f32 dt) { anim.update(dt, keyFrames, nKeyFrames); }
 	v2	 getPos() { return anim.posOffset; }
 	f32	 getRot() { return anim.rotOffset; }
+};
+struct AnimJumpShadow
+{
+	Animation		 anim;
+	static const u32 nKeyFrames			   = 4;
+	Keyframe		 keyFrames[nKeyFrames] = {
+		{.scale = 1.f},
+		{.scale = 0.6f, .duration = 0.08f},
+		{.scale = 0.5f, .duration = 0.08f},
+		{.scale = 1.f, .duration = 0.1f},
+	};
+	void activate() { anim.activate(); }
+	void update(f32 dt) { anim.update(dt, keyFrames, nKeyFrames); }
+	f32	 getScale() { return anim.scale; }
 };

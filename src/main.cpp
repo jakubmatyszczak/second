@@ -5,13 +5,14 @@
 int main(void)
 {
 	InitWindow(800, 600, "DUPA");
-	bool	  done	   = false;
-	Texture2D texture  = LoadTexture("art/dude_ss.png");
-	Texture2D texture2 = LoadTexture("art/table_tex.png");
+	bool	  done			= false;
+	Texture2D texture		= LoadTexture("art/dude_ss.png");
+	Texture2D texture2		= LoadTexture("art/table_tex.png");
+	Texture2D textureShadow = LoadTexture("art/shadow_tex.png");
 	Dude	  dude;
 	Table	  table;
 	Table	  table2;
-	dude.init(texture, {100, 100});
+	dude.init(texture, textureShadow, {100, 100});
 	table.init(texture2, {110, 110});
 	table2.init(texture2, {130, 130});
 	GLOBAL.camera.zoom	 = 6.f;
@@ -43,7 +44,7 @@ int main(void)
 			}
 			EndMode2D();
 		}
-        dude.drawOverlay();
+		dude.drawOverlay();
 		EndDrawing();
 		usleep(16000);
 		if (IsKeyPressed(KEY_Q))
