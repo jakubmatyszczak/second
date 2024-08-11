@@ -1,8 +1,8 @@
 #pragma once
 #include "v2.cpp"
 
-f32	 lerp(f32 start, f32 end, f32 time) { return start + (end - start) * time; }
-v2	 lerp(const v2& start, const v2& end, f32 time) { return start + (end - start) * time; }
+f32			lerp(f32 start, f32 end, f32 time) { return start + (end - start) * time; }
+v2			lerp(const v2& start, const v2& end, f32 time) { return start + (end - start) * time; }
 inline void swap(f32* x, f32* y)
 {
 	f32 temp = *x;
@@ -164,6 +164,11 @@ struct Entities
 };
 Entities entities = {};
 
+struct BoundingCircle
+{
+    v2 position;
+    f32 radius;
+};
 struct Keyframe
 {
 	v2	pos		 = {};
