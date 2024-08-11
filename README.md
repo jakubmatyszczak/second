@@ -2,6 +2,7 @@
 This game is called *Second*, as this is the second project I have created the other day.
 It is being written in C/C++ wiht RayLib as a framework as OpenGL is a mess, that I am not willing to learn.
 Raylib is awesome.
+![Second gameplay](doc/so_called_art.gif "Second title")
 
 ## Code & Build System
 The code & build system are inspired by [Ooga Booga](https://github.com/alpinestudios/oogabooga). 
