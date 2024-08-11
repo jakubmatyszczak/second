@@ -21,6 +21,9 @@ struct Entity
 	u32	  instancePtr = 0;
 	void* data		  = nullptr;
 	void* properties  = nullptr;
+
+	void (*drawPtr)(void* data)			  = nullptr;
+	void (*updatePtr)(void* data, f32 dt) = nullptr;
 };
 struct Entities
 {
@@ -28,6 +31,7 @@ struct Entities
 
 	Entity instances[maxEntities]	 = {};
 	u8	   active[maxEntities]		 = {};
+	u8	   updatable[maxEntities]	 = {};
 	u8	   drawable[maxEntities]	 = {};
 	u8	   selectable[maxEntities]	 = {};
 	u8	   interactable[maxEntities] = {};
@@ -38,26 +42,36 @@ struct Entities
 
 	i32 add(Entity::Id idType,
 			void*	   entityData,
-			void*	   entityProperties,
-			v2		   position	   = {},
-			f32		   rotation	   = 0.f,
-			bool	   canDraw	   = false,
-			bool	   canSelect   = false,
-			bool	   canInteract = false)
+			void*	   interactionProperties,
+			v2		   position				   = {},
+			f32		   rotation				   = 0.f,
+			void (*updateFunction)(void*, f32) = nullptr,
+			void (*drawFunction)(void*)		   = nullptr,
+			bool canSelect					   = false,
+			bool canInteract				   = false)
 	{
 		for (int i = 0; i < maxEntities; i++)
 		{
 			if (active[i])
 				continue;
-			Entity& e		= instances[i];
-			e.id			= idType;
-			e.data			= entityData;
-			e.properties	= entityProperties;
-			e.pos			= position;
-			e.rot			= rotation;
-			e.instancePtr	= i;
-			active[i]		= true;
-			drawable[i]		= canDraw;
+			Entity& e	  = instances[i];
+			e.id		  = idType;
+			e.data		  = entityData;
+			e.properties  = interactionProperties;
+			e.pos		  = position;
+			e.rot		  = rotation;
+			e.instancePtr = i;
+			active[i]	  = true;
+			if (updateFunction)
+			{
+				e.updatePtr	 = updateFunction;
+				updatable[i] = true;
+			}
+			if (drawFunction)
+			{
+				e.drawPtr	= drawFunction;
+				drawable[i] = true;
+			}
 			selectable[i]	= canSelect;
 			interactable[i] = canInteract;
 			nActive++;
@@ -77,19 +91,31 @@ struct Entities
 		if (instancePtr < maxEntities)
 			if (active[instancePtr] && selectable[instancePtr])
 				return selectedPtr = instancePtr;
-        return false;
+		return false;
 	}
 	bool interact(u32 instancePtr)
 	{
 		if (instancePtr < maxEntities)
 			if (active[instancePtr] && interactable[instancePtr])
-                return interactPtr = instancePtr;
-        return false;
+				return interactPtr = instancePtr;
+		return false;
 	}
 	void refresh()
 	{
 		selectedPtr = -1;
 		interactPtr = -1;
+	}
+	void updateAll(f32 dt)
+	{
+		for (u32 i = 0; i < maxEntities; i++)
+			if (active[i] && updatable[i])
+				instances[i].updatePtr(instances[i].data, dt);
+	}
+	void drawAll()
+	{
+		for (u32 i = 0; i < maxEntities; i++)
+			if (active[i] && drawable[i])
+				instances[i].drawPtr(instances[i].data);
 	}
 };
 Entities entities = {};

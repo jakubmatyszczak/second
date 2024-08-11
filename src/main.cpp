@@ -34,11 +34,7 @@ int main(void)
 				   IsKeyDown(KEY_L),
 				   IsKeyPressed(KEY_E),
 				   IsKeyDown(KEY_W));
-		dude.update(dt);
-		table.update(dt);
-		table2.update(dt);
-		table3.update(dt);
-		table4.update(dt);
+        entities.updateAll(dt);
 
 		BeginDrawing();
 		{
@@ -46,11 +42,7 @@ int main(void)
 			GLOBAL.camera.target = dude.e->pos.toVector2();
 			BeginMode2D(GLOBAL.camera);
 			{
-				table.draw();
-				table2.draw();
-				table3.draw();
-				table4.draw();
-				dude.draw();
+                entities.drawAll();
 			}
 			EndMode2D();
 		}

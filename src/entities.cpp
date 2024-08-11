@@ -36,7 +36,7 @@ struct Dude
 
 	bool init(Texture& tDude, Texture& tShadow, v2 pos)
 	{
-		int iPtr = entities.add(Entity::Id::PLAYER, this, nullptr, pos, 0.f, true, true);
+		int iPtr = entities.add(Entity::Id::PLAYER, this, nullptr, pos, 0.f, update, draw);
 		if (iPtr < 0)
 			return false;
 		e = &entities.instances[iPtr];
@@ -50,11 +50,11 @@ struct Dude
 	{
 		if (busy)
 		{
-            vel = v2();
+			vel	 = v2();
 			busy = getInteractionProperties(interactEntityPtr)->shouldPlayerBeBusy;
 			if (busy)
 				return;
-            interactEntityPtr = -1;
+			interactEntityPtr = -1;
 		}
 		vel.x = right - left;
 		vel.y = up - down;
@@ -97,31 +97,34 @@ struct Dude
 					   ->shouldPlayerBeBusy;
 		}
 	}
-	void update(f32 dt)
+	static void update(void* dudePtr, f32 dt)
 	{
-		aJump.update(dt);
-		aJumpShadow.update(dt);
-		aBreathe.update(dt);
-		e->pos += vel;
-		ss.update(dt);
+		Dude& dude = *(Dude*)dudePtr;
+		dude.aJump.update(dt);
+		dude.aJumpShadow.update(dt);
+		dude.aBreathe.update(dt);
+		dude.e->pos += dude.vel;
+		dude.ss.update(dt);
 	}
-	void draw()
+	static void draw(void* dudePtr)
 	{
-		v2 shadowSize	= v2(texShadow.width, texShadow.height) * aJumpShadow.getScale();
-		v2 shadowOffset = v2(0, 1) / aJumpShadow.getScale();
-		DrawTextureEx(texShadow,
-					  (e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
+		Dude& dude = *(Dude*)dudePtr;
+		v2	  shadowSize =
+			v2(dude.texShadow.width, dude.texShadow.height) * dude.aJumpShadow.getScale();
+		v2 shadowOffset = v2(0, 1) / dude.aJumpShadow.getScale();
+		DrawTextureEx(dude.texShadow,
+					  (dude.e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
 					  0.f,
-					  aJumpShadow.getScale(),
+					  dude.aJumpShadow.getScale(),
 					  WHITE);
 
-		v2	drawPos	  = e->pos + aJump.getPos();
-		f32 drawScale = aBreathe.getScale();
-		if (vel.getLengthSquared() < 1.f)
-			return ss.Draw(drawPos, WHITE, e->rot, drawScale, 0, 0);
-		if (vel.y < 0)
-			return ss.Draw(drawPos, WHITE, e->rot, drawScale, 3, -1);
-		ss.Draw(drawPos, WHITE, e->rot, drawScale, 2, -1);
+		v2	drawPos	  = dude.e->pos + dude.aJump.getPos();
+		f32 drawScale = dude.aBreathe.getScale();
+		if (dude.vel.getLengthSquared() < 1.f)
+			return dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 0, 0);
+		if (dude.vel.y < 0)
+			return dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 3, -1);
+		dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 2, -1);
 	};
 	void drawOverlay()
 	{
@@ -145,7 +148,8 @@ struct Table
 
 	bool init(Texture& tTable, Texture& tShadow, v2 pos)
 	{
-		int iPtr = entities.add(Entity::Id::OBJECT, this, &props, pos, 0.f, true, true, true);
+		int iPtr =
+			entities.add(Entity::Id::OBJECT, this, &props, pos, 0.f, update, draw, true, true);
 		if (iPtr < 0)
 			return false;
 		tex				  = &tTable;
@@ -154,62 +158,65 @@ struct Table
 		props.interaction = FLIP;
 		return true;
 	}
-	void update(f32 dt)
+	static void update(void* tablePtr, f32 dt)
 	{
-		if (entities.selectedPtr == e->instancePtr)
-			tint = RED;
+		Table& table = *(Table*)tablePtr;
+		if (entities.selectedPtr == table.e->instancePtr)
+			table.tint = RED;
 		else
-			tint = WHITE;
-		if (!aFlip.anim.active && entities.interactPtr == e->instancePtr)
+			table.tint = WHITE;
+		if (!table.aFlip.anim.active && entities.interactPtr == table.e->instancePtr)
 		{
 			f32 flipPeriod = 0.3f;
-			if (flipped)
-				aFlip.anim.reversed = false;
+			if (table.flipped)
+				table.aFlip.anim.reversed = false;
 			else
 			{
-				flipPeriod			= 0.9f;
-				aFlip.anim.reversed = true;
+				flipPeriod				  = flipPeriod * 3.f;
+				table.aFlip.anim.reversed = true;
 			}
-			entities.selectable[e->instancePtr] = false;
-			props.interaction					= NONE;
-			aJumpShadow.activate(flipPeriod);
-			aFlip.activate(flipPeriod);
+			entities.selectable[table.e->instancePtr] = false;
+			table.props.interaction					  = NONE;
+			table.aJumpShadow.activate(flipPeriod);
+			table.aFlip.activate(flipPeriod);
 		}
-		if (aFlip.update(dt))
+		if (table.aFlip.update(dt))
 		{
-			entities.selectable[e->instancePtr] = true;
-			if (flipped)
+			entities.selectable[table.e->instancePtr] = true;
+			if (table.flipped)
 			{
-				props.shouldPlayerBeBusy = true;
-				props.interaction		 = RESTORE;
+				table.props.shouldPlayerBeBusy = true;
+				table.props.interaction		   = RESTORE;
 			}
 			else
 			{
-				props.shouldPlayerBeBusy = false;
-				props.interaction		 = FLIP;
+				table.props.shouldPlayerBeBusy = false;
+				table.props.interaction		   = FLIP;
 			}
-			flipped = !flipped;
+			table.flipped = !table.flipped;
 		}
-		aJumpShadow.update(dt);
+		table.aJumpShadow.update(dt);
 	}
-	void draw()
+	static void draw(void* tablePtr)
 	{
-		v2 shadowSize	= v2(texShadow->width, texShadow->height) * aJumpShadow.getScale();
-		v2 shadowOffset = v2(0, 1.f) / aJumpShadow.getScale();
-		DrawTextureEx(*texShadow,
-					  (e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
+		Table& table = *(Table*)tablePtr;
+		v2	   shadowSize =
+			v2(table.texShadow->width, table.texShadow->height) * table.aJumpShadow.getScale();
+		v2 shadowOffset = v2(0, 1.f) / table.aJumpShadow.getScale();
+		DrawTextureEx(*table.texShadow,
+					  (table.e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
 					  0.f,
-					  aJumpShadow.getScale(),
+					  table.aJumpShadow.getScale(),
 					  WHITE);
 
-		v2	flipPos = aFlip.getPos() * (aFlip.anim.reversed ? .25f : 1.f);
-		v2	drawPos = e->pos + flipPos;
-		f32 drawrot = math::radToDeg(e->rot + aFlip.getRot());
-		DrawTexturePro(*tex,
-					   {0, 0, (f32)tex->width, (f32)tex->height},
-					   {drawPos.x, drawPos.y, (f32)tex->width, (f32)tex->height},
-					   {tex->width / 2.f, 1.f + tex->height / 2.f},
+		v2	flipPos = table.aFlip.getPos() * (table.aFlip.anim.reversed ? .25f : 1.f);
+		v2	drawPos = table.e->pos + flipPos;
+		f32 drawrot = math::radToDeg(table.e->rot + table.aFlip.getRot());
+		DrawTexturePro(*table.tex,
+					   {0, 0, (f32)table.tex->width, (f32)table.tex->height},
+					   {drawPos.x, drawPos.y, (f32)table.tex->width, (f32)table.tex->height},
+					   {table.tex->width / 2.f, 1.f + table.tex->height / 2.f},
 					   drawrot,
-					   tint);
+					   table.tint);
 	};
 };
