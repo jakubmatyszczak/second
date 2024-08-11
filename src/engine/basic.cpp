@@ -1,8 +1,39 @@
 #pragma once
 #include "v2.cpp"
 
-f32 lerp(f32 start, f32 end, f32 time) { return start + (end - start) * time; }
-v2	lerp(const v2& start, const v2& end, f32 time) { return start + (end - start) * time; }
+f32	 lerp(f32 start, f32 end, f32 time) { return start + (end - start) * time; }
+v2	 lerp(const v2& start, const v2& end, f32 time) { return start + (end - start) * time; }
+inline void swap(f32* x, f32* y)
+{
+	f32 temp = *x;
+	*x		 = *y;
+	*y		 = temp;
+}
+inline void swap(u64* x, u64* y)
+{
+	u64 temp = *x;
+	*x		 = *y;
+	*y		 = temp;
+}
+void bubble_sort(u64 sortArr[], f32 sortBy[], int n)
+{
+	bool swapped;
+	for (u32 i = 0; i < n - 1; i++)
+	{
+		swapped = false;
+		for (u32 j = 0; j < n - i - 1; j++)
+		{
+			if (sortBy[j] > sortBy[j + 1])
+			{
+				swap(&sortBy[j], &sortBy[j + 1]);
+				swap(&sortArr[j], &sortArr[j + 1]);
+				swapped = true;
+			}
+		}
+		if (swapped == false)
+			break;
+	}
+}
 
 struct Entity
 {
@@ -113,9 +144,22 @@ struct Entities
 	}
 	void drawAll()
 	{
+		// This code sorts all entities draw calls, based on their Y position
+		// so that in perspective view, objects closer (smaller Y) will be draw over
+		// objects that are further
+		Entity* sortedEntities[maxEntities] = {};
+		f32		posValueY[maxEntities]		= {};
+		u32		nSortedEntities				= 0;
 		for (u32 i = 0; i < maxEntities; i++)
 			if (active[i] && drawable[i])
-				instances[i].drawPtr(instances[i].data);
+			{
+				sortedEntities[nSortedEntities] = &instances[i];
+				posValueY[nSortedEntities]		= instances[i].pos.y;
+				nSortedEntities++;
+			}
+		bubble_sort((u64*)sortedEntities, posValueY, (u64)nSortedEntities);
+		for (i32 i = 0; i < nSortedEntities; i++)
+			sortedEntities[i]->drawPtr(sortedEntities[i]->data);
 	}
 };
 Entities entities = {};

@@ -12,12 +12,14 @@ typedef uint8_t	 u16;
 typedef int8_t	 i16;
 typedef uint32_t u32;
 typedef int32_t	 i32;
+typedef uint64_t u64;
+typedef int64_t	 i64;
 typedef float	 f32;
 
 struct Screen
 {
-	u32		 width	= 800;
-	u32		 height = 600;
+	u32 width  = 800;
+	u32 height = 600;
 };
 struct GameState
 {
@@ -27,9 +29,9 @@ struct GameState
 };
 struct EngineGlobals
 {
-    Screen screen;
-    GameState state;
-	Camera2D camera;
+	Screen	  screen;
+	GameState state;
+	Camera2D  camera;
 };
 EngineGlobals GLOBAL;
 
