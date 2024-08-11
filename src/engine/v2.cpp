@@ -152,6 +152,8 @@ std::ostream& operator<<(std::ostream& os, const v2& obj) { return os << obj.x <
 
 v2	operator*(const float lhs, const v2& rhs) { return rhs * lhs; }
 v2& operator+=(v2& lhs, const v2& rhs) { return lhs = lhs + rhs; }
-v2& operator-=(v2& lhs, const v2& rhs) { return lhs = rhs - lhs; }
+v2& operator-=(v2& lhs, const v2& rhs) { return lhs = lhs - rhs; }
 v2& operator*=(v2& lhs, const v2& rhs) { return lhs = rhs * lhs; }
 v2& operator*=(v2& lhs, float rhs) { return lhs = rhs * lhs; }
+v2& operator/=(v2& lhs, const v2& rhs) { return lhs = lhs / rhs; }
+v2& operator/=(v2& lhs, float rhs) { return lhs = lhs / rhs; }

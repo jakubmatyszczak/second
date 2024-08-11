@@ -23,10 +23,10 @@ int main(void)
 	Table table2;
 	Table table3;
 	Table table4;
-    l1.appendVertex({0.f, 0.f});
-    l1.appendVertex({140.f, 0.f});
-    l1.appendVertex({120.f, 110.f});
-    l1.appendVertex({0.f, 150.f});
+	l1.appendVertex({0.f, 0.f});
+	l1.appendVertex({140.f, 0.f});
+	l1.appendVertex({120.f, 110.f});
+	l1.appendVertex({0.f, 150.f});
 	dude.init(texture, textureShadow, soundJump, {100, 100});
 	table.init(texture2, textureShadow, soundWham, {110, 110});
 	table2.init(texture2, textureShadow, soundWham, {130, 111});
@@ -74,7 +74,7 @@ int main(void)
 				l1.draw();
 				entities.drawAll();
 				v2			   cv;
-				BoundingCircle c = {dude.e->pos + v2(0,2), 4};
+				BoundingCircle c = {dude.e->pos + v2(0, 2), 4};
 				if (l1.collidesWithTerrainBorder(c, cv))
 				{
 					dude.e->pos = dude.e->pos - cv;
