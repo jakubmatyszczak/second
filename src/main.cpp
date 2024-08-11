@@ -6,10 +6,9 @@ int main(void)
 {
 	InitWindow(800, 600, "DUPA");
 	bool	  done			= false;
-	Texture2D texture		= LoadTexture("art/dude_ss.png");
-	Texture2D texture2		= LoadTexture("art/table_tex.png");
-	Texture2D textureShadow = LoadTexture("art/shadow_tex.png");
-
+	Texture2D texture		= LoadTexture("res/art/dude_ss.png");
+	Texture2D texture2		= LoadTexture("res/art/table_tex.png");
+	Texture2D textureShadow = LoadTexture("res/art/shadow_tex.png");
 	Dude  dude;
 	Table table;
 	Table table2;
