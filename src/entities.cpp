@@ -22,7 +22,8 @@ struct Dude
 {
 	Entity*			  e;
 	SpriteSheet		  ss;
-	Texture2D		  texShadow;
+	Texture2D		  tShadow;
+	Sound*			  sJump;
 	AnimJump		  aJump;
 	AnimJumpShadow	  aJumpShadow;
 	AnimBreathe		  aBreathe;
@@ -34,14 +35,15 @@ struct Dude
 
 	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "TEST"};
 
-	bool init(Texture& tDude, Texture& tShadow, v2 pos)
+	bool init(Texture& texDude, Texture& texShadow, Sound& soundJump, v2 pos)
 	{
 		int iPtr = entities.add(Entity::Id::PLAYER, this, nullptr, pos, 0.f, update, draw);
 		if (iPtr < 0)
 			return false;
 		e = &entities.instances[iPtr];
-		ss.init(tDude, {8, 8}, 2, 10, true);
-		texShadow = tShadow;
+		ss.init(texDude, {8, 8}, 2, 10, true);
+		tShadow = texShadow;
+		sJump	= &soundJump;
 		aBreathe.activate(5.f);
 		return true;
 	}
@@ -64,6 +66,7 @@ struct Dude
 			aBreathe.anim.period = 1.f;
 		if (jump && !aJump.anim.active)
 		{
+			PlaySound(*sJump);
 			aJump.activate(0.3f);
 			aJumpShadow.activate(0.3f);
 		}
@@ -108,11 +111,10 @@ struct Dude
 	}
 	static void draw(void* dudePtr)
 	{
-		Dude& dude = *(Dude*)dudePtr;
-		v2	  shadowSize =
-			v2(dude.texShadow.width, dude.texShadow.height) * dude.aJumpShadow.getScale();
+		Dude& dude		= *(Dude*)dudePtr;
+		v2 shadowSize	= v2(dude.tShadow.width, dude.tShadow.height) * dude.aJumpShadow.getScale();
 		v2 shadowOffset = v2(0, 1) / dude.aJumpShadow.getScale();
-		DrawTextureEx(dude.texShadow,
+		DrawTextureEx(dude.tShadow,
 					  (dude.e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
 					  0.f,
 					  dude.aJumpShadow.getScale(),
@@ -137,8 +139,9 @@ struct Dude
 struct Table
 {
 	Entity*				  e;
-	Texture2D*			  tex;
-	Texture2D*			  texShadow;
+	Texture2D*			  tTable;
+	Texture2D*			  tShadow;
+	Sound*				  sWham;
 	InteractionProperties props;
 
 	Color		   tint = WHITE;
@@ -146,14 +149,15 @@ struct Table
 	AnimJumpShadow aJumpShadow;
 	bool		   flipped = true;
 
-	bool init(Texture& tTable, Texture& tShadow, v2 pos)
+	bool init(Texture& table, Texture& shadow, Sound& wham, v2 pos)
 	{
 		int iPtr =
 			entities.add(Entity::Id::OBJECT, this, &props, pos, 0.f, update, draw, true, true);
 		if (iPtr < 0)
 			return false;
-		tex				  = &tTable;
-		texShadow		  = &tShadow;
+		tTable			  = &table;
+		tShadow			  = &shadow;
+		sWham			  = &wham;
 		e				  = &entities.instances[iPtr];
 		props.interaction = FLIP;
 		return true;
@@ -185,6 +189,7 @@ struct Table
 			entities.selectable[table.e->instancePtr] = true;
 			if (table.flipped)
 			{
+                PlaySound(*table.sWham);
 				table.props.shouldPlayerBeBusy = true;
 				table.props.interaction		   = RESTORE;
 			}
@@ -201,9 +206,9 @@ struct Table
 	{
 		Table& table = *(Table*)tablePtr;
 		v2	   shadowSize =
-			v2(table.texShadow->width, table.texShadow->height) * table.aJumpShadow.getScale();
+			v2(table.tShadow->width, table.tShadow->height) * table.aJumpShadow.getScale();
 		v2 shadowOffset = v2(0, 1.f) / table.aJumpShadow.getScale();
-		DrawTextureEx(*table.texShadow,
+		DrawTextureEx(*table.tShadow,
 					  (table.e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
 					  0.f,
 					  table.aJumpShadow.getScale(),
@@ -212,10 +217,10 @@ struct Table
 		v2	flipPos = table.aFlip.getPos() * (table.aFlip.anim.reversed ? .25f : 1.f);
 		v2	drawPos = table.e->pos + flipPos;
 		f32 drawrot = math::radToDeg(table.e->rot + table.aFlip.getRot());
-		DrawTexturePro(*table.tex,
-					   {0, 0, (f32)table.tex->width, (f32)table.tex->height},
-					   {drawPos.x, drawPos.y, (f32)table.tex->width, (f32)table.tex->height},
-					   {table.tex->width / 2.f, 1.f + table.tex->height / 2.f},
+		DrawTexturePro(*table.tTable,
+					   {0, 0, (f32)table.tTable->width, (f32)table.tTable->height},
+					   {drawPos.x, drawPos.y, (f32)table.tTable->width, (f32)table.tTable->height},
+					   {table.tTable->width / 2.f, 1.f + table.tTable->height / 2.f},
 					   drawrot,
 					   table.tint);
 	};
