@@ -72,17 +72,19 @@ struct Entities
 		active[instancePtr] = false;
 		nActive--;
 	}
-	void select(u32 instancePtr)
+	bool select(u32 instancePtr)
 	{
 		if (instancePtr < maxEntities)
 			if (active[instancePtr] && selectable[instancePtr])
-				selectedPtr = instancePtr;
+				return selectedPtr = instancePtr;
+        return false;
 	}
-	void interact(u32 instancePtr)
+	bool interact(u32 instancePtr)
 	{
 		if (instancePtr < maxEntities)
 			if (active[instancePtr] && interactable[instancePtr])
-				interactPtr = instancePtr;
+                return interactPtr = instancePtr;
+        return false;
 	}
 	void refresh()
 	{
@@ -103,19 +105,20 @@ struct Animation
 {
 	bool reversed  = false;
 	bool active	   = false;
-    bool looped = false;
+	bool looped	   = false;
 	f32	 scale	   = 1.f;
 	v2	 posOffset = {};
 	f32	 rotOffset = {};
 
-	f32 timer = 0.f;
-    f32 tempo = 1.f;
-	i32 frame = 0;
+	f32 timer  = 0.f;
+	f32 period = 1.f;
+	i32 frame  = 0;
 
-	void activate(u32 nKeyFrames, bool loop = false)
+	void activate(u32 nKeyFrames, f32 animPeriod, bool loop = false)
 	{
 		active = true;
-        looped = loop;
+		looped = loop;
+		period = animPeriod;
 		timer  = 0.f;
 		frame  = 1;
 		if (reversed)
@@ -128,8 +131,8 @@ struct Animation
 	{
 		if (!active)
 			return false;
-		timer += dt * tempo;
-		if (timer > keyFrames[frame].duration)
+		timer += dt;
+		if (timer > keyFrames[frame].duration * period)
 		{
 			timer = 0.f;
 			frame++;
@@ -156,7 +159,7 @@ struct Animation
 		Keyframe& previous = keyFrames[prevFrame];
 		Keyframe& current  = keyFrames[frame];
 
-		f32 timeNorm = math::limit((timer / current.duration), 0.f, 1.f);
+		f32 timeNorm = math::limit((timer / (current.duration * period)), 0.f, 1.f);
 		posOffset	 = lerp(previous.pos, current.pos, timeNorm);
 		rotOffset	 = lerp(previous.rot, current.rot, timeNorm);
 		scale		 = lerp(previous.scale, current.scale, timeNorm);
@@ -164,8 +167,8 @@ struct Animation
 		if (finished)
 		{
 			active = false;
-            if(looped)
-                activate(nKeyFrames, looped);
+			if (looped)
+				activate(nKeyFrames, period, looped);
 			return true;
 		}
 		return false;
@@ -176,13 +179,13 @@ struct AnimFlip
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 4;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.1},
-		{.pos = {0.f, -10.f}, .rot = 1.f, .duration = 0.1f},
-		{.pos = {0.f, -10.f}, .rot = 3.14159f, .duration = 0.05f},
-		{.pos = {0.f, 0.f}, .rot = 3.14159f, .duration = 0.1f},
+		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.3},
+		{.pos = {0.f, -10.f}, .rot = 1.f, .duration = 0.3f},
+		{.pos = {0.f, -10.f}, .rot = 3.14159f, .duration = 0.1f},
+		{.pos = {0.f, 0.f}, .rot = 3.14159f, .duration = 0.3f},
 	};
 
-	void activate() { anim.activate(nKeyFrames); }
+	void activate(f32 period) { anim.activate(nKeyFrames, period, false); }
 	// returns true if completed
 	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	v2	 getPos() { return anim.posOffset; }
@@ -193,12 +196,12 @@ struct AnimJump
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 4;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.1},
-		{.pos = {0.f, -7.f}, .rot = 0.f, .duration = 0.08f},
-		{.pos = {0.f, -10.f}, .rot = 0.f, .duration = 0.08f},
-		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.1f},
+		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.3},
+		{.pos = {0.f, -7.f}, .rot = 0.f, .duration = 0.2f},
+		{.pos = {0.f, -10.f}, .rot = 0.f, .duration = 0.2f},
+		{.pos = {0.f, 0.f}, .rot = 0.f, .duration = 0.3f},
 	};
-	void activate() { anim.activate(nKeyFrames); }
+	void activate(f32 period) { anim.activate(nKeyFrames, period, false); }
 	// returns true if completed
 	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	v2	 getPos() { return anim.posOffset; }
@@ -209,12 +212,12 @@ struct AnimJumpShadow
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 4;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.scale = 1.f, .duration = 0.1f},
-		{.scale = 0.6f, .duration = 0.08f},
-		{.scale = 0.5f, .duration = 0.08f},
-		{.scale = 1.f, .duration = 0.1f},
+		{.scale = 1.f, .duration = 0.3f},
+		{.scale = 0.6f, .duration = 0.2f},
+		{.scale = 0.5f, .duration = 0.2f},
+		{.scale = 1.f, .duration = 0.3f},
 	};
-	void activate() { anim.activate(nKeyFrames); }
+	void activate(f32 period) { anim.activate(nKeyFrames, period, false); }
 	// returns true if completed
 	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	f32	 getScale() { return anim.scale; }
@@ -224,13 +227,13 @@ struct AnimBreathe
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 5;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.scale = 1.f, .duration = 0.5f},
-		{.scale = 1.05f, .duration = 0.5f},
-		{.scale = 1.05f, .duration = 0.5f},
-		{.scale = 1.f, .duration = 0.5f},
-		{.scale = 1.f, .duration = 0.5f},
+		{.scale = 1.f, .duration = 0.2f},
+		{.scale = 1.05f, .duration = 0.2f},
+		{.scale = 1.05f, .duration = 0.2f},
+		{.scale = 1.f, .duration = 0.2f},
+		{.scale = 1.f, .duration = 0.2f},
 	};
-	void activate(bool loop) { anim.activate(nKeyFrames, loop); }
+	void activate(f32 period) { anim.activate(nKeyFrames, period, true); }
 	// returns true if completed
 	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	f32	 getScale() { return anim.scale; }

@@ -9,10 +9,15 @@ enum PlayerInteraction : i32
 	FLIP,
 	RESTORE
 };
-struct EntityProperties
+struct InteractionProperties
 {
 	PlayerInteraction interaction;
+	bool			  shouldPlayerBeBusy = false;
 };
+InteractionProperties* getInteractionProperties(u32 entityPtr)
+{
+	return ((InteractionProperties*)entities.instances[entityPtr].properties);
+}
 struct Dude
 {
 	Entity*			  e;
@@ -23,7 +28,9 @@ struct Dude
 	AnimBreathe		  aBreathe;
 	PlayerInteraction activeHint = NONE;
 
-	v2 vel;
+	bool busy = false;
+	v2	 vel;
+	i32	 interactEntityPtr = -1;
 
 	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "TEST"};
 
@@ -35,22 +42,30 @@ struct Dude
 		e = &entities.instances[iPtr];
 		ss.init(tDude, {8, 8}, 2, 10, true);
 		texShadow = tShadow;
-		aBreathe.activate(true);
+		aBreathe.activate(5.f);
 		return true;
 	}
 	void kill() { entities.remove(e->instancePtr); }
 	void input(bool up, bool down, bool left, bool right, bool interact, bool jump)
 	{
+		if (busy)
+		{
+            vel = v2();
+			busy = getInteractionProperties(interactEntityPtr)->shouldPlayerBeBusy;
+			if (busy)
+				return;
+            interactEntityPtr = -1;
+		}
 		vel.x = right - left;
 		vel.y = up - down;
-		if (vel.getLengthSquared() > 0.1f)
-			aBreathe.anim.tempo = 10.f;
+		if (vel.isZero())
+			aBreathe.anim.period = 5.f;
 		else
-			aBreathe.anim.tempo = 1.f;
+			aBreathe.anim.period = 1.f;
 		if (jump && !aJump.anim.active)
 		{
-			aJump.activate();
-			aJumpShadow.activate();
+			aJump.activate(0.3f);
+			aJumpShadow.activate(0.3f);
 		}
 
 		activeHint			 = NONE;
@@ -70,11 +85,17 @@ struct Dude
 		}
 		if (closestEntityPtr == -1)
 			return;
-		entities.select(closestEntityPtr);
-		activeHint =
-			((EntityProperties*)entities.instances[closestEntityPtr].properties)->interaction;
+		if (entities.select(closestEntityPtr))
+			activeHint = ((InteractionProperties*)entities.instances[closestEntityPtr].properties)
+							 ->interaction;
 		if (interact)
-			entities.interact(closestEntityPtr);
+		{
+			if (!entities.interact(closestEntityPtr))
+				return;
+			interactEntityPtr = closestEntityPtr;
+			busy = ((InteractionProperties*)entities.instances[closestEntityPtr].properties)
+					   ->shouldPlayerBeBusy;
+		}
 	}
 	void update(f32 dt)
 	{
@@ -112,10 +133,10 @@ struct Dude
 
 struct Table
 {
-	Entity*			 e;
-	Texture2D*		 tex;
-	Texture2D*		 texShadow;
-	EntityProperties props;
+	Entity*				  e;
+	Texture2D*			  tex;
+	Texture2D*			  texShadow;
+	InteractionProperties props;
 
 	Color		   tint = WHITE;
 	AnimFlip	   aFlip;
@@ -141,22 +162,32 @@ struct Table
 			tint = WHITE;
 		if (!aFlip.anim.active && entities.interactPtr == e->instancePtr)
 		{
+			f32 flipPeriod = 0.3f;
 			if (flipped)
 				aFlip.anim.reversed = false;
 			else
+			{
+				flipPeriod			= 0.9f;
 				aFlip.anim.reversed = true;
+			}
 			entities.selectable[e->instancePtr] = false;
 			props.interaction					= NONE;
-			aJumpShadow.activate();
-			aFlip.activate();
+			aJumpShadow.activate(flipPeriod);
+			aFlip.activate(flipPeriod);
 		}
 		if (aFlip.update(dt))
 		{
 			entities.selectable[e->instancePtr] = true;
 			if (flipped)
-				props.interaction = RESTORE;
+			{
+				props.shouldPlayerBeBusy = true;
+				props.interaction		 = RESTORE;
+			}
 			else
-				props.interaction = FLIP;
+			{
+				props.shouldPlayerBeBusy = false;
+				props.interaction		 = FLIP;
+			}
 			flipped = !flipped;
 		}
 		aJumpShadow.update(dt);
