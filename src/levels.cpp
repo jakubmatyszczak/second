@@ -29,24 +29,35 @@ struct Level
 
 	bool collidesWithTerrainBorder(BoundingCircle& c, v2& collisionVector)
 	{
-		// TODO::This does not work, and is too complex
-		// Concept:
-		//     projectPointOntoLine works fine, so maybe do ouline as set of lines, instead of
-		//     rectangles. This would allso allow any shape to be part of terrain, not just rects.
-		//     Disadvantage: drawing and collision will be set indivitually for every region.
-		//
+		collisionVector = v2();
+		if (nTerrainVerticies < 2)
+			return false;
+		for (u32 i = 1; i <= nTerrainVerticies; i++)
+		{
+			v2 proj = projectPointOntoLine(
+				c.position,
+				terrainVerticies[i - 1],
+				((i == nTerrainVerticies) ? terrainVerticies[0] : terrainVerticies[i]));
+			if (proj.distToSquared(c.position) < c.radius * c.radius)
+			{
+				v2 correction = (proj - c.position).norm();
+				correction *= c.radius;
+				collisionVector += correction - (proj - c.position);
+			}
+		}
+		if (collisionVector.isZero())
+			return false;
 		return true;
 	}
 
 	void draw()
 	{
-        if(nTerrainVerticies < 2)
-            return;
+		if (nTerrainVerticies < 2)
+			return;
+		for (u32 i = 0; i < nTerrainVerticies; i++)
+			DrawCircleV(terrainVerticies[i].toVector2(), 4, RED);
 		for (u32 i = 1; i < nTerrainVerticies; i++)
-		{
 			DrawLineV(terrainVerticies[i - 1].toVector2(), terrainVerticies[i].toVector2(), GREEN);
-            DrawCircleV(terrainVerticies[i].toVector2(), 4, RED);
-		}
 		DrawLineV(terrainVerticies[nTerrainVerticies - 1].toVector2(),
 				  terrainVerticies[0].toVector2(),
 				  GREEN);

@@ -23,6 +23,10 @@ int main(void)
 	Table table2;
 	Table table3;
 	Table table4;
+    l1.appendVertex({0.f, 0.f});
+    l1.appendVertex({140.f, 0.f});
+    l1.appendVertex({120.f, 110.f});
+    l1.appendVertex({0.f, 150.f});
 	dude.init(texture, textureShadow, soundJump, {100, 100});
 	table.init(texture2, textureShadow, soundWham, {110, 110});
 	table2.init(texture2, textureShadow, soundWham, {130, 111});
@@ -33,7 +37,7 @@ int main(void)
 	u32 frame			 = 0;
 	while (!done)
 	{
-        v2 mousePosWorld = GetScreenToWorld2D(GetMousePosition(), GLOBAL.camera);
+		v2 mousePosWorld = GetScreenToWorld2D(GetMousePosition(), GLOBAL.camera);
 		frame++;
 		entities.refresh();
 
@@ -43,12 +47,12 @@ int main(void)
 		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_E))
 			levelEditor = !levelEditor;
 
-        GLOBAL.camera.zoom = 6.f;
+		GLOBAL.camera.zoom = 6.f;
 		if (levelEditor)
 		{
 			GLOBAL.camera.zoom = 2.f;
-            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                l1.appendVertex(mousePosWorld);
+			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+				l1.appendVertex(mousePosWorld);
 		}
 		else
 		{
@@ -69,17 +73,25 @@ int main(void)
 			{
 				l1.draw();
 				entities.drawAll();
+				v2			   cv;
+				BoundingCircle c = {dude.e->pos + v2(0,2), 4};
+				if (l1.collidesWithTerrainBorder(c, cv))
+				{
+					dude.e->pos = dude.e->pos - cv;
+					DrawCircleV(c.position.toVector2(), 4, {255, 0, 0, 150});
+					DrawCircleV((c.position + cv).toVector2(), 1, {0, 255, 0, 150});
+					DrawLineV((c.position + cv).toVector2(), c.position.toVector2(), GREEN);
+				}
 			}
 			EndMode2D();
 		}
 		dude.drawOverlay();
 		if (levelEditor)
 		{
-			DrawText("EDITOR MODE", 10, 10, 20, BLACK);
-			DrawText("EDITOR MODE", 12, 12, 20, RED);
+			DrawText("EDITOR", 10, 10, 20, BLACK);
+			DrawText("EDITOR", 12, 12, 20, RED);
 		}
 		EndDrawing();
-		usleep(16000);
 		if (IsKeyPressed(KEY_Q))
 			done = true;
 	}
