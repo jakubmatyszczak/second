@@ -24,13 +24,13 @@ int main(void)
 	Table table2;
 	Table table3;
 	Table table4;
-	l1.init(textureLevel1, v2(), 1.f, 1.f);
+	l1.init(textureLevel1, v2());
 	LoadLevel1(l1);
-	dude.init(texture, textureShadow, soundJump, {100, 100});
-	table.init(texture2, textureShadow, soundWham, {110, 110});
-	table2.init(texture2, textureShadow, soundWham, {130, 111});
-	table3.init(texture2, textureShadow, soundWham, {50, 100});
-	table4.init(texture2, textureShadow, soundWham, {90, 120});
+	dude.init(texture, textureShadow, soundJump, {80, 80});
+	table.init(texture2, textureShadow, soundWham, {30, 60});
+	table2.init(texture2, textureShadow, soundWham, {60, 25});
+	table3.init(texture2, textureShadow, soundWham, {50, 85});
+	table4.init(texture2, textureShadow, soundWham, {90, 90});
 	GLOBAL.camera.zoom	 = 6.f;
 	GLOBAL.camera.offset = {400, 300};
 	u32 frame			 = 0;
@@ -89,6 +89,7 @@ int main(void)
 			EndMode2D();
 		}
 		dude.drawOverlay();
+		DrawText(TextFormat("DUDE: %.f,%.f",dude.e->pos.x, dude.e->pos.y), 10, 10, 20, BLACK);
 		if (levelEditor)
 		{
 			DrawText("EDITOR", 10, 10, 20, BLACK);

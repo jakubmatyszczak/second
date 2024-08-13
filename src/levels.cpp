@@ -21,15 +21,11 @@ struct Level
 
 	Texture2D* terrainTexture = nullptr;
 	v2		   pos			  = v2();
-	f32		   rot			  = 1.f;
-	f32		   scale		  = 1.f;
 
-	void init(Texture2D& texTerrain, v2 position, f32 rotation, f32 tScale)
+	void init(Texture2D& texTerrain, v2 position)
 	{
 		terrainTexture = &texTerrain;
 		pos			   = position;
-		rot			   = rotation;
-		scale		   = tScale;
 	}
 	bool appendVertex(v2 pos)
 	{
@@ -65,9 +61,9 @@ struct Level
 
 	void draw()
 	{
-		DrawTextureEx(*terrainTexture, pos.toVector2(), rot, scale, WHITE);
-        if(!GLOBAL.drawDebugCollision)
-            return;
+		DrawTextureEx(*terrainTexture, pos.toVector2(), 0.f, 1.f, WHITE);
+		if (!GLOBAL.drawDebugCollision)
+			return;
 		if (nTerrainVerticies < 2)
 			return;
 		for (u32 i = 0; i < nTerrainVerticies; i++)
