@@ -14,6 +14,7 @@ int main(void)
 	Texture2D texture		= LoadTexture("res/art/dude_ss.png");
 	Texture2D texture2		= LoadTexture("res/art/table_tex.png");
 	Texture2D textureShadow = LoadTexture("res/art/shadow_tex.png");
+	Texture2D textureLevel1 = LoadTexture("res/art/level1.png");
 	Sound	  soundJump		= LoadSound("res/sound/jump.wav");
 	Sound	  soundWham		= LoadSound("res/sound/punch.wav");
 	Level	  l1;
@@ -23,10 +24,8 @@ int main(void)
 	Table table2;
 	Table table3;
 	Table table4;
-	l1.appendVertex({0.f, 0.f});
-	l1.appendVertex({140.f, 0.f});
-	l1.appendVertex({120.f, 110.f});
-	l1.appendVertex({0.f, 150.f});
+    l1.init(textureLevel1, v2(), 1.f, 1.f);
+    LoadLevel1(l1);
 	dude.init(texture, textureShadow, soundJump, {100, 100});
 	table.init(texture2, textureShadow, soundWham, {110, 110});
 	table2.init(texture2, textureShadow, soundWham, {130, 111});
@@ -67,7 +66,7 @@ int main(void)
 
 		BeginDrawing();
 		{
-			ClearBackground(RAYWHITE);
+			ClearBackground(SKYBLUE);
 			GLOBAL.camera.target = dude.e->pos.toVector2();
 			BeginMode2D(GLOBAL.camera);
 			{

@@ -19,11 +19,24 @@ struct Level
 	v2	terrainVerticies[maxTerrainVerts] = {};
 	u32 nTerrainVerticies				  = 0;
 
+	Texture2D* terrainTexture = nullptr;
+	v2		   pos			  = v2();
+	f32		   rot			  = 1.f;
+	f32		   scale		  = 1.f;
+
+	void init(Texture2D& texTerrain, v2 position, f32 rotation, f32 tScale)
+	{
+		terrainTexture = &texTerrain;
+		pos			   = position;
+		rot			   = rotation;
+		scale		   = tScale;
+	}
 	bool appendVertex(v2 pos)
 	{
 		if (nTerrainVerticies >= maxTerrainVerts)
 			return false;
 		terrainVerticies[nTerrainVerticies++] = pos;
+		printf("Terrain verts: %d, pos: %0.f,%0.f\n", nTerrainVerticies, pos.x, pos.y);
 		return true;
 	}
 
@@ -52,6 +65,9 @@ struct Level
 
 	void draw()
 	{
+		DrawTextureEx(*terrainTexture, pos.toVector2(), rot, scale, WHITE);
+        if(!GLOBAL.drawDebugCollision)
+            return;
 		if (nTerrainVerticies < 2)
 			return;
 		for (u32 i = 0; i < nTerrainVerticies; i++)
@@ -63,3 +79,27 @@ struct Level
 				  GREEN);
 	}
 };
+
+void LoadLevel1(Level& level)
+{
+	level.appendVertex(v2(64, 105));
+	level.appendVertex(v2(107, 106));
+	level.appendVertex(v2(120, 97));
+	level.appendVertex(v2(120, 76));
+	level.appendVertex(v2(118, 55));
+	level.appendVertex(v2(101, 45));
+	level.appendVertex(v2(93, 34));
+	level.appendVertex(v2(110, 32));
+	level.appendVertex(v2(118, 21));
+	level.appendVertex(v2(113, 11));
+	level.appendVertex(v2(97, 6));
+	level.appendVertex(v2(69, 15));
+	level.appendVertex(v2(52, 20));
+	level.appendVertex(v2(20, 19));
+	level.appendVertex(v2(13, 38));
+	level.appendVertex(v2(11, 58));
+	level.appendVertex(v2(8, 84));
+	level.appendVertex(v2(15, 97));
+	level.appendVertex(v2(40, 99));
+	level.appendVertex(v2(50, 95));
+}

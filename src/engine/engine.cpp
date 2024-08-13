@@ -32,6 +32,8 @@ struct EngineGlobals
 	Screen	  screen;
 	GameState state;
 	Camera2D  camera;
+    
+    bool drawDebugCollision = true;
 };
 EngineGlobals GLOBAL;
 
