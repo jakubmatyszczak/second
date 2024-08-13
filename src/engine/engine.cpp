@@ -33,7 +33,7 @@ struct EngineGlobals
 	GameState state;
 	Camera2D  camera;
     
-    bool drawDebugCollision = true;
+    bool drawDebugCollision = false;
 };
 EngineGlobals GLOBAL;
 

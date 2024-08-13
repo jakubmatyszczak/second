@@ -13,6 +13,7 @@ struct InteractionProperties
 {
 	PlayerInteraction interaction;
 	bool			  shouldPlayerBeBusy = false;
+	BoundingCircle	  boundingCircle;
 };
 InteractionProperties* getInteractionProperties(u32 entityPtr)
 {
@@ -20,14 +21,17 @@ InteractionProperties* getInteractionProperties(u32 entityPtr)
 }
 struct Dude
 {
-	Entity*			  e;
-	SpriteSheet		  ss;
-	Texture2D		  tShadow;
-	Sound*			  sJump;
-	AnimJump		  aJump;
-	AnimJumpShadow	  aJumpShadow;
-	AnimBreathe		  aBreathe;
-	PlayerInteraction activeHint = NONE;
+	Entity*				  e;
+	SpriteSheet			  ss;
+	Texture2D			  tShadow;
+	Sound*				  sJump;
+	AnimJump			  aJump;
+	AnimJumpShadow		  aJumpShadow;
+	AnimBreathe			  aBreathe;
+	PlayerInteraction	  activeHint = NONE;
+	InteractionProperties ip;
+
+	v2 colliderOffset = {0, 2};
 
 	bool busy = false;
 	v2	 vel;
@@ -37,10 +41,12 @@ struct Dude
 
 	bool init(Texture& texDude, Texture& texShadow, Sound& soundJump, v2 pos)
 	{
-		int iPtr = entities.add(Entity::Id::PLAYER, this, nullptr, pos, 0.f, update, draw);
+		int iPtr =
+			entities.add(Entity::Id::PLAYER, this, &ip, pos, 0.f, update, draw, false, false, true);
 		if (iPtr < 0)
 			return false;
-		e = &entities.instances[iPtr];
+		e  = &entities.instances[iPtr];
+		ip = {.boundingCircle = {e->pos + colliderOffset, 4}};
 		ss.init(texDude, {8, 8}, 2, 10, true);
 		tShadow = texShadow;
 		sJump	= &soundJump;
@@ -107,6 +113,7 @@ struct Dude
 		dude.aJumpShadow.update(dt);
 		dude.aBreathe.update(dt);
 		dude.e->pos += dude.vel;
+		dude.ip.boundingCircle.position = dude.e->pos + dude.colliderOffset;
 		dude.ss.update(dt);
 	}
 	static void draw(void* dudePtr)
@@ -189,7 +196,7 @@ struct Table
 			entities.selectable[table.e->instancePtr] = true;
 			if (table.flipped)
 			{
-                PlaySound(*table.sWham);
+				PlaySound(*table.sWham);
 				table.props.shouldPlayerBeBusy = true;
 				table.props.interaction		   = RESTORE;
 			}

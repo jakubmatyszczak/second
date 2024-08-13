@@ -24,8 +24,8 @@ int main(void)
 	Table table2;
 	Table table3;
 	Table table4;
-    l1.init(textureLevel1, v2(), 1.f, 1.f);
-    LoadLevel1(l1);
+	l1.init(textureLevel1, v2(), 1.f, 1.f);
+	LoadLevel1(l1);
 	dude.init(texture, textureShadow, soundJump, {100, 100});
 	table.init(texture2, textureShadow, soundWham, {110, 110});
 	table2.init(texture2, textureShadow, soundWham, {130, 111});
@@ -62,6 +62,19 @@ int main(void)
 					   IsKeyPressed(KEY_E),
 					   IsKeyDown(KEY_W));
 			entities.updateAll(dt);
+
+			// collisions
+			{
+				for (u32 i = 0; i < entities.maxEntities; i++)
+					if (entities.active[i] && entities.collidesTerrain[i])
+					{
+						Entity&				   e  = entities.instances[i];
+						InteractionProperties& ip = *(InteractionProperties*)e.properties;
+						v2					   collisionVector;
+						l1.collidesWithTerrainBorder(ip.boundingCircle, collisionVector);
+                        e.pos -= collisionVector;
+					}
+			}
 		}
 
 		BeginDrawing();
@@ -72,15 +85,6 @@ int main(void)
 			{
 				l1.draw();
 				entities.drawAll();
-				v2			   cv;
-				BoundingCircle c = {dude.e->pos + v2(0, 2), 4};
-				if (l1.collidesWithTerrainBorder(c, cv))
-				{
-					dude.e->pos = dude.e->pos - cv;
-					DrawCircleV(c.position.toVector2(), 4, {255, 0, 0, 150});
-					DrawCircleV((c.position + cv).toVector2(), 1, {0, 255, 0, 150});
-					DrawLineV((c.position + cv).toVector2(), c.position.toVector2(), GREEN);
-				}
 			}
 			EndMode2D();
 		}

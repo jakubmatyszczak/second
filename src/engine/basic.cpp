@@ -1,6 +1,8 @@
 #pragma once
 #include "v2.cpp"
 
+#define RED_TRANSPARENT {255, 0, 0, 128}
+
 f32			lerp(f32 start, f32 end, f32 time) { return start + (end - start) * time; }
 v2			lerp(const v2& start, const v2& end, f32 time) { return start + (end - start) * time; }
 inline void swap(f32* x, f32* y)
@@ -60,12 +62,14 @@ struct Entities
 {
 	static const u32 maxEntities = 128;
 
-	Entity instances[maxEntities]	 = {};
-	u8	   active[maxEntities]		 = {};
-	u8	   updatable[maxEntities]	 = {};
-	u8	   drawable[maxEntities]	 = {};
-	u8	   selectable[maxEntities]	 = {};
-	u8	   interactable[maxEntities] = {};
+	Entity instances[maxEntities] = {};
+
+	u8 active[maxEntities]			= {};
+	u8 updatable[maxEntities]		= {};
+	u8 drawable[maxEntities]		= {};
+	u8 selectable[maxEntities]		= {};
+	u8 interactable[maxEntities]	= {};
+	u8 collidesTerrain[maxEntities] = {};
 
 	u32 nActive		= 0;
 	i32 selectedPtr = -1;
@@ -79,7 +83,8 @@ struct Entities
 			void (*updateFunction)(void*, f32) = nullptr,
 			void (*drawFunction)(void*)		   = nullptr,
 			bool canSelect					   = false,
-			bool canInteract				   = false)
+			bool canInteract				   = false,
+			bool canCollideTerrain			   = false)
 	{
 		for (int i = 0; i < maxEntities; i++)
 		{
@@ -103,8 +108,9 @@ struct Entities
 				e.drawPtr	= drawFunction;
 				drawable[i] = true;
 			}
-			selectable[i]	= canSelect;
-			interactable[i] = canInteract;
+			selectable[i]	   = canSelect;
+			interactable[i]	   = canInteract;
+			collidesTerrain[i] = canCollideTerrain;
 			nActive++;
 			return i;
 		}
@@ -166,8 +172,8 @@ Entities entities = {};
 
 struct BoundingCircle
 {
-    v2 position;
-    f32 radius;
+	v2	position;
+	f32 radius;
 };
 struct Keyframe
 {
