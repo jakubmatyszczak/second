@@ -13,6 +13,7 @@ int main(void)
 	bool	  levelEditor	= false;
 	Texture2D texture		= LoadTexture("res/art/dude_ss.png");
 	Texture2D texture2		= LoadTexture("res/art/table_tex.png");
+	Texture2D textureKey	= LoadTexture("res/art/key.png");
 	Texture2D textureShadow = LoadTexture("res/art/shadow_tex.png");
 	Texture2D textureLevel1 = LoadTexture("res/art/level1.png");
 	Texture2D textureHole	= LoadTexture("res/art/hole_ss.png");
@@ -28,6 +29,7 @@ int main(void)
 	Table table4;
 	Hole  hole;
 	Hole  hole2;
+    Key key;
 
 	l1.init(textureLevel1, v2());
 	l2.init(textureLevel1, {500.0, 0.});
@@ -42,6 +44,8 @@ int main(void)
 	hole.init(textureHole, {50, 50});
 	hole2.init(textureHole, {550, 50});
 	hole.connect(hole2);
+
+    key.init(textureKey, textureShadow, {570, 80});
 
 	GLOBAL.camera.zoom	 = 6.f;
 	GLOBAL.camera.offset = {400, 300};

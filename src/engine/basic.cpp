@@ -48,7 +48,7 @@ struct Entity
 		PLAYER,
 		ITEM,
 		OBJECT,
-        PORTAL,
+		PORTAL,
 		// Add Types here
 		ID_MAX	// Keep this last
 	};
@@ -220,8 +220,6 @@ struct Animation
 		frame  = 1;
 		if (reversed)
 			frame = nKeyFrames - 2;
-		posOffset = {};
-		rotOffset = 0.f;
 	}
 	[[nodiscard]]
 	bool update(f32 dt, Keyframe keyFrames[], u32 nKeyFrames)
@@ -265,7 +263,10 @@ struct Animation
 		{
 			active = false;
 			if (looped)
+			{
 				activate(nKeyFrames, period, looped);
+				return update(dt, keyFrames, nKeyFrames);
+			}
 			return true;
 		}
 		return false;
@@ -334,4 +335,34 @@ struct AnimBreathe
 	// returns true if completed
 	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	f32	 getScale() { return anim.scale; }
+};
+struct AnimHoverFloat
+{
+	Animation		 anim;
+	static const u32 nKeyFrames			   = 3;
+	Keyframe		 keyFrames[nKeyFrames] = {
+		{.pos = {0.f, -4.f}, .duration = 0.33f},
+		{.pos = {0.f, -3.f}, .duration = 0.33f},
+		{.pos = {0.f, -4.f}, .duration = 0.34f},
+	};
+	void activate(f32 period) { anim.activate(nKeyFrames, period, true); }
+	// returns true if completed
+	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
+	f32	 getScale() { return anim.scale; }
+	v2	 getPos() { return anim.posOffset; }
+};
+struct AnimHoverFloatShadow
+{
+	Animation		 anim;
+	static const u32 nKeyFrames			   = 3;
+	Keyframe		 keyFrames[nKeyFrames] = {
+		{.scale = 0.7f, .duration = 0.33f},
+		{.scale = 0.9f, .duration = 0.33f},
+		{.scale = 0.7f, .duration = 0.34f},
+	};
+	void activate(f32 period) { anim.activate(nKeyFrames, period, true); }
+	// returns true if completed
+	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
+	f32	 getScale() { return anim.scale; }
+	v2	 getPos() { return anim.posOffset; }
 };

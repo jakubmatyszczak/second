@@ -7,7 +7,8 @@ enum PlayerInteraction : i32
 	NONE = -1,
 	INTERACT,
 	FLIP,
-	RESTORE
+	RESTORE,
+	PICKUP,
 };
 struct InteractionProperties
 {
@@ -38,7 +39,7 @@ struct Dude
 	i32	 interactEntityPtr	   = -1;
 	i32	 collidesWithGroup1[4] = {};
 
-	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "TEST"};
+	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "PICK UP"};
 
 	void setCollision(u32 group, bool enable)
 	{
@@ -75,7 +76,7 @@ struct Dude
 		}
 		e->vel.x += right - left;
 		e->vel.y += up - down;
-        e->vel *= 0.5f;
+		e->vel *= 0.5f;
 		if (e->vel.isZero())
 			aBreathe.anim.period = 5.f;
 		else
@@ -163,7 +164,7 @@ struct Dude
 		f32 drawScale = dude.aBreathe.getScale();
 		if (dude.e->vel.getLengthSquared() < 0.1f)
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 0, 0);
-		else if (dude.e->vel.y < -0.05f) // Should be 0.f, but this looks better
+		else if (dude.e->vel.y < -0.05f)  // Should be 0.f, but this looks better
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 3, -1);
 		else
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 2, -1);
@@ -215,6 +216,61 @@ struct Hole
 			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
 		}
 	};
+};
+struct Key
+{
+	Entity* e;
+
+	Texture2D*			  tKey;
+	Texture2D*			  tShadow;
+	InteractionProperties ip;
+	Color				  tint = WHITE;
+	AnimHoverFloat		  aHover;
+	AnimHoverFloatShadow  aShadow;
+
+	bool init(Texture& table, Texture& shadow, v2 pos)
+	{
+		int iPtr = entities.add(Entity::Id::ITEM, this, &ip, pos, 0.f, update, draw, true, true);
+		if (iPtr < 0)
+			return false;
+		tKey		   = &table;
+		tShadow		   = &shadow;
+		e			   = &entities.instances[iPtr];
+		ip.interaction = PICKUP;
+
+		aHover.anim.looped	= true;
+		aShadow.anim.looped = true;
+		aHover.activate(3.0f);
+		aShadow.activate(3.0f);
+
+		return true;
+	}
+	static void update(void* keyPtr, f32 dt)
+	{
+		Key& key = *(Key*)keyPtr;
+		if (entities.selectedPtr == key.e->instancePtr)
+			key.tint = RED;
+		else
+			key.tint = WHITE;
+		key.aHover.update(dt);
+		key.aShadow.update(dt);
+	}
+	static void draw(void* keyPtr)
+	{
+		Key& key		= *(Key*)keyPtr;
+		v2	 shadowSize = v2(key.tShadow->width, key.tShadow->height) * key.aShadow.getScale();
+		DrawTextureEx(*key.tShadow,
+					  (key.e->pos - shadowSize * 0.5).toVector2(),
+					  1.f,
+					  key.aShadow.getScale(),
+					  WHITE);
+		v2 keySize = {key.tKey->width / 2.f, key.tKey->height / 2.f};
+		DrawTextureEx(*key.tKey,
+					  (key.e->pos + key.aHover.getPos() - keySize).toVector2(),
+					  1.f,
+					  1.f,
+					  key.tint);
+	}
 };
 struct Table
 {
