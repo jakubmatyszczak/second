@@ -73,8 +73,9 @@ struct Dude
 				return;
 			interactEntityPtr = -1;
 		}
-		e->vel.x = right - left;
-		e->vel.y = up - down;
+		e->vel.x += right - left;
+		e->vel.y += up - down;
+        e->vel *= 0.5f;
 		if (e->vel.isZero())
 			aBreathe.anim.period = 5.f;
 		else
@@ -162,7 +163,7 @@ struct Dude
 		f32 drawScale = dude.aBreathe.getScale();
 		if (dude.e->vel.getLengthSquared() < 0.1f)
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 0, 0);
-		else if (dude.e->vel.y < 0)
+		else if (dude.e->vel.y < -0.05f) // Should be 0.f, but this looks better
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 3, -1);
 		else
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 2, -1);
