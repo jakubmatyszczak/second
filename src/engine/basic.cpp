@@ -1,7 +1,10 @@
 #pragma once
 #include "v2.cpp"
 
-#define RED_TRANSPARENT {255, 0, 0, 128}
+#define RED_TRANSPARENT \
+	{                   \
+		255, 0, 0, 128  \
+	}
 
 f32			lerp(f32 start, f32 end, f32 time) { return start + (end - start) * time; }
 v2			lerp(const v2& start, const v2& end, f32 time) { return start + (end - start) * time; }
@@ -45,10 +48,12 @@ struct Entity
 		PLAYER,
 		ITEM,
 		OBJECT,
+        PORTAL,
 		// Add Types here
 		ID_MAX	// Keep this last
 	};
 	v2	  pos		  = {};
+	v2	  vel		  = {};
 	f32	  rot		  = 0.f;
 	Id	  id		  = Id::UNKNOWN;
 	u32	  instancePtr = 0;
@@ -70,6 +75,7 @@ struct Entities
 	u8 selectable[maxEntities]		= {};
 	u8 interactable[maxEntities]	= {};
 	u8 collidesTerrain[maxEntities] = {};
+	u8 collidesGroup1[maxEntities]	= {};
 
 	u32 nActive		= 0;
 	i32 selectedPtr = -1;
@@ -84,7 +90,8 @@ struct Entities
 			void (*drawFunction)(void*)		   = nullptr,
 			bool canSelect					   = false,
 			bool canInteract				   = false,
-			bool canCollideTerrain			   = false)
+			bool canCollideTerrain			   = false,
+			bool canCollideGroup1			   = false)
 	{
 		for (int i = 0; i < maxEntities; i++)
 		{
@@ -111,6 +118,7 @@ struct Entities
 			selectable[i]	   = canSelect;
 			interactable[i]	   = canInteract;
 			collidesTerrain[i] = canCollideTerrain;
+			collidesGroup1[i]  = canCollideGroup1;
 			nActive++;
 			return i;
 		}
@@ -172,8 +180,16 @@ Entities entities = {};
 
 struct BoundingCircle
 {
-	v2	position;
-	f32 radius;
+	v2	 position;
+	f32	 radius;
+	bool computeCollision(const BoundingCircle& other, v2& collisionVector)
+	{
+		f32 rad = radius + other.radius;
+		if (position.distToSquared(other.position) > rad * rad)
+			return false;
+		collisionVector = (other.position - position).norm();
+		return true;
+	}
 };
 struct Keyframe
 {

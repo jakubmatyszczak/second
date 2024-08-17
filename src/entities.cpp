@@ -33,16 +33,24 @@ struct Dude
 
 	v2 colliderOffset = {0, 2};
 
-	bool busy = false;
-	v2	 vel;
-	i32	 interactEntityPtr = -1;
+	bool busy				   = false;
+	i32	 interactEntityPtr	   = -1;
+	i32	 collidesWithGroup1[4] = {};
 
 	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "TEST"};
 
+	void setCollision(u32 group, bool enable)
+	{
+		if (group == 0)
+			entities.collidesTerrain[e->instancePtr] = enable;
+		if (group == 1)
+			entities.collidesGroup1[e->instancePtr] = enable;
+	}
+
 	bool init(Texture& texDude, Texture& texShadow, Sound& soundJump, v2 pos)
 	{
-		int iPtr =
-			entities.add(Entity::Id::PLAYER, this, &ip, pos, 0.f, update, draw, false, false, true);
+		int iPtr = entities.add(
+			Entity::Id::PLAYER, this, &ip, pos, 0.f, update, draw, false, false, true, true);
 		if (iPtr < 0)
 			return false;
 		e  = &entities.instances[iPtr];
@@ -58,24 +66,28 @@ struct Dude
 	{
 		if (busy)
 		{
-			vel	 = v2();
-			busy = getInteractionProperties(interactEntityPtr)->shouldPlayerBeBusy;
+			e->vel = v2();
+			busy   = getInteractionProperties(interactEntityPtr)->shouldPlayerBeBusy;
 			if (busy)
 				return;
 			interactEntityPtr = -1;
 		}
-		vel.x = right - left;
-		vel.y = up - down;
-		if (vel.isZero())
+		e->vel.x = right - left;
+		e->vel.y = up - down;
+		if (e->vel.isZero())
 			aBreathe.anim.period = 5.f;
 		else
 			aBreathe.anim.period = 1.f;
 		if (jump && !aJump.anim.active)
 		{
 			PlaySound(*sJump);
-			aJump.activate(0.3f);
-			aJumpShadow.activate(0.3f);
+			aJump.activate(0.4f);
+			aJumpShadow.activate(0.4f);
 		}
+		if (aJump.anim.active)
+			setCollision(1, false);
+		else
+			setCollision(1, true);
 
 		activeHint			 = NONE;
 		i32 closestEntityPtr = -1;
@@ -108,11 +120,25 @@ struct Dude
 	}
 	static void update(void* dudePtr, f32 dt)
 	{
-		Dude& dude = *(Dude*)dudePtr;
-		dude.aJump.update(dt);
+		Dude& dude	  = *(Dude*)dudePtr;
+		bool  landing = dude.aJump.update(dt);
 		dude.aJumpShadow.update(dt);
 		dude.aBreathe.update(dt);
-		dude.e->pos += dude.vel;
+
+		if (landing)
+		{
+			for (u32 i = 0; i < entities.maxEntities; i++)
+				if (entities.active[i] && entities.instances[i].id == Entity::Id::PORTAL)
+				{
+					Entity& hole = entities.instances[i];
+					f32 rad = getInteractionProperties(dude.e->instancePtr)->boundingCircle.radius +
+							  getInteractionProperties(hole.instancePtr)->boundingCircle.radius;
+					if (dude.e->pos.distToSquared(hole.pos) < rad * rad)
+						dude.e->pos += {0, 100};//TODO: teleport to portal
+				}
+		}
+
+		dude.e->pos += dude.e->vel;
 		dude.ip.boundingCircle.position = dude.e->pos + dude.colliderOffset;
 		dude.ss.update(dt);
 	}
@@ -129,11 +155,17 @@ struct Dude
 
 		v2	drawPos	  = dude.e->pos + dude.aJump.getPos();
 		f32 drawScale = dude.aBreathe.getScale();
-		if (dude.vel.getLengthSquared() < 1.f)
-			return dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 0, 0);
-		if (dude.vel.y < 0)
-			return dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 3, -1);
-		dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 2, -1);
+		if (dude.e->vel.getLengthSquared() < 0.1f)
+			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 0, 0);
+		else if (dude.e->vel.y < 0)
+			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 3, -1);
+		else
+			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 2, -1);
+		if (GLOBAL.drawDebugCollision)
+		{
+			BoundingCircle& bc = getInteractionProperties(dude.e->instancePtr)->boundingCircle;
+			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
+		}
 	};
 	void drawOverlay()
 	{
@@ -142,7 +174,37 @@ struct Dude
 				TextFormat("Press [e] to %s", interactHint[activeHint]), 300, 400, 30, DARKBLUE);
 	};
 };
+struct Hole
+{
+	Entity*				  e;
+	SpriteSheet			  ss;
+	InteractionProperties ip;
 
+	bool init(Texture2D& hole, v2 pos)
+	{
+		i32 iPtr = entities.add(
+			Entity::Id::PORTAL, this, &ip, pos, 0.f, update, draw, false, false, false, true);
+		ss.init(hole, v2(16, 8), 4, 16, true);
+		e  = &entities.instances[iPtr];
+		ip = {.boundingCircle = {e->pos, 5}};
+		return true;
+	}
+	static void update(void* hole, f32 dt)
+	{
+		Hole& h = *(Hole*)hole;
+		h.ss.update(dt);
+	}
+	static void draw(void* hole)
+	{
+		Hole& h = *(Hole*)hole;
+		h.ss.Draw(h.e->pos);
+		if (GLOBAL.drawDebugCollision)
+		{
+			BoundingCircle& bc = getInteractionProperties(h.e->instancePtr)->boundingCircle;
+			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
+		}
+	};
+};
 struct Table
 {
 	Entity*				  e;
