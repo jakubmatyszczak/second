@@ -66,6 +66,10 @@ struct Entity
 struct Entities
 {
 	static const u32 maxEntities = 128;
+	struct flagInit
+	{
+		bool canSelect, canInteract, canBePickedUp, canCollideTerrain, canCollideGroup1;
+	};
 
 	Entity instances[maxEntities] = {};
 
@@ -74,6 +78,7 @@ struct Entities
 	u8 drawable[maxEntities]		= {};
 	u8 selectable[maxEntities]		= {};
 	u8 interactable[maxEntities]	= {};
+	u8 pickable[maxEntities]		= {};
 	u8 collidesTerrain[maxEntities] = {};
 	u8 collidesGroup1[maxEntities]	= {};
 
@@ -84,14 +89,11 @@ struct Entities
 	i32 add(Entity::Id idType,
 			void*	   entityData,
 			void*	   interactionProperties,
-			v2		   position				   = {},
-			f32		   rotation				   = 0.f,
-			void (*updateFunction)(void*, f32) = nullptr,
-			void (*drawFunction)(void*)		   = nullptr,
-			bool canSelect					   = false,
-			bool canInteract				   = false,
-			bool canCollideTerrain			   = false,
-			bool canCollideGroup1			   = false)
+			v2		   position,
+			f32		   rotation,
+			void (*updateFunction)(void*, f32),
+			void (*drawFunction)(void*),
+			flagInit flags)
 	{
 		for (int i = 0; i < maxEntities; i++)
 		{
@@ -115,10 +117,11 @@ struct Entities
 				e.drawPtr	= drawFunction;
 				drawable[i] = true;
 			}
-			selectable[i]	   = canSelect;
-			interactable[i]	   = canInteract;
-			collidesTerrain[i] = canCollideTerrain;
-			collidesGroup1[i]  = canCollideGroup1;
+			selectable[i]	   = flags.canSelect;
+			interactable[i]	   = flags.canInteract;
+			pickable[i]		   = flags.canBePickedUp;
+			collidesTerrain[i] = flags.canCollideTerrain;
+			collidesGroup1[i]  = flags.canCollideGroup1;
 			nActive++;
 			return i;
 		}

@@ -35,9 +35,11 @@ struct Dude
 
 	v2 colliderOffset = {0, 2};
 
-	bool busy				   = false;
-	i32	 interactEntityPtr	   = -1;
-	i32	 collidesWithGroup1[4] = {};
+	bool busy			   = false;
+	i32	 interactEntityPtr = -1;
+
+	i32 itemRightHand = -1;
+	i32 itemLeftHand  = -1;
 
 	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "PICK UP"};
 
@@ -51,8 +53,18 @@ struct Dude
 
 	bool init(Texture& texDude, Texture& texShadow, Sound& soundJump, v2 pos)
 	{
-		int iPtr = entities.add(
-			Entity::Id::PLAYER, this, &ip, pos, 0.f, update, draw, false, false, true, true);
+		int iPtr = entities.add(Entity::Id::PLAYER,
+								this,
+								&ip,
+								pos,
+								0.f,
+								update,
+								draw,
+								{.canSelect			= false,
+								 .canInteract		= false,
+								 .canBePickedUp		= false,
+								 .canCollideTerrain = true,
+								 .canCollideGroup1	= true});
 		if (iPtr < 0)
 			return false;
 		e  = &entities.instances[iPtr];
@@ -189,8 +201,18 @@ struct Hole
 
 	bool init(Texture2D& hole, v2 pos)
 	{
-		i32 iPtr = entities.add(
-			Entity::Id::PORTAL, this, &ip, pos, 0.f, update, draw, false, false, false, true);
+		i32 iPtr = entities.add(Entity::Id::PORTAL,
+								this,
+								&ip,
+								pos,
+								0.f,
+								update,
+								draw,
+								{.canSelect			= false,
+								 .canInteract		= false,
+								 .canBePickedUp		= false,
+								 .canCollideTerrain = false,
+								 .canCollideGroup1	= true});
 		ss.init(hole, v2(16, 8), 4, 16, true);
 		e  = &entities.instances[iPtr];
 		ip = {.boundingCircle = {e->pos, 5}};
@@ -230,7 +252,18 @@ struct Key
 
 	bool init(Texture& table, Texture& shadow, v2 pos)
 	{
-		int iPtr = entities.add(Entity::Id::ITEM, this, &ip, pos, 0.f, update, draw, true, true);
+		int iPtr = entities.add(Entity::Id::ITEM,
+								this,
+								&ip,
+								pos,
+								0.f,
+								update,
+								draw,
+								{.canSelect			= true,
+								 .canInteract		= true,
+								 .canBePickedUp		= true,
+								 .canCollideTerrain = false,
+								 .canCollideGroup1	= false});
 		if (iPtr < 0)
 			return false;
 		tKey		   = &table;
@@ -287,8 +320,18 @@ struct Table
 
 	bool init(Texture& table, Texture& shadow, Sound& wham, v2 pos)
 	{
-		int iPtr =
-			entities.add(Entity::Id::OBJECT, this, &props, pos, 0.f, update, draw, true, true);
+		int iPtr = entities.add(Entity::Id::OBJECT,
+								this,
+								&props,
+								pos,
+								0.f,
+								update,
+								draw,
+								{.canSelect			= true,
+								 .canInteract		= true,
+								 .canBePickedUp		= true,
+								 .canCollideTerrain = false,
+								 .canCollideGroup1	= false});
 		if (iPtr < 0)
 			return false;
 		tTable			  = &table;
