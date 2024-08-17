@@ -31,8 +31,7 @@ struct Level
 	{
 		if (nTerrainVerticies >= maxTerrainVerts)
 			return false;
-		terrainVerticies[nTerrainVerticies++] = pos;
-		// printf("Terrain verts: %d, pos: %0.f,%0.f\n", nTerrainVerticies, pos.x, pos.y);
+		terrainVerticies[nTerrainVerticies++] = this->pos + pos;
 		return true;
 	}
 

@@ -14,6 +14,7 @@ struct InteractionProperties
 	PlayerInteraction interaction;
 	bool			  shouldPlayerBeBusy = false;
 	BoundingCircle	  boundingCircle;
+	Entity*			  targetEntity;
 };
 InteractionProperties* getInteractionProperties(u32 entityPtr)
 {
@@ -127,6 +128,7 @@ struct Dude
 
 		if (landing)
 		{
+			dude.setCollision(1, true);
 			for (u32 i = 0; i < entities.maxEntities; i++)
 				if (entities.active[i] && entities.instances[i].id == Entity::Id::PORTAL)
 				{
@@ -134,7 +136,10 @@ struct Dude
 					f32 rad = getInteractionProperties(dude.e->instancePtr)->boundingCircle.radius +
 							  getInteractionProperties(hole.instancePtr)->boundingCircle.radius;
 					if (dude.e->pos.distToSquared(hole.pos) < rad * rad)
-						dude.e->pos += {0, 100};//TODO: teleport to portal
+					{
+						dude.e->pos = getInteractionProperties(hole.instancePtr)->targetEntity->pos;
+						break;
+					}
 				}
 		}
 
@@ -188,6 +193,11 @@ struct Hole
 		e  = &entities.instances[iPtr];
 		ip = {.boundingCircle = {e->pos, 5}};
 		return true;
+	}
+	void connect(Hole& target)
+	{
+		ip.targetEntity		   = target.e;
+		target.ip.targetEntity = e;
 	}
 	static void update(void* hole, f32 dt)
 	{

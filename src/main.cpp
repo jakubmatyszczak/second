@@ -19,6 +19,7 @@ int main(void)
 	Sound	  soundJump		= LoadSound("res/sound/jump.wav");
 	Sound	  soundWham		= LoadSound("res/sound/punch.wav");
 	Level	  l1;
+	Level	  l2;
 
 	Dude  dude;
 	Table table;
@@ -26,14 +27,22 @@ int main(void)
 	Table table3;
 	Table table4;
 	Hole  hole;
+	Hole  hole2;
+
 	l1.init(textureLevel1, v2());
+	l2.init(textureLevel1, {500.0, 0.});
 	LoadLevel1(l1);
+	LoadLevel1(l2);
 	dude.init(texture, textureShadow, soundJump, {80, 80});
 	table.init(texture2, textureShadow, soundWham, {30, 60});
 	table2.init(texture2, textureShadow, soundWham, {60, 25});
 	table3.init(texture2, textureShadow, soundWham, {50, 85});
 	table4.init(texture2, textureShadow, soundWham, {90, 90});
+
 	hole.init(textureHole, {50, 50});
+	hole2.init(textureHole, {550, 50});
+	hole.connect(hole2);
+
 	GLOBAL.camera.zoom	 = 6.f;
 	GLOBAL.camera.offset = {400, 300};
 	u32 frame			 = 0;
@@ -49,7 +58,7 @@ int main(void)
 		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_E))
 			levelEditor = !levelEditor;
 		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_W))
-            GLOBAL.drawDebugCollision = !GLOBAL.drawDebugCollision;
+			GLOBAL.drawDebugCollision = !GLOBAL.drawDebugCollision;
 
 		GLOBAL.camera.zoom = 6.f;
 		if (levelEditor)
@@ -78,6 +87,8 @@ int main(void)
 						v2					   collisionVector;
 						if (l1.collidesWithTerrainBorder(ip.boundingCircle, collisionVector))
 							e.vel -= collisionVector;
+						if (l2.collidesWithTerrainBorder(ip.boundingCircle, collisionVector))
+							e.vel -= collisionVector;
 					}
 				// group 1
 				Entity* group1[entities.maxEntities] = {};
@@ -85,16 +96,20 @@ int main(void)
 				for (u32 i = 0; i < entities.maxEntities; i++)
 					if (entities.active[i] && entities.collidesGroup1[i])
 						group1[nGroup1++] = &entities.instances[i];
-				for (u32 i = 0; i < nGroup1 - 1; i++)
-				{
-					Entity&				   e1			   = *group1[i];
-					Entity&				   e2			   = *group1[i + 1];
-					InteractionProperties& ipE1			   = *(InteractionProperties*)e1.properties;
-					InteractionProperties& ipE2			   = *(InteractionProperties*)e2.properties;
-					v2					   collisionVector = {};
-					if (ipE1.boundingCircle.computeCollision(ipE2.boundingCircle, collisionVector))
-						e1.vel -= collisionVector / 2;
-				}
+				for (u32 i = 0; i < nGroup1; i++)
+					for (u32 j = 0; j < nGroup1; j++)
+					{
+						if (i == j)
+							continue;
+						Entity&				   e1	= *group1[i];
+						Entity&				   e2	= *group1[j];
+						InteractionProperties& ipE1 = *(InteractionProperties*)e1.properties;
+						InteractionProperties& ipE2 = *(InteractionProperties*)e2.properties;
+						v2					   collisionVector = {};
+						if (ipE1.boundingCircle.computeCollision(ipE2.boundingCircle,
+																 collisionVector))
+							e1.vel -= collisionVector / 2;
+					}
 			}
 			entities.updateAll(dt);
 		}
@@ -102,10 +117,14 @@ int main(void)
 		BeginDrawing();
 		{
 			ClearBackground(SKYBLUE);
-			GLOBAL.camera.target = dude.e->pos.toVector2();
+
+			GLOBAL.camera.target =
+				(v2(GLOBAL.camera.target) + ((dude.e->pos - v2(GLOBAL.camera.target)) * 0.15f))
+					.toVector2();
 			BeginMode2D(GLOBAL.camera);
 			{
 				l1.draw();
+				l2.draw();
 				entities.drawAll();
 			}
 			EndMode2D();
