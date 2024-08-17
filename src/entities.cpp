@@ -10,28 +10,29 @@ enum PlayerInteraction : i32
 	RESTORE,
 	PICKUP,
 };
-struct InteractionProperties
+struct InteractionData
 {
-	PlayerInteraction interaction;
-	bool			  shouldPlayerBeBusy = false;
-	BoundingCircle	  boundingCircle;
-	Entity*			  targetEntity;
+	inline static const v2 inventoryOffset = v2(10, -4);
+	PlayerInteraction	   interaction;
+	bool				   shouldPlayerBeBusy = false;
+	BoundingCircle		   boundingCircle;
+	Entity*				   targetEntity = nullptr;
 };
-InteractionProperties* getInteractionProperties(u32 entityPtr)
+InteractionData* getInteractionData(u32 entityPtr)
 {
-	return ((InteractionProperties*)entities.instances[entityPtr].properties);
+	return ((InteractionData*)entities.instances[entityPtr].properties);
 }
 struct Dude
 {
-	Entity*				  e;
-	SpriteSheet			  ss;
-	Texture2D			  tShadow;
-	Sound*				  sJump;
-	AnimJump			  aJump;
-	AnimJumpShadow		  aJumpShadow;
-	AnimBreathe			  aBreathe;
-	PlayerInteraction	  activeHint = NONE;
-	InteractionProperties ip;
+	Entity*			  e;
+	SpriteSheet		  ss;
+	Texture2D		  tShadow;
+	Sound*			  sJump;
+	AnimJump		  aJump;
+	AnimJumpShadow	  aJumpShadow;
+	AnimBreathe		  aBreathe;
+	PlayerInteraction activeHint = NONE;
+	InteractionData	  ip;
 
 	v2 colliderOffset = {0, 2};
 
@@ -39,7 +40,6 @@ struct Dude
 	i32	 interactEntityPtr = -1;
 
 	i32 itemRightHand = -1;
-	i32 itemLeftHand  = -1;
 
 	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "PICK UP"};
 
@@ -62,7 +62,6 @@ struct Dude
 								draw,
 								{.canSelect			= false,
 								 .canInteract		= false,
-								 .canBePickedUp		= false,
 								 .canCollideTerrain = true,
 								 .canCollideGroup1	= true});
 		if (iPtr < 0)
@@ -81,7 +80,7 @@ struct Dude
 		if (busy)
 		{
 			e->vel = v2();
-			busy   = getInteractionProperties(interactEntityPtr)->shouldPlayerBeBusy;
+			busy   = getInteractionData(interactEntityPtr)->shouldPlayerBeBusy;
 			if (busy)
 				return;
 			interactEntityPtr = -1;
@@ -119,19 +118,26 @@ struct Dude
 				}
 			}
 		}
-		if (closestEntityPtr == -1)
-			return;
-		if (entities.select(closestEntityPtr))
-			activeHint = ((InteractionProperties*)entities.instances[closestEntityPtr].properties)
-							 ->interaction;
-		if (interact)
+		if (interact && closestEntityPtr >= 0)
 		{
 			if (!entities.interact(closestEntityPtr))
 				return;
+			InteractionData& iData = *getInteractionData(closestEntityPtr);
+			if (entities.instances[closestEntityPtr].id == Entity::Id::ITEM)
+			{
+				itemRightHand	   = closestEntityPtr;
+				iData.targetEntity = e;
+			}
 			interactEntityPtr = closestEntityPtr;
-			busy = ((InteractionProperties*)entities.instances[closestEntityPtr].properties)
-					   ->shouldPlayerBeBusy;
+			busy			  = iData.shouldPlayerBeBusy;
 		}
+		else if (interact && closestEntityPtr < 0 && itemRightHand >= 0)
+		{
+			if (entities.interact(itemRightHand))
+				itemRightHand = -1;
+		}
+		if (closestEntityPtr >= 0 && entities.select(closestEntityPtr))
+			activeHint = getInteractionData(closestEntityPtr)->interaction;
 	}
 	static void update(void* dudePtr, f32 dt)
 	{
@@ -147,16 +153,15 @@ struct Dude
 				if (entities.active[i] && entities.instances[i].id == Entity::Id::PORTAL)
 				{
 					Entity& hole = entities.instances[i];
-					f32 rad = getInteractionProperties(dude.e->instancePtr)->boundingCircle.radius +
-							  getInteractionProperties(hole.instancePtr)->boundingCircle.radius;
+					f32		rad	 = getInteractionData(dude.e->instancePtr)->boundingCircle.radius +
+							  getInteractionData(hole.instancePtr)->boundingCircle.radius;
 					if (dude.e->pos.distToSquared(hole.pos) < rad * rad)
 					{
-						dude.e->pos = getInteractionProperties(hole.instancePtr)->targetEntity->pos;
+						dude.e->pos = getInteractionData(hole.instancePtr)->targetEntity->pos;
 						break;
 					}
 				}
 		}
-
 		dude.e->pos += dude.e->vel;
 		dude.ip.boundingCircle.position = dude.e->pos + dude.colliderOffset;
 		dude.ss.update(dt);
@@ -173,7 +178,7 @@ struct Dude
 					  WHITE);
 
 		v2	drawPos	  = dude.e->pos + dude.aJump.getPos();
-		f32 drawScale = dude.aBreathe.getScale();
+		f32 drawScale = dude.e->scale + dude.aBreathe.getScale();
 		if (dude.e->vel.getLengthSquared() < 0.1f)
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 0, 0);
 		else if (dude.e->vel.y < -0.05f)  // Should be 0.f, but this looks better
@@ -182,7 +187,7 @@ struct Dude
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 2, -1);
 		if (GLOBAL.drawDebugCollision)
 		{
-			BoundingCircle& bc = getInteractionProperties(dude.e->instancePtr)->boundingCircle;
+			BoundingCircle& bc = getInteractionData(dude.e->instancePtr)->boundingCircle;
 			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
 		}
 	};
@@ -195,9 +200,9 @@ struct Dude
 };
 struct Hole
 {
-	Entity*				  e;
-	SpriteSheet			  ss;
-	InteractionProperties ip;
+	Entity*			e;
+	SpriteSheet		ss;
+	InteractionData ip;
 
 	bool init(Texture2D& hole, v2 pos)
 	{
@@ -210,7 +215,6 @@ struct Hole
 								draw,
 								{.canSelect			= false,
 								 .canInteract		= false,
-								 .canBePickedUp		= false,
 								 .canCollideTerrain = false,
 								 .canCollideGroup1	= true});
 		ss.init(hole, v2(16, 8), 4, 16, true);
@@ -234,7 +238,7 @@ struct Hole
 		h.ss.Draw(h.e->pos);
 		if (GLOBAL.drawDebugCollision)
 		{
-			BoundingCircle& bc = getInteractionProperties(h.e->instancePtr)->boundingCircle;
+			BoundingCircle& bc = getInteractionData(h.e->instancePtr)->boundingCircle;
 			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
 		}
 	};
@@ -243,12 +247,13 @@ struct Key
 {
 	Entity* e;
 
-	Texture2D*			  tKey;
-	Texture2D*			  tShadow;
-	InteractionProperties ip;
-	Color				  tint = WHITE;
-	AnimHoverFloat		  aHover;
-	AnimHoverFloatShadow  aShadow;
+	Texture2D*			 tKey;
+	Texture2D*			 tShadow;
+	InteractionData		 ip;
+	Color				 tint = WHITE;
+	AnimHoverFloat		 aHover;
+	AnimHoverFloatShadow aShadow;
+	bool				 isPicked = false;
 
 	bool init(Texture& table, Texture& shadow, v2 pos)
 	{
@@ -261,7 +266,6 @@ struct Key
 								draw,
 								{.canSelect			= true,
 								 .canInteract		= true,
-								 .canBePickedUp		= true,
 								 .canCollideTerrain = false,
 								 .canCollideGroup1	= false});
 		if (iPtr < 0)
@@ -285,6 +289,26 @@ struct Key
 			key.tint = RED;
 		else
 			key.tint = WHITE;
+		if (entities.interactPtr == key.e->instancePtr)
+		{
+			key.isPicked = !key.isPicked;
+			key.e->rot	 = 0.f;
+			key.e->scale = 1.f;
+			if (key.isPicked)
+			{
+				key.e->rot	 = 1.f;
+				key.e->scale = 0.7f;
+			}
+			else
+				key.ip.targetEntity = nullptr;
+			entities.selectable[key.e->instancePtr] = !key.isPicked;
+		}
+
+		key.e->vel = v2();
+		if (key.ip.targetEntity)
+			key.e->vel = (key.ip.targetEntity->pos + key.ip.inventoryOffset - key.e->pos) * 0.35f;
+
+		key.e->pos += key.e->vel;
 		key.aHover.update(dt);
 		key.aShadow.update(dt);
 	}
@@ -292,26 +316,27 @@ struct Key
 	{
 		Key& key		= *(Key*)keyPtr;
 		v2	 shadowSize = v2(key.tShadow->width, key.tShadow->height) * key.aShadow.getScale();
-		DrawTextureEx(*key.tShadow,
-					  (key.e->pos - shadowSize * 0.5).toVector2(),
-					  1.f,
-					  key.aShadow.getScale(),
-					  WHITE);
-		v2 keySize = {key.tKey->width / 2.f, key.tKey->height / 2.f};
+		v2	 keySize	= v2(key.tKey->width / 2.f, key.tKey->height / 2.f) * key.e->scale;
+		if (!key.isPicked)
+			DrawTextureEx(*key.tShadow,
+						  (key.e->pos - keySize - shadowSize * 0.5).toVector2(),
+						  0.f,
+						  key.e->scale + key.aShadow.getScale(),
+						  WHITE);
 		DrawTextureEx(*key.tKey,
 					  (key.e->pos + key.aHover.getPos() - keySize).toVector2(),
-					  1.f,
-					  1.f,
+					  math::radToDeg(key.e->rot),
+					  key.e->scale,
 					  key.tint);
 	}
 };
 struct Table
 {
-	Entity*				  e;
-	Texture2D*			  tTable;
-	Texture2D*			  tShadow;
-	Sound*				  sWham;
-	InteractionProperties props;
+	Entity*			e;
+	Texture2D*		tTable;
+	Texture2D*		tShadow;
+	Sound*			sWham;
+	InteractionData props;
 
 	Color		   tint = WHITE;
 	AnimFlip	   aFlip;
@@ -329,7 +354,6 @@ struct Table
 								draw,
 								{.canSelect			= true,
 								 .canInteract		= true,
-								 .canBePickedUp		= true,
 								 .canCollideTerrain = false,
 								 .canCollideGroup1	= false});
 		if (iPtr < 0)

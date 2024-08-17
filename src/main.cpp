@@ -87,7 +87,7 @@ int main(void)
 					if (entities.active[i] && entities.collidesTerrain[i])
 					{
 						Entity&				   e  = entities.instances[i];
-						InteractionProperties& ip = *(InteractionProperties*)e.properties;
+						InteractionData& ip = *(InteractionData*)e.properties;
 						v2					   collisionVector;
 						if (l1.collidesWithTerrainBorder(ip.boundingCircle, collisionVector))
 							e.vel -= collisionVector;
@@ -107,8 +107,8 @@ int main(void)
 							continue;
 						Entity&				   e1	= *group1[i];
 						Entity&				   e2	= *group1[j];
-						InteractionProperties& ipE1 = *(InteractionProperties*)e1.properties;
-						InteractionProperties& ipE2 = *(InteractionProperties*)e2.properties;
+						InteractionData& ipE1 = *(InteractionData*)e1.properties;
+						InteractionData& ipE2 = *(InteractionData*)e2.properties;
 						v2					   collisionVector = {};
 						if (ipE1.boundingCircle.computeCollision(ipE2.boundingCircle,
 																 collisionVector))

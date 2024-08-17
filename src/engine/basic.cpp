@@ -55,6 +55,7 @@ struct Entity
 	v2	  pos		  = {};
 	v2	  vel		  = {};
 	f32	  rot		  = 0.f;
+	f32	  scale		  = 1.f;
 	Id	  id		  = Id::UNKNOWN;
 	u32	  instancePtr = 0;
 	void* data		  = nullptr;
@@ -68,7 +69,7 @@ struct Entities
 	static const u32 maxEntities = 128;
 	struct flagInit
 	{
-		bool canSelect, canInteract, canBePickedUp, canCollideTerrain, canCollideGroup1;
+		bool canSelect, canInteract, canCollideTerrain, canCollideGroup1;
 	};
 
 	Entity instances[maxEntities] = {};
@@ -78,7 +79,6 @@ struct Entities
 	u8 drawable[maxEntities]		= {};
 	u8 selectable[maxEntities]		= {};
 	u8 interactable[maxEntities]	= {};
-	u8 pickable[maxEntities]		= {};
 	u8 collidesTerrain[maxEntities] = {};
 	u8 collidesGroup1[maxEntities]	= {};
 
@@ -119,7 +119,6 @@ struct Entities
 			}
 			selectable[i]	   = flags.canSelect;
 			interactable[i]	   = flags.canInteract;
-			pickable[i]		   = flags.canBePickedUp;
 			collidesTerrain[i] = flags.canCollideTerrain;
 			collidesGroup1[i]  = flags.canCollideGroup1;
 			nActive++;
@@ -328,11 +327,11 @@ struct AnimBreathe
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 5;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.scale = 1.f, .duration = 0.2f},
-		{.scale = 1.05f, .duration = 0.2f},
-		{.scale = 1.05f, .duration = 0.2f},
-		{.scale = 1.f, .duration = 0.2f},
-		{.scale = 1.f, .duration = 0.2f},
+		{.scale = 0.f, .duration = 0.2f},
+		{.scale = 0.05f, .duration = 0.2f},
+		{.scale = 0.05f, .duration = 0.2f},
+		{.scale = 0.f, .duration = 0.2f},
+		{.scale = 0.f, .duration = 0.2f},
 	};
 	void activate(f32 period) { anim.activate(nKeyFrames, period, true); }
 	// returns true if completed
@@ -359,9 +358,9 @@ struct AnimHoverFloatShadow
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 3;
 	Keyframe		 keyFrames[nKeyFrames] = {
-		{.scale = 0.7f, .duration = 0.33f},
-		{.scale = 0.9f, .duration = 0.33f},
-		{.scale = 0.7f, .duration = 0.34f},
+		{.scale = -0.3f, .duration = 0.33f},
+		{.scale = -0.1f, .duration = 0.33f},
+		{.scale = -0.3f, .duration = 0.34f},
 	};
 	void activate(f32 period) { anim.activate(nKeyFrames, period, true); }
 	// returns true if completed
