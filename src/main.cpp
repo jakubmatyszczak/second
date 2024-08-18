@@ -84,8 +84,8 @@ int main(void)
 				for (u32 i = 0; i < entities.maxEntities; i++)
 					if (entities.active[i] && entities.collidesTerrain[i])
 					{
-						Entity&			 e	= entities.instances[i];
-						v2				 collisionVector;
+						Entity& e = entities.instances[i];
+						v2		collisionVector;
 						if (l1.collidesWithTerrainBorder(e.iData.boundingCircle, collisionVector))
 							e.vel -= collisionVector;
 						if (l2.collidesWithTerrainBorder(e.iData.boundingCircle, collisionVector))
@@ -102,11 +102,11 @@ int main(void)
 					{
 						if (i == j)
 							continue;
-						Entity&			 e1				 = *group1[i];
-						Entity&			 e2				 = *group1[j];
-						v2				 collisionVector = {};
+						Entity& e1				= *group1[i];
+						Entity& e2				= *group1[j];
+						v2		collisionVector = {};
 						if (e1.iData.boundingCircle.computeCollision(e2.iData.boundingCircle,
-																 collisionVector))
+																	 collisionVector))
 							e1.vel -= collisionVector / 2;
 					}
 			}
