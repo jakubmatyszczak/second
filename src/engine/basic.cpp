@@ -2,6 +2,16 @@
 #include <cstring>
 #include "v2.cpp"
 
+extern void dudeUpdate(void* dudePtr, f32 dt);
+extern void keyUpdate(void* keyPtr, f32 dt);
+extern void tableUpdate(void* tablePtr, f32 dt);
+extern void holeUpdate(void* holePtr, f32 dt);
+
+extern void dudeDraw(void* dudePtr);
+extern void keyDraw(void* keyPtr);
+extern void tableDraw(void* tablePtr);
+extern void holeDraw(void* holePtr);
+
 #define RED_TRANSPARENT \
 	{                   \
 		255, 0, 0, 128  \
@@ -24,10 +34,10 @@ inline void swap(u64* x, u64* y)
 void bubble_sort(u64 sortArr[], f32 sortBy[], int n)
 {
 	bool swapped;
-	for (u32 i = 0; i < n - 1; i++)
+	for (i32 i = 0; i < n - 1; i++)
 	{
 		swapped = false;
-		for (u32 j = 0; j < n - i - 1; j++)
+		for (i32 j = 0; j < n - i - 1; j++)
 		{
 			if (sortBy[j] > sortBy[j + 1])
 			{
@@ -72,6 +82,7 @@ struct InteractionData
 };
 struct Entity
 {
+	static const u32 MAX_ENTITY_SIZE = 1024;
 	enum class Id : u32
 	{
 		UNKNOWN,
@@ -90,34 +101,30 @@ struct Entity
 		HOLE,
 		KEY
 	};
-	Id				id			= Id::UNKNOWN;
-	Arch			arch		= Arch::UNKNOWN;
-	u32				instancePtr = 0;
-	v2				pos			= {};
-	v2				vel			= {};
-	f32				rot			= 0.f;
-	f32				scale		= 1.f;
-	u8				data[1024]	= {};
-	InteractionData iData		= {};
-
-	void (*drawPtr)(void* data)			  = nullptr;
-	void (*updatePtr)(void* data, f32 dt) = nullptr;
+	Id				id					  = Id::UNKNOWN;
+	Arch			arch				  = Arch::UNKNOWN;
+	u32				instancePtr			  = 0;
+	v2				pos					  = {};
+	v2				vel					  = {};
+	f32				rot					  = 0.f;
+	f32				scale				  = 1.f;
+	u8				data[MAX_ENTITY_SIZE] = {};
+	InteractionData iData				  = {};
 };
 struct Entities
 {
 	static const u32 maxEntities = 128;
 	struct flagInit
 	{
-		bool canSelect, canInteract, canCollideTerrain, canCollideGroup1;
+		bool canSelect, canInteract, canDraw, canCollideTerrain, canCollideGroup1;
 	};
 
 	Entity instances[maxEntities] = {};
 
 	u8 active[maxEntities]			= {};
-	u8 updatable[maxEntities]		= {};
-	u8 drawable[maxEntities]		= {};
 	u8 selectable[maxEntities]		= {};
 	u8 interactable[maxEntities]	= {};
+	u8 drawable[maxEntities]		= {};
 	u8 collidesTerrain[maxEntities] = {};
 	u8 collidesGroup1[maxEntities]	= {};
 
@@ -125,12 +132,7 @@ struct Entities
 	i32 selectedPtr = -1;
 	i32 interactPtr = -1;
 
-	i32 add(Entity::Id	 idType,
-			Entity::Arch archType,
-			v2			 pos,
-			flagInit	 flags,
-			void (*updateFunction)(void*, f32),
-			void (*drawFunction)(void*))
+	i32 add(Entity::Id idType, Entity::Arch archType, v2 pos, flagInit flags)
 	{
 		for (u32 i = 0; i < maxEntities; i++)
 		{
@@ -138,19 +140,10 @@ struct Entities
 				continue;
 			Entity& e = instances[i];
 			memset(&e, 0, sizeof(Entity));
-			e = {.id = idType, .arch = archType, .instancePtr = i, .pos = pos};
-			if (updateFunction)
-			{
-				e.updatePtr	 = updateFunction;
-				updatable[i] = true;
-			}
-			if (drawFunction)
-			{
-				e.drawPtr	= drawFunction;
-				drawable[i] = true;
-			}
+			e				   = {.id = idType, .arch = archType, .instancePtr = i, .pos = pos};
 			selectable[i]	   = flags.canSelect;
 			interactable[i]	   = flags.canInteract;
+			drawable[i]		   = flags.canDraw;
 			collidesTerrain[i] = flags.canCollideTerrain;
 			collidesGroup1[i]  = flags.canCollideGroup1;
 			active[i]		   = true;
@@ -188,8 +181,24 @@ struct Entities
 	void updateAll(f32 dt)
 	{
 		for (u32 i = 0; i < maxEntities; i++)
-			if (active[i] && updatable[i])
-				instances[i].updatePtr(instances[i].data, dt);
+			if (active[i])
+				switch (instances[i].arch)
+				{
+					case Entity::Arch::DUDE:
+						dudeUpdate(&instances[i].data, dt);
+						break;
+					case Entity::Arch::TABLE:
+						tableUpdate(&instances[i].data, dt);
+						break;
+					case Entity::Arch::HOLE:
+						holeUpdate(&instances[i].data, dt);
+						break;
+					case Entity::Arch::KEY:
+						keyUpdate(&instances[i].data, dt);
+						break;
+					case Entity::Arch::UNKNOWN:
+						break;
+				}
 	}
 	void drawAll()
 	{
@@ -208,7 +217,23 @@ struct Entities
 			}
 		bubble_sort((u64*)sortedEntities, posValueY, (u64)nSortedEntities);
 		for (i32 i = 0; i < nSortedEntities; i++)
-			sortedEntities[i]->drawPtr(sortedEntities[i]->data);
+				switch (sortedEntities[i]->arch)
+				{
+					case Entity::Arch::DUDE:
+						dudeDraw(&sortedEntities[i]->data);
+						break;
+					case Entity::Arch::TABLE:
+						tableDraw(&sortedEntities[i]->data);
+						break;
+					case Entity::Arch::HOLE:
+						holeDraw(&sortedEntities[i]->data);
+						break;
+					case Entity::Arch::KEY:
+						keyDraw(&sortedEntities[i]->data);
+						break;
+					case Entity::Arch::UNKNOWN:
+						break;
+				}
 	}
 };
 Entities entities = {};

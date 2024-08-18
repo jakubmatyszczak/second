@@ -4,6 +4,7 @@
 clang-fromat
 game
 second
+*.save
 
 ### Dirs
 .cache/

@@ -1,49 +1,69 @@
 #include <unistd.h>
 #include "engine/engine.cpp"
 #include "engine/basic.cpp"
+#include "engine/fileio.cpp"
 #include "entities.cpp"
 #include "levels.cpp"
 
-struct SaveStae
+struct SaveState
 {
 	EngineGlobals globals;
 	Entities	  entities;
-	Dude		  dude;
+	u32			  pDudeInstance;
+	Level		  levels[32];
 };
+void saveGame(SaveState& save, u32 pDudeInstance)
+{
+	save.globals	   = GLOBAL;
+	save.entities	   = entities;
+	save.pDudeInstance = pDudeInstance;
+	fileio::saveRawFile("1.save", &save, sizeof(save));
+}
+bool loadGame(SaveState& game)
+{
+	SaveState loaded;
+	i32		  ret = fileio::loadRawFile("1.save", sizeof(loaded), &loaded);
+	if (ret < 0)
+		return false;
+	else if (ret != sizeof(loaded))
+		exitWithMessage("Failed to load save!");
+	entities		   = loaded.entities;
+	GLOBAL			   = loaded.globals;
+	game.pDudeInstance = loaded.pDudeInstance;
+	memcpy(game.levels, loaded.levels, sizeof(loaded.levels));
+	return true;
+}
 
 int main(void)
 {
+	SaveState save;
 	InitWindow(800, 600, "SECOND");
 	SetTargetFPS(60.f);
 	InitAudioDevice();
-	bool  done			= false;
-	bool  levelEditor	= false;
-	u32	  texture		= GLOBAL.content.loadTexture("res/art/dude_ss.png");
-	u32	  texture2		= GLOBAL.content.loadTexture("res/art/table_tex.png");
-	u32	  textureKey	= GLOBAL.content.loadTexture("res/art/key.png");
-	u32	  textureShadow = GLOBAL.content.loadTexture("res/art/shadow_tex.png");
-	u32	  textureLevel1 = GLOBAL.content.loadTexture("res/art/level1.png");
-	u32	  textureHole	= GLOBAL.content.loadTexture("res/art/hole_ss.png");
-	u32 soundJump		= GLOBAL.content.loadSound("res/sound/jump.wav");
-	u32 soundWham		= GLOBAL.content.loadSound("res/sound/punch.wav");
-	Level l1;
-	Level l2;
+	bool done		 = false;
+	bool levelEditor = false;
+	content.loadTexture("res/art/dude_ss.png", Content::TEX_DUDE);
+	content.loadTexture("res/art/table_tex.png", Content::TEX_TABLE);
+	content.loadTexture("res/art/key.png", Content::TEX_KEY);
+	content.loadTexture("res/art/shadow_tex.png", Content::TEX_SHADOW);
+	content.loadTexture("res/art/level1.png", Content::TEX_LEVEL1);
+	content.loadTexture("res/art/hole_ss.png", Content::TEX_HOLE);
+	content.loadSound("res/sound/jump.wav", Content::SOUND_JUMP);
+	content.loadSound("res/sound/punch.wav", Content::SOUND_WHAM);
 
-	l1.init(textureLevel1, v2());
-	l2.init(textureLevel1, {500.0, 0.});
-	LoadLevel1(l1);
-	LoadLevel1(l2);
-	Dude& dude = Dude::init(texture, textureShadow, soundJump, {80, 80});
-	Table::init(texture2, textureShadow, soundWham, {30, 60});
-	Table::init(texture2, textureShadow, soundWham, {60, 25});
-	Table::init(texture2, textureShadow, soundWham, {50, 85});
-	Table::init(texture2, textureShadow, soundWham, {90, 90});
-	Hole& hole	= Hole::init(textureHole, {50, 50});
-	Hole& hole2 = Hole::init(textureHole, {550, 50});
+	Dude::init();
+	Table::init();
+	Key::init();
+	Hole::init();
+	save.levels[0].init(v2());
+	save.levels[1].init({500.0, 0.});
 
-	hole.connect(hole2);
+	Dude& dude = Dude::getRef(dude.add({50, 50}));
+	LoadLevel1(save.levels[0]);
+	LoadLevel2(save.levels[1]);
+	Hole::connect(save.levels[0].pHole[0], save.levels[1].pHole[0]);
 
-	Key::init(textureKey, textureShadow, {570, 80});
+	loadGame(save);
 
 	GLOBAL.camera.zoom	 = 6.f;
 	GLOBAL.camera.offset = {400, 300};
@@ -61,13 +81,13 @@ int main(void)
 			levelEditor = !levelEditor;
 		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_W))
 			GLOBAL.drawDebugCollision = !GLOBAL.drawDebugCollision;
+		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S))
+			saveGame(save, dude.pEntity);
 
 		GLOBAL.camera.zoom = 6.f;
 		if (levelEditor)
 		{
 			GLOBAL.camera.zoom = 2.f;
-			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-				l1.appendVertex(mousePosWorld);
 		}
 		else
 		{
@@ -86,6 +106,8 @@ int main(void)
 					{
 						Entity& e = entities.instances[i];
 						v2		collisionVector;
+						Level&	l1 = save.levels[0];
+						Level&	l2 = save.levels[0];
 						if (l1.collidesWithTerrainBorder(e.iData.boundingCircle, collisionVector))
 							e.vel -= collisionVector;
 						if (l2.collidesWithTerrainBorder(e.iData.boundingCircle, collisionVector))
@@ -113,23 +135,23 @@ int main(void)
 			entities.updateAll(dt);
 		}
 
+		v2 dudePos = dude.getEntity().pos;
 		BeginDrawing();
 		{
 			ClearBackground(SKYBLUE);
-
 			GLOBAL.camera.target =
-				(v2(GLOBAL.camera.target) + ((dude.e->pos - v2(GLOBAL.camera.target)) * 0.15f))
+				(v2(GLOBAL.camera.target) + ((dudePos - v2(GLOBAL.camera.target)) * 0.15f))
 					.toVector2();
 			BeginMode2D(GLOBAL.camera);
 			{
-				l1.draw();
-				l2.draw();
+				save.levels[0].draw();
+				save.levels[1].draw();
 				entities.drawAll();
 			}
 			EndMode2D();
 		}
 		dude.drawOverlay();
-		DrawText(TextFormat("DUDE: %.f,%.f", dude.e->pos.x, dude.e->pos.y), 10, 10, 20, BLACK);
+		DrawText(TextFormat("DUDE: %.f,%.f", dudePos.x, dudePos.y), 10, 10, 20, BLACK);
 		if (levelEditor)
 		{
 			DrawText("EDITOR", 10, 10, 20, BLACK);

@@ -4,12 +4,16 @@
 #include "engine/draw.cpp"
 
 InteractionData& getInteractionData(u32 entityPtr) { return entities.instances[entityPtr].iData; }
+Entity&			 entity(u32 entityPtr) { return entities.instances[entityPtr]; }
 struct Dude
 {
-	Entity*			  e;
+	u32				   pEntity;
+	inline static u32  pTexDude	   = 0;
+	inline static u32  pTexShadow  = 0;
+	inline static u32  pSoundJump  = 0;
+	inline static bool initialized = 0;
+
 	SpriteSheet		  ss;
-	u32				  pTexShadow;
-	u32				  pSoundJump;
 	AnimJump		  aJump;
 	AnimJumpShadow	  aJumpShadow;
 	AnimBreathe		  aBreathe;
@@ -23,55 +27,65 @@ struct Dude
 
 	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "PICK UP"};
 
+	Entity&		 getEntity() { return entities.instances[pEntity]; }
+	static Dude& getRef(u32 pEntity) { return *(Dude*)entities.instances[pEntity].data; }
+
 	void setCollision(u32 group, bool enable)
 	{
+		Entity* e = &entity(pEntity);
 		if (group == 0)
 			entities.collidesTerrain[e->instancePtr] = enable;
 		if (group == 1)
 			entities.collidesGroup1[e->instancePtr] = enable;
 	}
 
-	static Dude& init(u32 pTexDude, u32 pTexShadow, u32 pSoundJump, v2 pos)
+	static void init()
+	{
+		static_assert(sizeof(Dude) < Entity::MAX_ENTITY_SIZE);
+		Dude::pTexDude	 = Content::TEX_DUDE;
+		Dude::pTexShadow = Content::TEX_SHADOW;
+		Dude::pSoundJump = Content::SOUND_JUMP;
+	}
+	static u32 add(v2 pos)
 	{
 		int iPtr = entities.add(Entity::Id::PLAYER,
 								Entity::Arch::DUDE,
 								pos,
 								{.canSelect			= false,
 								 .canInteract		= false,
+								 .canDraw			= true,
 								 .canCollideTerrain = true,
-								 .canCollideGroup1	= true},
-								update,
-								draw);
+								 .canCollideGroup1	= true});
 		assert(iPtr > -1);
-		Dude& dude	  = *(new (entities.instances[iPtr].data) Dude);
-		dude.e		  = &entities.instances[iPtr];
-		dude.e->iData = {.boundingCircle = {dude.e->pos + dude.colliderOffset, 4}};
-		dude.ss.init(pTexDude, {8, 8}, 2, 10, true);
-		dude.pTexShadow = pTexShadow;
-		dude.pSoundJump = pSoundJump;
+		Dude& dude	 = *(new (entities.instances[iPtr].data) Dude);
+		dude.pEntity = iPtr;
+		Entity& e	 = entities.instances[iPtr];
+		e.iData		 = {.boundingCircle = {e.pos + dude.colliderOffset, 4}};
+		dude.ss.init(dude.pTexDude, {8, 8}, 2, 10, true);
 		dude.aBreathe.activate(5.f);
-		return dude;
-	}
+		return dude.pEntity;
+	};
 	void input(bool up, bool down, bool left, bool right, bool interact, bool jump)
 	{
+		Entity& e = entities.instances[pEntity];
 		if (busy)
 		{
-			e->vel = v2();
-			busy   = getInteractionData(interactEntityPtr).shouldPlayerBeBusy;
+			e.vel = v2();
+			busy  = getInteractionData(interactEntityPtr).shouldPlayerBeBusy;
 			if (busy)
 				return;
 			interactEntityPtr = -1;
 		}
-		e->vel.x += right - left;
-		e->vel.y += up - down;
-		e->vel *= 0.5f;
-		if (e->vel.isZero())
+		e.vel.x += right - left;
+		e.vel.y += up - down;
+		e.vel *= 0.5f;
+		if (e.vel.isZero())
 			aBreathe.anim.period = 5.f;
 		else
 			aBreathe.anim.period = 1.f;
 		if (jump && !aJump.anim.active)
 		{
-			PlaySound(GLOBAL.content.sounds[pSoundJump]);
+			PlaySound(content.sounds[pSoundJump]);
 			aJump.activate(0.4f);
 			aJumpShadow.activate(0.4f);
 		}
@@ -85,9 +99,9 @@ struct Dude
 		f32 closestDistance	 = MAXFLOAT;
 		for (u32 i = 0; i < Entities::maxEntities; i++)
 		{
-			if (entities.active[i] && i != e->instancePtr)
+			if (entities.active[i] && i != e.instancePtr)
 			{
-				f32 distance = e->pos.distToSquared(entities.instances[i].pos);
+				f32 distance = e.pos.distToSquared(entities.instances[i].pos);
 				if (distance < 100 && distance < closestDistance)
 				{
 					closestDistance	 = distance;
@@ -103,7 +117,7 @@ struct Dude
 			if (entities.instances[closestEntityPtr].id == Entity::Id::ITEM)
 			{
 				itemRightHand			   = closestEntityPtr;
-				iData.targetEntityInstance = e->instancePtr;
+				iData.targetEntityInstance = e.instancePtr;
 			}
 			interactEntityPtr = closestEntityPtr;
 			busy			  = iData.shouldPlayerBeBusy;
@@ -116,62 +130,6 @@ struct Dude
 		if (closestEntityPtr >= 0 && entities.select(closestEntityPtr))
 			activeHint = getInteractionData(closestEntityPtr).interaction;
 	}
-	static void update(void* dudePtr, f32 dt)
-	{
-		Dude& dude	  = *(Dude*)dudePtr;
-		bool  landing = dude.aJump.update(dt);
-		dude.aJumpShadow.update(dt);
-		dude.aBreathe.update(dt);
-
-		if (landing)
-		{
-			dude.setCollision(1, true);
-			for (u32 i = 0; i < entities.maxEntities; i++)
-				if (entities.active[i] && entities.instances[i].id == Entity::Id::PORTAL)
-				{
-					Entity& hole = entities.instances[i];
-					f32		rad	 = getInteractionData(dude.e->instancePtr).boundingCircle.radius +
-							  getInteractionData(hole.instancePtr).boundingCircle.radius;
-					if (dude.e->pos.distToSquared(hole.pos) < rad * rad)
-					{
-						dude.e->pos = entities
-										  .instances[getInteractionData(hole.instancePtr)
-														 .targetEntityInstance]
-										  .pos;
-						break;
-					}
-				}
-		}
-		dude.e->pos += dude.e->vel;
-		dude.e->iData.boundingCircle.position = dude.e->pos + dude.colliderOffset;
-		dude.ss.update(dt);
-	}
-	static void draw(void* dudePtr)
-	{
-		Dude&	   dude		  = *(Dude*)dudePtr;
-		Texture2D& texShadow  = GLOBAL.content.textures[dude.pTexShadow];
-		v2		   shadowSize = v2(texShadow.width, texShadow.height) * dude.aJumpShadow.getScale();
-		v2		   shadowOffset = v2(0, 1) / dude.aJumpShadow.getScale();
-		DrawTextureEx(texShadow,
-					  (dude.e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
-					  0.f,
-					  dude.aJumpShadow.getScale(),
-					  WHITE);
-
-		v2	drawPos	  = dude.e->pos + dude.aJump.getPos();
-		f32 drawScale = dude.e->scale + dude.aBreathe.getScale();
-		if (dude.e->vel.getLengthSquared() < 0.1f)
-			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 0, 0);
-		else if (dude.e->vel.y < -0.05f)  // Should be 0.f, but this looks better
-			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 3, -1);
-		else
-			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 2, -1);
-		if (GLOBAL.drawDebugCollision)
-		{
-			BoundingCircle& bc = getInteractionData(dude.e->instancePtr).boundingCircle;
-			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
-		}
-	};
 	void drawOverlay()
 	{
 		if (activeHint > 0)
@@ -179,237 +137,325 @@ struct Dude
 				TextFormat("Press [e] to %s", interactHint[activeHint]), 300, 400, 30, DARKBLUE);
 	};
 };
+void dudeUpdate(void* dudePtr, f32 dt)
+{
+	Dude&	dude	= *(Dude*)dudePtr;
+	Entity& e		= entities.instances[dude.pEntity];
+	bool	landing = dude.aJump.update(dt);
+	dude.aJumpShadow.update(dt);
+	dude.aBreathe.update(dt);
+
+	if (landing)
+	{
+		dude.setCollision(1, true);
+		for (u32 i = 0; i < entities.maxEntities; i++)
+			if (entities.active[i] && entities.instances[i].id == Entity::Id::PORTAL)
+			{
+				Entity& hole = entities.instances[i];
+				f32		rad	 = getInteractionData(e.instancePtr).boundingCircle.radius +
+						  getInteractionData(hole.instancePtr).boundingCircle.radius;
+				if (e.pos.distToSquared(hole.pos) < rad * rad)
+				{
+					e.pos =
+						entities
+							.instances[getInteractionData(hole.instancePtr).targetEntityInstance]
+							.pos;
+					break;
+				}
+			}
+	}
+	e.pos += e.vel;
+	e.iData.boundingCircle.position = e.pos + dude.colliderOffset;
+	dude.ss.update(dt);
+}
+void dudeDraw(void* dudePtr)
+{
+	Dude&	   dude			= *(Dude*)dudePtr;
+	Entity&	   e			= entities.instances[dude.pEntity];
+	Texture2D& texShadow	= content.textures[dude.pTexShadow];
+	v2		   shadowSize	= v2(texShadow.width, texShadow.height) * dude.aJumpShadow.getScale();
+	v2		   shadowOffset = v2(0, 1) / dude.aJumpShadow.getScale();
+	DrawTextureEx(texShadow,
+				  (e.pos - shadowSize * 0.5f + shadowOffset).toVector2(),
+				  0.f,
+				  dude.aJumpShadow.getScale(),
+				  WHITE);
+
+	v2	drawPos	  = e.pos + dude.aJump.getPos();
+	f32 drawScale = e.scale + dude.aBreathe.getScale();
+	if (e.vel.getLengthSquared() < 0.1f)
+		dude.ss.Draw(drawPos, WHITE, e.rot, drawScale, 0, 0);
+	else if (e.vel.y < -0.05f)	// Should be 0.f, but this looks better
+		dude.ss.Draw(drawPos, WHITE, e.rot, drawScale, 3, -1);
+	else
+		dude.ss.Draw(drawPos, WHITE, e.rot, drawScale, 2, -1);
+	if (GLOBAL.drawDebugCollision)
+	{
+		BoundingCircle& bc = getInteractionData(e.instancePtr).boundingCircle;
+		DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
+	}
+};
+
 struct Hole
 {
-	Entity*		e;
+	u32 pEntity = 0;
+
+	inline static u32  pSsTexture  = 0;
+	inline static bool initialized = false;
+
 	SpriteSheet ss;
 
-	static Hole& init(u32 pTexHole, v2 pos)
+	static void init()
 	{
+		static_assert(sizeof(Dude) < Entity::MAX_ENTITY_SIZE);
+		pSsTexture	= Content::TEX_HOLE;
+		initialized = true;
+	}
+	static u32 add(v2 pos)
+	{
+		if (!initialized)
+			exitWithMessage("Hole not initialized!");
 		i32 iPtr = entities.add(Entity::Id::PORTAL,
 								Entity::Arch::HOLE,
 								pos,
 								{.canSelect			= false,
 								 .canInteract		= false,
+								 .canDraw			= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= true},
-								update,
-								draw);
+								 .canCollideGroup1	= true});
 		assert(iPtr >= 0);
-		Hole& hole = *(new (entities.instances[iPtr].data) Hole);
-		hole.ss.init(pTexHole, v2(16, 8), 4, 16, true);
-		hole.e		  = &entities.instances[iPtr];
-		hole.e->iData = {.boundingCircle = {hole.e->pos, 5}};
-		return hole;
+		Hole&	hole = *(new (entities.instances[iPtr].data) Hole);
+		Entity& e	 = entities.instances[iPtr];
+		hole.pEntity = iPtr;
+		hole.ss.init(pSsTexture, v2(16, 8), 4, 16, true);
+		e.iData = {.boundingCircle = {e.pos, 5}};
+		return iPtr;
 	}
-	void connect(Hole& target)
+	static void connect(u32 h1InstancePtr, u32 h2InstancePtr)
 	{
-		e->iData.targetEntityInstance		 = target.e->instancePtr;
-		target.e->iData.targetEntityInstance = e->instancePtr;
+		entities.instances[h1InstancePtr].iData.targetEntityInstance = h2InstancePtr;
+		entities.instances[h2InstancePtr].iData.targetEntityInstance = h1InstancePtr;
 	}
-	static void update(void* hole, f32 dt)
-	{
-		Hole& h = *(Hole*)hole;
-		h.ss.update(dt);
-	}
-	static void draw(void* hole)
-	{
-		Hole& h = *(Hole*)hole;
-		h.ss.Draw(h.e->pos);
-		if (GLOBAL.drawDebugCollision)
-		{
-			BoundingCircle& bc = getInteractionData(h.e->instancePtr).boundingCircle;
-			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
-		}
-	};
 };
+void holeUpdate(void* hole, f32 dt)
+{
+	Hole& h = *(Hole*)hole;
+	h.ss.update(dt);
+}
+void holeDraw(void* hole)
+{
+	Hole&	h = *(Hole*)hole;
+	Entity& e = entities.instances[h.pEntity];
+	h.ss.Draw(e.pos);
+	if (GLOBAL.drawDebugCollision)
+	{
+		BoundingCircle& bc = getInteractionData(e.instancePtr).boundingCircle;
+		DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
+	}
+}
 struct Key
 {
-	Entity* e;
+	u32 pEntity;
 
-	u32	  pTexKey;
-	u32	  pTexShadow;
-	Color tint = WHITE;
+	inline static u32  pTexKey	   = 0;
+	inline static u32  pTexShadow  = 0;
+	inline static bool initialized = false;
 
 	AnimHoverFloat		 aHover;
 	AnimHoverFloatShadow aShadow;
 	bool				 isPicked = false;
+	Color				 tint	  = WHITE;
 
-	static bool init(u32 pTexKey, u32 pTexShadow, v2 pos)
+	static void init()
 	{
+		static_assert(sizeof(Dude) < Entity::MAX_ENTITY_SIZE);
+		pTexShadow	= Content::TEX_SHADOW;
+		pTexKey		= Content::TEX_KEY;
+		initialized = true;
+	}
+	static u32 add(v2 pos)
+	{
+		if (!initialized)
+			exitWithMessage("Key not initialized!");
 		int iPtr = entities.add(Entity::Id::ITEM,
 								Entity::Arch::KEY,
 								pos,
 								{.canSelect			= true,
 								 .canInteract		= true,
+								 .canDraw			= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= false},
-								update,
-								draw);
-		if (iPtr < 0)
-			return false;
-		Entity& entity			 = entities.instances[iPtr];
-		Key&	key				 = *(new (entity.data) Key);
-		key.pTexKey				 = pTexKey;
-		key.pTexShadow			 = pTexShadow;
-		key.e					 = &entities.instances[iPtr];
-		entity.iData.interaction = PICKUP;
+								 .canCollideGroup1	= false});
+		assert(iPtr >= 0);
+		Entity& e			= entities.instances[iPtr];
+		Key&	key			= *(new (e.data) Key);
+		key.pEntity			= iPtr;
+		e.iData.interaction = PICKUP;
 
 		key.aHover.anim.looped	= true;
 		key.aShadow.anim.looped = true;
 		key.aHover.activate(3.0f);
 		key.aShadow.activate(3.0f);
 
-		return true;
-	}
-	static void update(void* keyPtr, f32 dt)
-	{
-		Key& key = *(Key*)keyPtr;
-		if (entities.selectedPtr == key.e->instancePtr)
-			key.tint = RED;
-		else
-			key.tint = WHITE;
-		if (entities.interactPtr == key.e->instancePtr)
-		{
-			key.isPicked = !key.isPicked;
-			key.e->rot	 = 0.f;
-			key.e->scale = 1.f;
-			if (key.isPicked)
-			{
-				key.e->rot	 = 1.f;
-				key.e->scale = 0.7f;
-			}
-			else
-				key.e->iData.targetEntityInstance = -1;
-			entities.selectable[key.e->instancePtr] = !key.isPicked;
-		}
-
-		key.e->vel = v2();
-		if (key.e->iData.targetEntityInstance >= 0)
-		{
-			Entity& target = entities.instances[key.e->iData.targetEntityInstance];
-			key.e->vel	   = (target.pos + key.e->iData.inventoryOffset - key.e->pos) * 0.35f;
-		}
-
-		key.e->pos += key.e->vel;
-		key.aHover.update(dt);
-		key.aShadow.update(dt);
-	}
-	static void draw(void* keyPtr)
-	{
-		Key&	   key		  = *(Key*)keyPtr;
-		Texture2D& texShadow  = GLOBAL.content.textures[key.pTexShadow];
-		Texture2D& texKey	  = GLOBAL.content.textures[key.pTexKey];
-		v2		   shadowSize = v2(texShadow.width, texShadow.height) * key.aShadow.getScale();
-		v2		   keySize	  = v2(texKey.width / 2.f, texKey.height / 2.f) * key.e->scale;
-		if (!key.isPicked)
-			DrawTextureEx(texShadow,
-						  (key.e->pos - keySize - shadowSize * 0.5).toVector2(),
-						  0.f,
-						  key.e->scale + key.aShadow.getScale(),
-						  WHITE);
-		DrawTextureEx(texKey,
-					  (key.e->pos + key.aHover.getPos() - keySize).toVector2(),
-					  math::radToDeg(key.e->rot),
-					  key.e->scale,
-					  key.tint);
+		return iPtr;
 	}
 };
+void keyUpdate(void* keyPtr, f32 dt)
+{
+	Key&	key = *(Key*)keyPtr;
+	Entity& e	= entities.instances[key.pEntity];
+	if (entities.selectedPtr == e.instancePtr)
+		key.tint = RED;
+	else
+		key.tint = WHITE;
+	if (entities.interactPtr == e.instancePtr)
+	{
+		key.isPicked = !key.isPicked;
+		e.rot		 = 0.f;
+		e.scale		 = 1.f;
+		if (key.isPicked)
+		{
+			e.rot	= 1.f;
+			e.scale = 0.7f;
+		}
+		else
+			e.iData.targetEntityInstance = -1;
+		entities.selectable[e.instancePtr] = !key.isPicked;
+	}
+
+	e.vel = v2();
+	if (e.iData.targetEntityInstance >= 0)
+	{
+		Entity& target = entities.instances[e.iData.targetEntityInstance];
+		e.vel		   = (target.pos + e.iData.inventoryOffset - e.pos) * 0.35f;
+	}
+
+	e.pos += e.vel;
+	key.aHover.update(dt);
+	key.aShadow.update(dt);
+}
+void keyDraw(void* keyPtr)
+{
+	Key&	   key		  = *(Key*)keyPtr;
+	Entity&	   e		  = entities.instances[key.pEntity];
+	Texture2D& texShadow  = content.textures[key.pTexShadow];
+	Texture2D& texKey	  = content.textures[key.pTexKey];
+	v2		   shadowSize = v2(texShadow.width, texShadow.height) * key.aShadow.getScale();
+	v2		   keySize	  = v2(texKey.width / 2.f, texKey.height / 2.f) * e.scale;
+	if (!key.isPicked)
+		DrawTextureEx(texShadow,
+					  (e.pos - keySize - shadowSize * 0.5).toVector2(),
+					  0.f,
+					  e.scale + key.aShadow.getScale(),
+					  WHITE);
+	DrawTextureEx(texKey,
+				  (e.pos + key.aHover.getPos() - keySize).toVector2(),
+				  math::radToDeg(e.rot),
+				  e.scale,
+				  key.tint);
+}
 struct Table
 {
-	Entity* e;
-	u32		pTexTable;
-	u32		pTexShadow;
-	u32		pSoundWham;
+	u32				   pEntity;
+	inline static u32  pTexTable   = 0;
+	inline static u32  pTexShadow  = 0;
+	inline static u32  pSoundWham  = 0;
+	inline static bool initialized = false;
 
 	Color		   tint = WHITE;
 	AnimFlip	   aFlip;
 	AnimJumpShadow aJumpShadow;
 	bool		   flipped = true;
 
-	static bool init(u32 pTexTable, u32 pTexShadow, u32 pSoundwham, v2 pos)
+	static void init()
 	{
+		static_assert(sizeof(Dude) < Entity::MAX_ENTITY_SIZE);
+		Table::pTexTable  = Content::TEX_TABLE;
+		Table::pTexShadow = Content::TEX_SHADOW;
+		Table::pSoundWham = Content::SOUND_WHAM;
+		initialized		  = true;
+	}
+	static u32 add(v2 pos)
+	{
+		if (!initialized)
+			exitWithMessage("Table not initialized!");
 		int iPtr = entities.add(Entity::Id::OBJECT,
 								Entity::Arch::TABLE,
 								pos,
 								{.canSelect			= true,
 								 .canInteract		= true,
+								 .canDraw			= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= false},
-								update,
-								draw);
-		if (iPtr < 0)
-			return false;
-		Entity& entity			 = entities.instances[iPtr];
-		Table&	table			 = *(new (entity.data) Table);
-		table.e					 = &entity;
-		table.pTexTable			 = pTexTable;
-		table.pTexShadow		 = pTexShadow;
-		table.pSoundWham		 = pSoundwham;
-		entity.iData.interaction = FLIP;
-		return true;
+								 .canCollideGroup1	= false});
+		assert(iPtr >= 0);
+		Entity& e			= entities.instances[iPtr];
+		Table&	table		= *(new (e.data) Table);
+		table.pEntity		= iPtr;
+		e.iData.interaction = FLIP;
+		return iPtr;
 	}
-	static void update(void* tablePtr, f32 dt)
+};
+void tableUpdate(void* tablePtr, f32 dt)
+{
+	Table&	table = *(Table*)tablePtr;
+	Entity& e	  = entities.instances[table.pEntity];
+	if (entities.selectedPtr == e.instancePtr)
+		table.tint = RED;
+	else
+		table.tint = WHITE;
+	if (!table.aFlip.anim.active && entities.interactPtr == e.instancePtr)
 	{
-		Table& table = *(Table*)tablePtr;
-		if (entities.selectedPtr == table.e->instancePtr)
-			table.tint = RED;
+		f32 flipPeriod = 0.3f;
+		if (table.flipped)
+			table.aFlip.anim.reversed = false;
 		else
-			table.tint = WHITE;
-		if (!table.aFlip.anim.active && entities.interactPtr == table.e->instancePtr)
 		{
-			f32 flipPeriod = 0.3f;
-			if (table.flipped)
-				table.aFlip.anim.reversed = false;
-			else
-			{
-				flipPeriod				  = flipPeriod * 3.f;
-				table.aFlip.anim.reversed = true;
-			}
-			entities.selectable[table.e->instancePtr] = false;
-			table.e->iData.interaction				  = NONE;
-			table.aJumpShadow.activate(flipPeriod);
-			table.aFlip.activate(flipPeriod);
+			flipPeriod				  = flipPeriod * 3.f;
+			table.aFlip.anim.reversed = true;
 		}
-		if (table.aFlip.update(dt))
-		{
-			entities.selectable[table.e->instancePtr] = true;
-			if (table.flipped)
-			{
-				PlaySound(GLOBAL.content.sounds[table.pSoundWham]);
-				table.e->iData.shouldPlayerBeBusy = true;
-				table.e->iData.interaction		  = RESTORE;
-			}
-			else
-			{
-				table.e->iData.shouldPlayerBeBusy = false;
-				table.e->iData.interaction		  = FLIP;
-			}
-			table.flipped = !table.flipped;
-		}
-		table.aJumpShadow.update(dt);
+		entities.selectable[e.instancePtr] = false;
+		e.iData.interaction				   = NONE;
+		table.aJumpShadow.activate(flipPeriod);
+		table.aFlip.activate(flipPeriod);
 	}
-	static void draw(void* tablePtr)
+	if (table.aFlip.update(dt))
 	{
-		Table&	   table	 = *(Table*)tablePtr;
-		Texture2D& texShadow = GLOBAL.content.textures[table.pTexShadow];
-		v2 shadowSize		 = v2(texShadow.width, texShadow.height) * table.aJumpShadow.getScale();
-		v2 shadowOffset		 = v2(0, 1.f) / table.aJumpShadow.getScale();
-		DrawTextureEx(texShadow,
-					  (table.e->pos - shadowSize * 0.5f + shadowOffset).toVector2(),
-					  0.f,
-					  table.aJumpShadow.getScale(),
-					  WHITE);
+		entities.selectable[e.instancePtr] = true;
+		if (table.flipped)
+		{
+			PlaySound(content.sounds[table.pSoundWham]);
+			e.iData.shouldPlayerBeBusy = true;
+			e.iData.interaction		   = RESTORE;
+		}
+		else
+		{
+			e.iData.shouldPlayerBeBusy = false;
+			e.iData.interaction		   = FLIP;
+		}
+		table.flipped = !table.flipped;
+	}
+	table.aJumpShadow.update(dt);
+}
+void tableDraw(void* tablePtr)
+{
+	Table&	   table		= *(Table*)tablePtr;
+	Entity&	   e			= entities.instances[table.pEntity];
+	Texture2D& texShadow	= content.textures[table.pTexShadow];
+	v2		   shadowSize	= v2(texShadow.width, texShadow.height) * table.aJumpShadow.getScale();
+	v2		   shadowOffset = v2(0, 1.f) / table.aJumpShadow.getScale();
+	DrawTextureEx(texShadow,
+				  (e.pos - shadowSize * 0.5f + shadowOffset).toVector2(),
+				  0.f,
+				  table.aJumpShadow.getScale(),
+				  WHITE);
 
-		Texture2D& texTable = GLOBAL.content.textures[table.pTexTable];
-		v2		   flipPos	= table.aFlip.getPos() * (table.aFlip.anim.reversed ? .25f : 1.f);
-		v2		   drawPos	= table.e->pos + flipPos;
-		f32		   drawrot	= math::radToDeg(table.e->rot + table.aFlip.getRot());
-		DrawTexturePro(texTable,
-					   {0, 0, (f32)texTable.width, (f32)texTable.height},
-					   {drawPos.x, drawPos.y, (f32)texTable.width, (f32)texTable.height},
-					   {texTable.width / 2.f, 1.f + texTable.height / 2.f},
-					   drawrot,
-					   table.tint);
-	};
+	Texture2D& texTable = content.textures[table.pTexTable];
+	v2		   flipPos	= table.aFlip.getPos() * (table.aFlip.anim.reversed ? .25f : 1.f);
+	v2		   drawPos	= e.pos + flipPos;
+	f32		   drawrot	= math::radToDeg(e.rot + table.aFlip.getRot());
+	DrawTexturePro(texTable,
+				   {0, 0, (f32)texTable.width, (f32)texTable.height},
+				   {drawPos.x, drawPos.y, (f32)texTable.width, (f32)texTable.height},
+				   {texTable.width / 2.f, 1.f + texTable.height / 2.f},
+				   drawrot,
+				   table.tint);
 };

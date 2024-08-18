@@ -29,32 +29,38 @@ struct GameState
 };
 struct Content
 {
+	enum TEX_ID
+	{
+		TEX_DUDE,
+		TEX_TABLE,
+		TEX_KEY,
+		TEX_HOLE,
+		TEX_SHADOW,
+		TEX_LEVEL1,
+        TEX_ID_MAX
+	};
+	enum SOUND_ID
+	{
+		SOUND_JUMP,
+		SOUND_WHAM,
+        SOUND_ID_MAX
+	};
 	Texture2D textures[32];
-	u32		  nTextures = 0;
 	Sound	  sounds[32];
-	u32		  nSounds = 0;
 
-	u32 loadTexture(const char* filepath)
-	{
-		textures[nTextures] = LoadTexture(filepath);
-		return nTextures++;
-	}
-	u32 loadSound(const char* filepath)
-	{
-		sounds[nSounds] = LoadSound(filepath);
-		return nSounds++;
-	}
+	void loadTexture(const char* filepath, TEX_ID id) { textures[id] = LoadTexture(filepath); }
+	void loadSound(const char* filepath, SOUND_ID id) { sounds[id] = LoadSound(filepath); }
 };
 struct EngineGlobals
 {
 	Screen	  screen;
 	GameState state;
 	Camera2D  camera;
-	Content	  content;
 
 	bool drawDebugCollision = false;
 };
 EngineGlobals GLOBAL;
+Content	  content;
 
 inline void exitWithMessage(const char* msg)
 {

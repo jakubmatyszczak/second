@@ -1,6 +1,7 @@
 #pragma once
 #include "engine/basic.cpp"
 #include "engine/v2.cpp"
+#include "entities.cpp"
 
 v2 projectPointOntoLine(const v2& p, const v2& a, const v2& b)
 {
@@ -20,10 +21,12 @@ struct Level
 
 	u32 terrainTexture = 0;
 	v2	pos			   = v2();
+	i32 pHole[4]	   = {-1, -1, -1, -1};
+	u32 nHoles		   = 0;
 
-	void init(u32 texTerrain, v2 position)
+	void init(v2 position)
 	{
-		terrainTexture = texTerrain;
+		terrainTexture = Content::TEX_LEVEL1;
 		pos			   = position;
 	}
 	bool appendVertex(v2 pos)
@@ -59,7 +62,7 @@ struct Level
 
 	void draw()
 	{
-		DrawTextureEx(GLOBAL.content.textures[terrainTexture], pos.toVector2(), 0.f, 1.f, WHITE);
+		DrawTextureEx(content.textures[terrainTexture], pos.toVector2(), 0.f, 1.f, WHITE);
 		if (!GLOBAL.drawDebugCollision)
 			return;
 		if (nTerrainVerticies < 2)
@@ -74,12 +77,7 @@ struct Level
 	}
 };
 
-struct Levels
-{
-	Level instances[32];
-};
-
-void LoadLevel1(Level& level)
+void LoadLayout1(Level& level)
 {
 	level.appendVertex(v2(64, 105));
 	level.appendVertex(v2(107, 106));
@@ -101,4 +99,20 @@ void LoadLevel1(Level& level)
 	level.appendVertex(v2(15, 97));
 	level.appendVertex(v2(40, 99));
 	level.appendVertex(v2(50, 95));
+}
+void LoadLevel1(Level& level)
+{
+	LoadLayout1(level);
+	Table::add(level.pos + v2(30, 60));
+	Table::add(level.pos + v2(60, 25));
+	Table::add(level.pos + v2(50, 85));
+	Table::add(level.pos + v2(90, 90));
+	level.pHole[level.nHoles++] = Hole::add(level.pos + v2(50, 50));
+}
+void LoadLevel2(Level& level)
+{
+	LoadLayout1(level);
+	Key::add(level.pos + v2(20, 50));
+	Table::add(level.pos + v2(30, 60));
+	level.pHole[level.nHoles++] = Hole::add(level.pos + v2(50, 50));
 }
