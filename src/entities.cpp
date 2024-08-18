@@ -1,27 +1,9 @@
 #pragma once
+#include <cassert>
 #include "engine/basic.cpp"
 #include "engine/draw.cpp"
 
-enum PlayerInteraction : i32
-{
-	NONE = -1,
-	INTERACT,
-	FLIP,
-	RESTORE,
-	PICKUP,
-};
-struct InteractionData
-{
-	inline static const v2 inventoryOffset = v2(10, -4);
-	PlayerInteraction	   interaction;
-	bool				   shouldPlayerBeBusy = false;
-	BoundingCircle		   boundingCircle;
-	Entity*				   targetEntity = nullptr;
-};
-InteractionData* getInteractionData(u32 entityPtr)
-{
-	return ((InteractionData*)entities.instances[entityPtr].properties);
-}
+InteractionData& getInteractionData(u32 entityPtr) { return entities.instances[entityPtr].iData; }
 struct Dude
 {
 	Entity*			  e;
@@ -32,14 +14,12 @@ struct Dude
 	AnimJumpShadow	  aJumpShadow;
 	AnimBreathe		  aBreathe;
 	PlayerInteraction activeHint = NONE;
-	InteractionData	  ip;
 
-	v2 colliderOffset = {0, 2};
+	v2	 colliderOffset = {0, 2};
+	bool busy			= false;
 
-	bool busy			   = false;
-	i32	 interactEntityPtr = -1;
-
-	i32 itemRightHand = -1;
+	i32 interactEntityPtr = -1;
+	i32 itemRightHand	  = -1;
 
 	constexpr static const char* interactHint[4] = {"INTERACT", "FLIP", "RESTORE", "PICK UP"};
 
@@ -51,36 +31,33 @@ struct Dude
 			entities.collidesGroup1[e->instancePtr] = enable;
 	}
 
-	bool init(Texture& texDude, Texture& texShadow, Sound& soundJump, v2 pos)
+	static Dude& init(Texture& texDude, Texture& texShadow, Sound& soundJump, v2 pos)
 	{
 		int iPtr = entities.add(Entity::Id::PLAYER,
-								this,
-								&ip,
+								Entity::Arch::DUDE,
 								pos,
-								0.f,
-								update,
-								draw,
 								{.canSelect			= false,
 								 .canInteract		= false,
 								 .canCollideTerrain = true,
-								 .canCollideGroup1	= true});
-		if (iPtr < 0)
-			return false;
-		e  = &entities.instances[iPtr];
-		ip = {.boundingCircle = {e->pos + colliderOffset, 4}};
-		ss.init(texDude, {8, 8}, 2, 10, true);
-		tShadow = texShadow;
-		sJump	= &soundJump;
-		aBreathe.activate(5.f);
-		return true;
+								 .canCollideGroup1	= true},
+								update,
+								draw);
+        assert(iPtr > -1);
+		Dude& dude	  = *(new (entities.instances[iPtr].data) Dude);
+		dude.e		  = &entities.instances[iPtr];
+		dude.e->iData = {.boundingCircle = {dude.e->pos + dude.colliderOffset, 4}};
+		dude.ss.init(texDude, {8, 8}, 2, 10, true);
+		dude.tShadow = texShadow;
+		dude.sJump	 = &soundJump;
+		dude.aBreathe.activate(5.f);
+		return dude;
 	}
-	void kill() { entities.remove(e->instancePtr); }
 	void input(bool up, bool down, bool left, bool right, bool interact, bool jump)
 	{
 		if (busy)
 		{
 			e->vel = v2();
-			busy   = getInteractionData(interactEntityPtr)->shouldPlayerBeBusy;
+			busy   = getInteractionData(interactEntityPtr).shouldPlayerBeBusy;
 			if (busy)
 				return;
 			interactEntityPtr = -1;
@@ -122,11 +99,11 @@ struct Dude
 		{
 			if (!entities.interact(closestEntityPtr))
 				return;
-			InteractionData& iData = *getInteractionData(closestEntityPtr);
+			InteractionData& iData = getInteractionData(closestEntityPtr);
 			if (entities.instances[closestEntityPtr].id == Entity::Id::ITEM)
 			{
-				itemRightHand	   = closestEntityPtr;
-				iData.targetEntity = e;
+				itemRightHand			   = closestEntityPtr;
+				iData.targetEntityInstance = e->instancePtr;
 			}
 			interactEntityPtr = closestEntityPtr;
 			busy			  = iData.shouldPlayerBeBusy;
@@ -137,7 +114,7 @@ struct Dude
 				itemRightHand = -1;
 		}
 		if (closestEntityPtr >= 0 && entities.select(closestEntityPtr))
-			activeHint = getInteractionData(closestEntityPtr)->interaction;
+			activeHint = getInteractionData(closestEntityPtr).interaction;
 	}
 	static void update(void* dudePtr, f32 dt)
 	{
@@ -153,17 +130,20 @@ struct Dude
 				if (entities.active[i] && entities.instances[i].id == Entity::Id::PORTAL)
 				{
 					Entity& hole = entities.instances[i];
-					f32		rad	 = getInteractionData(dude.e->instancePtr)->boundingCircle.radius +
-							  getInteractionData(hole.instancePtr)->boundingCircle.radius;
+					f32		rad	 = getInteractionData(dude.e->instancePtr).boundingCircle.radius +
+							  getInteractionData(hole.instancePtr).boundingCircle.radius;
 					if (dude.e->pos.distToSquared(hole.pos) < rad * rad)
 					{
-						dude.e->pos = getInteractionData(hole.instancePtr)->targetEntity->pos;
+						dude.e->pos = entities
+										  .instances[getInteractionData(hole.instancePtr)
+														 .targetEntityInstance]
+										  .pos;
 						break;
 					}
 				}
 		}
 		dude.e->pos += dude.e->vel;
-		dude.ip.boundingCircle.position = dude.e->pos + dude.colliderOffset;
+		dude.e->iData.boundingCircle.position = dude.e->pos + dude.colliderOffset;
 		dude.ss.update(dt);
 	}
 	static void draw(void* dudePtr)
@@ -187,7 +167,7 @@ struct Dude
 			dude.ss.Draw(drawPos, WHITE, dude.e->rot, drawScale, 2, -1);
 		if (GLOBAL.drawDebugCollision)
 		{
-			BoundingCircle& bc = getInteractionData(dude.e->instancePtr)->boundingCircle;
+			BoundingCircle& bc = getInteractionData(dude.e->instancePtr).boundingCircle;
 			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
 		}
 	};
@@ -200,32 +180,31 @@ struct Dude
 };
 struct Hole
 {
-	Entity*			e;
-	SpriteSheet		ss;
-	InteractionData ip;
+	Entity*		e;
+	SpriteSheet ss;
 
-	bool init(Texture2D& hole, v2 pos)
+	static Hole& init(Texture2D& tHole, v2 pos)
 	{
-		i32 iPtr = entities.add(Entity::Id::PORTAL,
-								this,
-								&ip,
-								pos,
-								0.f,
-								update,
-								draw,
-								{.canSelect			= false,
-								 .canInteract		= false,
-								 .canCollideTerrain = false,
-								 .canCollideGroup1	= true});
-		ss.init(hole, v2(16, 8), 4, 16, true);
-		e  = &entities.instances[iPtr];
-		ip = {.boundingCircle = {e->pos, 5}};
-		return true;
+		i32	  iPtr = entities.add(Entity::Id::PORTAL,
+								  Entity::Arch::HOLE,
+								  pos,
+								  {.canSelect		  = false,
+								   .canInteract		  = false,
+								   .canCollideTerrain = false,
+								   .canCollideGroup1  = true},
+								  update,
+								  draw);
+        assert(iPtr >= 0);
+		Hole& hole = *(new (entities.instances[iPtr].data) Hole);
+		hole.ss.init(tHole, v2(16, 8), 4, 16, true);
+		hole.e		  = &entities.instances[iPtr];
+		hole.e->iData = {.boundingCircle = {hole.e->pos, 5}};
+		return hole;
 	}
 	void connect(Hole& target)
 	{
-		ip.targetEntity		   = target.e;
-		target.ip.targetEntity = e;
+		e->iData.targetEntityInstance		 = target.e->instancePtr;
+		target.e->iData.targetEntityInstance = e->instancePtr;
 	}
 	static void update(void* hole, f32 dt)
 	{
@@ -238,7 +217,7 @@ struct Hole
 		h.ss.Draw(h.e->pos);
 		if (GLOBAL.drawDebugCollision)
 		{
-			BoundingCircle& bc = getInteractionData(h.e->instancePtr)->boundingCircle;
+			BoundingCircle& bc = getInteractionData(h.e->instancePtr).boundingCircle;
 			DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
 		}
 	};
@@ -249,36 +228,35 @@ struct Key
 
 	Texture2D*			 tKey;
 	Texture2D*			 tShadow;
-	InteractionData		 ip;
 	Color				 tint = WHITE;
 	AnimHoverFloat		 aHover;
 	AnimHoverFloatShadow aShadow;
 	bool				 isPicked = false;
 
-	bool init(Texture& table, Texture& shadow, v2 pos)
+	static bool init(Texture& tKey, Texture& shadow, v2 pos)
 	{
 		int iPtr = entities.add(Entity::Id::ITEM,
-								this,
-								&ip,
+								Entity::Arch::KEY,
 								pos,
-								0.f,
-								update,
-								draw,
 								{.canSelect			= true,
 								 .canInteract		= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= false});
+								 .canCollideGroup1	= false},
+								update,
+								draw);
 		if (iPtr < 0)
 			return false;
-		tKey		   = &table;
-		tShadow		   = &shadow;
-		e			   = &entities.instances[iPtr];
-		ip.interaction = PICKUP;
+		Entity& entity			 = entities.instances[iPtr];
+		Key&	key				 = *(new (entity.data) Key);
+		key.tKey				 = &tKey;
+		key.tShadow				 = &shadow;
+		key.e					 = &entities.instances[iPtr];
+		entity.iData.interaction = PICKUP;
 
-		aHover.anim.looped	= true;
-		aShadow.anim.looped = true;
-		aHover.activate(3.0f);
-		aShadow.activate(3.0f);
+		key.aHover.anim.looped	= true;
+		key.aShadow.anim.looped = true;
+		key.aHover.activate(3.0f);
+		key.aShadow.activate(3.0f);
 
 		return true;
 	}
@@ -300,13 +278,16 @@ struct Key
 				key.e->scale = 0.7f;
 			}
 			else
-				key.ip.targetEntity = nullptr;
+				key.e->iData.targetEntityInstance = -1;
 			entities.selectable[key.e->instancePtr] = !key.isPicked;
 		}
 
 		key.e->vel = v2();
-		if (key.ip.targetEntity)
-			key.e->vel = (key.ip.targetEntity->pos + key.ip.inventoryOffset - key.e->pos) * 0.35f;
+		if (key.e->iData.targetEntityInstance >= 0)
+		{
+			Entity& target = entities.instances[key.e->iData.targetEntityInstance];
+			key.e->vel	   = (target.pos + key.e->iData.inventoryOffset - key.e->pos) * 0.35f;
+		}
 
 		key.e->pos += key.e->vel;
 		key.aHover.update(dt);
@@ -332,37 +313,36 @@ struct Key
 };
 struct Table
 {
-	Entity*			e;
-	Texture2D*		tTable;
-	Texture2D*		tShadow;
-	Sound*			sWham;
-	InteractionData props;
+	Entity*	   e;
+	Texture2D* tTable;
+	Texture2D* tShadow;
+	Sound*	   sWham;
 
 	Color		   tint = WHITE;
 	AnimFlip	   aFlip;
 	AnimJumpShadow aJumpShadow;
 	bool		   flipped = true;
 
-	bool init(Texture& table, Texture& shadow, Sound& wham, v2 pos)
+	static bool init(Texture& tTable, Texture& shadow, Sound& wham, v2 pos)
 	{
 		int iPtr = entities.add(Entity::Id::OBJECT,
-								this,
-								&props,
+								Entity::Arch::TABLE,
 								pos,
-								0.f,
-								update,
-								draw,
 								{.canSelect			= true,
 								 .canInteract		= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= false});
+								 .canCollideGroup1	= false},
+								update,
+								draw);
 		if (iPtr < 0)
 			return false;
-		tTable			  = &table;
-		tShadow			  = &shadow;
-		sWham			  = &wham;
-		e				  = &entities.instances[iPtr];
-		props.interaction = FLIP;
+		Entity& entity			 = entities.instances[iPtr];
+		Table&	table			 = *(new (entity.data) Table);
+		table.e					 = &entity;
+		table.tTable			 = &tTable;
+		table.tShadow			 = &shadow;
+		table.sWham				 = &wham;
+		entity.iData.interaction = FLIP;
 		return true;
 	}
 	static void update(void* tablePtr, f32 dt)
@@ -383,7 +363,7 @@ struct Table
 				table.aFlip.anim.reversed = true;
 			}
 			entities.selectable[table.e->instancePtr] = false;
-			table.props.interaction					  = NONE;
+			table.e->iData.interaction				  = NONE;
 			table.aJumpShadow.activate(flipPeriod);
 			table.aFlip.activate(flipPeriod);
 		}
@@ -393,13 +373,13 @@ struct Table
 			if (table.flipped)
 			{
 				PlaySound(*table.sWham);
-				table.props.shouldPlayerBeBusy = true;
-				table.props.interaction		   = RESTORE;
+				table.e->iData.shouldPlayerBeBusy = true;
+				table.e->iData.interaction		  = RESTORE;
 			}
 			else
 			{
-				table.props.shouldPlayerBeBusy = false;
-				table.props.interaction		   = FLIP;
+				table.e->iData.shouldPlayerBeBusy = false;
+				table.e->iData.interaction		  = FLIP;
 			}
 			table.flipped = !table.flipped;
 		}

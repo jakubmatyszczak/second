@@ -11,7 +11,6 @@ v2 projectPointOntoLine(const v2& p, const v2& a, const v2& b)
 		return a;
 	return a + ab * t;	// The projected point on the line
 }
-
 struct Level
 {
 	static const u32 maxTerrainVerts = 32;
@@ -73,6 +72,11 @@ struct Level
 				  terrainVerticies[0].toVector2(),
 				  GREEN);
 	}
+};
+
+struct Levels
+{
+    Level instances[32];
 };
 
 void LoadLevel1(Level& level)

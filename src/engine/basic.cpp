@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include "v2.cpp"
 
 #define RED_TRANSPARENT \
@@ -39,7 +40,36 @@ void bubble_sort(u64 sortArr[], f32 sortBy[], int n)
 			break;
 	}
 }
+enum PlayerInteraction : i32
+{
+	NONE = -1,
+	INTERACT,
+	FLIP,
+	RESTORE,
+	PICKUP,
+};
+struct BoundingCircle
+{
+	v2	 position;
+	f32	 radius;
+	bool computeCollision(const BoundingCircle& other, v2& collisionVector)
+	{
+		f32 rad = radius + other.radius;
+		if (position.distToSquared(other.position) > rad * rad)
+			return false;
+		collisionVector = (other.position - position).norm();
+		return true;
+	}
+};
+struct InteractionData
+{
+	inline static const v2 inventoryOffset = v2(10, -4);
 
+	PlayerInteraction interaction;
+	bool			  shouldPlayerBeBusy = false;
+	BoundingCircle	  boundingCircle;
+	i32				  targetEntityInstance = -1;
+};
 struct Entity
 {
 	enum class Id : u32
@@ -52,14 +82,23 @@ struct Entity
 		// Add Types here
 		ID_MAX	// Keep this last
 	};
-	v2	  pos		  = {};
-	v2	  vel		  = {};
-	f32	  rot		  = 0.f;
-	f32	  scale		  = 1.f;
-	Id	  id		  = Id::UNKNOWN;
-	u32	  instancePtr = 0;
-	void* data		  = nullptr;
-	void* properties  = nullptr;
+	enum class Arch : u32
+	{
+		UNKNOWN,
+		DUDE,
+		TABLE,
+		HOLE,
+		KEY
+	};
+	Id				id			= Id::UNKNOWN;
+	Arch			arch		= Arch::UNKNOWN;
+	u32				instancePtr = 0;
+	v2				pos			= {};
+	v2				vel			= {};
+	f32				rot			= 0.f;
+	f32				scale		= 1.f;
+	u8				data[1024]	= {};
+	InteractionData iData		= {};
 
 	void (*drawPtr)(void* data)			  = nullptr;
 	void (*updatePtr)(void* data, f32 dt) = nullptr;
@@ -86,27 +125,20 @@ struct Entities
 	i32 selectedPtr = -1;
 	i32 interactPtr = -1;
 
-	i32 add(Entity::Id idType,
-			void*	   entityData,
-			void*	   interactionProperties,
-			v2		   position,
-			f32		   rotation,
+	i32 add(Entity::Id	 idType,
+			Entity::Arch archType,
+			v2			 pos,
+			flagInit	 flags,
 			void (*updateFunction)(void*, f32),
-			void (*drawFunction)(void*),
-			flagInit flags)
+			void (*drawFunction)(void*))
 	{
-		for (int i = 0; i < maxEntities; i++)
+		for (u32 i = 0; i < maxEntities; i++)
 		{
 			if (active[i])
 				continue;
-			Entity& e	  = instances[i];
-			e.id		  = idType;
-			e.data		  = entityData;
-			e.properties  = interactionProperties;
-			e.pos		  = position;
-			e.rot		  = rotation;
-			e.instancePtr = i;
-			active[i]	  = true;
+			Entity& e = instances[i];
+			memset(&e, 0, sizeof(Entity));
+			e = {.id = idType, .arch = archType, .instancePtr = i, .pos = pos};
 			if (updateFunction)
 			{
 				e.updatePtr	 = updateFunction;
@@ -121,6 +153,7 @@ struct Entities
 			interactable[i]	   = flags.canInteract;
 			collidesTerrain[i] = flags.canCollideTerrain;
 			collidesGroup1[i]  = flags.canCollideGroup1;
+			active[i]		   = true;
 			nActive++;
 			return i;
 		}
@@ -180,19 +213,6 @@ struct Entities
 };
 Entities entities = {};
 
-struct BoundingCircle
-{
-	v2	 position;
-	f32	 radius;
-	bool computeCollision(const BoundingCircle& other, v2& collisionVector)
-	{
-		f32 rad = radius + other.radius;
-		if (position.distToSquared(other.position) > rad * rad)
-			return false;
-		collisionVector = (other.position - position).norm();
-		return true;
-	}
-};
 struct Keyframe
 {
 	v2	pos		 = {};
