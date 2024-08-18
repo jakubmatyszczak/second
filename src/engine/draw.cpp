@@ -6,19 +6,19 @@
 struct SpriteSheet
 {
 	// Frames in sprite sheet texture must be same size and horizontal
-	const Texture* tex;
-	u32			   textureOffset = 0;
-	v2			   cellSize;
-	u32			   frames = 0;
-	f32			   fps	  = 1.f;
-	bool		   flipX = false, flipY = false;
-	bool		   animate = true;
+	u32	 pTexture;
+	u32	 textureOffset = 0;
+	v2	 cellSize;
+	u32	 frames = 0;
+	f32	 fps	= 1.f;
+	bool flipX = false, flipY = false;
+	bool animate = true;
 
 	f32	 timer = 0;
 	u32	 frame = 0;
-	void init(Texture& t, v2 _cellSize, u32 _frames, f32 _fps, bool _animate)
+	void init(u32 t, v2 _cellSize, u32 _frames, f32 _fps, bool _animate)
 	{
-		tex		 = &t;
+		pTexture		 = t;
 		cellSize = _cellSize;
 		frames	 = _frames;
 		fps		 = _fps;
@@ -48,7 +48,7 @@ struct SpriteSheet
 		if (customFrame > -1 && customFrame < frames)
 			tmpFrame = customFrame;
 		rot = math::radToDeg(rot);
-		DrawTexturePro(*tex,
+		DrawTexturePro(GLOBAL.content.textures[pTexture],
 					   {tmpFrame * cellSize.x,
 						(f32)textureOffset + row * cellSize.y,
 						flipX ? -cellSize.x : cellSize.x,
@@ -59,4 +59,3 @@ struct SpriteSheet
 					   tint);
 	}
 };
-

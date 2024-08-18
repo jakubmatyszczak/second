@@ -27,13 +27,32 @@ struct GameState
 	f32 time  = 0.f;
 	f32 dTime = 0.016f;
 };
+struct Content
+{
+	Texture2D textures[32];
+	u32		  nTextures = 0;
+	Sound	  sounds[32];
+	u32		  nSounds = 0;
+
+	u32 loadTexture(const char* filepath)
+	{
+		textures[nTextures] = LoadTexture(filepath);
+		return nTextures++;
+	}
+	u32 loadSound(const char* filepath)
+	{
+		sounds[nSounds] = LoadSound(filepath);
+		return nSounds++;
+	}
+};
 struct EngineGlobals
 {
 	Screen	  screen;
 	GameState state;
 	Camera2D  camera;
-    
-    bool drawDebugCollision = false;
+	Content	  content;
+
+	bool drawDebugCollision = false;
 };
 EngineGlobals GLOBAL;
 

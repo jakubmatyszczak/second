@@ -18,12 +18,12 @@ struct Level
 	v2	terrainVerticies[maxTerrainVerts] = {};
 	u32 nTerrainVerticies				  = 0;
 
-	Texture2D* terrainTexture = nullptr;
-	v2		   pos			  = v2();
+	u32 terrainTexture = 0;
+	v2	pos			   = v2();
 
-	void init(Texture2D& texTerrain, v2 position)
+	void init(u32 texTerrain, v2 position)
 	{
-		terrainTexture = &texTerrain;
+		terrainTexture = texTerrain;
 		pos			   = position;
 	}
 	bool appendVertex(v2 pos)
@@ -59,7 +59,7 @@ struct Level
 
 	void draw()
 	{
-		DrawTextureEx(*terrainTexture, pos.toVector2(), 0.f, 1.f, WHITE);
+		DrawTextureEx(GLOBAL.content.textures[terrainTexture], pos.toVector2(), 0.f, 1.f, WHITE);
 		if (!GLOBAL.drawDebugCollision)
 			return;
 		if (nTerrainVerticies < 2)
@@ -76,7 +76,7 @@ struct Level
 
 struct Levels
 {
-    Level instances[32];
+	Level instances[32];
 };
 
 void LoadLevel1(Level& level)
