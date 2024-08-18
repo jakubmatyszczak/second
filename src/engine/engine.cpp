@@ -37,6 +37,7 @@ struct Content
 		TEX_HOLE,
 		TEX_SHADOW,
 		TEX_LEVEL1,
+		TEX_LEVEL2,
         TEX_ID_MAX
 	};
 	enum SOUND_ID

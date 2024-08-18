@@ -165,7 +165,7 @@ void dudeUpdate(void* dudePtr, f32 dt)
 			}
 	}
 	e.pos += e.vel;
-	e.iData.boundingCircle.position = e.pos + dude.colliderOffset;
+	e.iData.boundingCircle.pos = e.pos + dude.colliderOffset;
 	dude.ss.update(dt);
 }
 void dudeDraw(void* dudePtr)
@@ -192,7 +192,7 @@ void dudeDraw(void* dudePtr)
 	if (GLOBAL.drawDebugCollision)
 	{
 		BoundingCircle& bc = getInteractionData(e.instancePtr).boundingCircle;
-		DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
+		DrawCircleV(bc.pos.toVector2(), bc.radius, RED_TRANSPARENT);
 	}
 };
 
@@ -250,7 +250,7 @@ void holeDraw(void* hole)
 	if (GLOBAL.drawDebugCollision)
 	{
 		BoundingCircle& bc = getInteractionData(e.instancePtr).boundingCircle;
-		DrawCircleV(bc.position.toVector2(), bc.radius, RED_TRANSPARENT);
+		DrawCircleV(bc.pos.toVector2(), bc.radius, RED_TRANSPARENT);
 	}
 }
 struct Key

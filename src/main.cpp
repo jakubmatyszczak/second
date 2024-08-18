@@ -47,6 +47,7 @@ int main(void)
 	content.loadTexture("res/art/key.png", Content::TEX_KEY);
 	content.loadTexture("res/art/shadow_tex.png", Content::TEX_SHADOW);
 	content.loadTexture("res/art/level1.png", Content::TEX_LEVEL1);
+	content.loadTexture("res/art/level2.png", Content::TEX_LEVEL2);
 	content.loadTexture("res/art/hole_ss.png", Content::TEX_HOLE);
 	content.loadSound("res/sound/jump.wav", Content::SOUND_JUMP);
 	content.loadSound("res/sound/punch.wav", Content::SOUND_WHAM);
@@ -55,13 +56,16 @@ int main(void)
 	Table::init();
 	Key::init();
 	Hole::init();
-	save.levels[0].init(v2());
-	save.levels[1].init({500.0, 0.});
+	save.levels[0].init(v2(), Content::TEX_LEVEL1);
+	save.levels[1].init({200.0, 0.}, Content::TEX_LEVEL1);
+	save.levels[2].init({0.f, 200.}, Content::TEX_LEVEL2);
 
 	Dude& dude = Dude::getRef(dude.add({50, 50}));
 	LoadLevel1(save.levels[0]);
 	LoadLevel2(save.levels[1]);
+    LoadLevel3(save.levels[2]);
 	Hole::connect(save.levels[0].pHole[0], save.levels[1].pHole[0]);
+	Hole::connect(save.levels[0].pHole[1], save.levels[2].pHole[0]);
 
 	loadGame(save);
 
@@ -70,7 +74,8 @@ int main(void)
 	u32 frame			 = 0;
 	while (!done)
 	{
-		v2 mousePosWorld = GetScreenToWorld2D(GetMousePosition(), GLOBAL.camera);
+		v2 mousePosWorld  = GetScreenToWorld2D(GetMousePosition(), GLOBAL.camera);
+		v2 mousePosWindow = GetMousePosition();
 		frame++;
 		entities.refresh();
 
@@ -88,6 +93,26 @@ int main(void)
 		if (levelEditor)
 		{
 			GLOBAL.camera.zoom = 2.f;
+			if (mousePosWindow.x < GLOBAL.screen.width * 0.1)
+				GLOBAL.camera.target.x -= 3;
+			if (mousePosWindow.x > GLOBAL.screen.width * 0.9)
+				GLOBAL.camera.target.x += 3;
+			if (mousePosWindow.y < GLOBAL.screen.height * 0.1)
+				GLOBAL.camera.target.y -= 3;
+			if (mousePosWindow.y > GLOBAL.screen.height * 0.9)
+				GLOBAL.camera.target.y += 3;
+			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+			{
+				BoundingCircle mouseBc = {mousePosWorld, 1};
+				v2			   dummy;
+				for (u32 i = 0; i < 32; i++)
+				{
+					if (!save.levels[i].bc.computeCollision(mouseBc, dummy))
+						continue;
+					save.levels[i].appendVertexFromMouse(mouseBc.pos);
+					break;
+				}
+			}
 		}
 		else
 		{
@@ -106,12 +131,13 @@ int main(void)
 					{
 						Entity& e = entities.instances[i];
 						v2		collisionVector;
-						Level&	l1 = save.levels[0];
-						Level&	l2 = save.levels[0];
-						if (l1.collidesWithTerrainBorder(e.iData.boundingCircle, collisionVector))
-							e.vel -= collisionVector;
-						if (l2.collidesWithTerrainBorder(e.iData.boundingCircle, collisionVector))
-							e.vel -= collisionVector;
+						for (u32 j = 0; j < 32; j++)
+						{
+							Level& l = save.levels[j];
+							if (l.collidesWithTerrainBorder(e.iData.boundingCircle,
+															collisionVector))
+								e.vel -= collisionVector;
+						}
 					}
 				// group 1
 				Entity* group1[entities.maxEntities] = {};
@@ -139,13 +165,14 @@ int main(void)
 		BeginDrawing();
 		{
 			ClearBackground(SKYBLUE);
-			GLOBAL.camera.target =
-				(v2(GLOBAL.camera.target) + ((dudePos - v2(GLOBAL.camera.target)) * 0.15f))
-					.toVector2();
+			if (!levelEditor)
+				GLOBAL.camera.target =
+					(v2(GLOBAL.camera.target) + ((dudePos - v2(GLOBAL.camera.target)) * 0.15f))
+						.toVector2();
 			BeginMode2D(GLOBAL.camera);
 			{
-				save.levels[0].draw();
-				save.levels[1].draw();
+                for(u32 i = 0; i < 32; i++)
+	    			save.levels[i].draw();
 				entities.drawAll();
 			}
 			EndMode2D();

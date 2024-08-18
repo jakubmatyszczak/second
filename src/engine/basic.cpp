@@ -13,9 +13,11 @@ extern void tableDraw(void* tablePtr);
 extern void holeDraw(void* holePtr);
 
 #define RED_TRANSPARENT \
-	{                   \
-		255, 0, 0, 128  \
-	}
+	(Color) { 255, 0, 0, 128 }
+#define GREEN_TRANSPARENT \
+	(Color) { 0, 200, 0, 128 }
+#define YELLOW_TRANSPARENT \
+	(Color) { 200, 200, 0, 128 }
 
 f32			lerp(f32 start, f32 end, f32 time) { return start + (end - start) * time; }
 v2			lerp(const v2& start, const v2& end, f32 time) { return start + (end - start) * time; }
@@ -60,14 +62,14 @@ enum PlayerInteraction : i32
 };
 struct BoundingCircle
 {
-	v2	 position;
+	v2	 pos;
 	f32	 radius;
 	bool computeCollision(const BoundingCircle& other, v2& collisionVector)
 	{
 		f32 rad = radius + other.radius;
-		if (position.distToSquared(other.position) > rad * rad)
+		if (pos.distToSquared(other.pos) > rad * rad)
 			return false;
-		collisionVector = (other.position - position).norm();
+		collisionVector = (other.pos - pos).norm();
 		return true;
 	}
 };
@@ -217,23 +219,23 @@ struct Entities
 			}
 		bubble_sort((u64*)sortedEntities, posValueY, (u64)nSortedEntities);
 		for (i32 i = 0; i < nSortedEntities; i++)
-				switch (sortedEntities[i]->arch)
-				{
-					case Entity::Arch::DUDE:
-						dudeDraw(&sortedEntities[i]->data);
-						break;
-					case Entity::Arch::TABLE:
-						tableDraw(&sortedEntities[i]->data);
-						break;
-					case Entity::Arch::HOLE:
-						holeDraw(&sortedEntities[i]->data);
-						break;
-					case Entity::Arch::KEY:
-						keyDraw(&sortedEntities[i]->data);
-						break;
-					case Entity::Arch::UNKNOWN:
-						break;
-				}
+			switch (sortedEntities[i]->arch)
+			{
+				case Entity::Arch::DUDE:
+					dudeDraw(&sortedEntities[i]->data);
+					break;
+				case Entity::Arch::TABLE:
+					tableDraw(&sortedEntities[i]->data);
+					break;
+				case Entity::Arch::HOLE:
+					holeDraw(&sortedEntities[i]->data);
+					break;
+				case Entity::Arch::KEY:
+					keyDraw(&sortedEntities[i]->data);
+					break;
+				case Entity::Arch::UNKNOWN:
+					break;
+			}
 	}
 };
 Entities entities = {};
