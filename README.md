@@ -4,6 +4,9 @@ It is being written in C/C++ wiht RayLib as a framework as OpenGL is a mess, tha
 Raylib is awesome.
 ![Second gameplay](doc/so_called_art.gif "Second title")
 
+## Controls
+As "I use vim btw.", game controls are *khjl* instead of *wasd*. Use W to jump and E to interact. Wormholes can be used by jumping in them.
+
 ## Code & Build System
 The code & build system are inspired by [Ooga Booga](https://github.com/alpinestudios/oogabooga). 
 No Cmake, no `make` or other nonesense. All is needed is `g++`.
