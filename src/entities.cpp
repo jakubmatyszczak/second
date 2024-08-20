@@ -459,3 +459,43 @@ void tableDraw(void* tablePtr)
 				   drawrot,
 				   table.tint);
 };
+
+struct Gateway
+{
+	u32		   pEntity;
+	v2		   posEnd;
+	static i32 add(v2 posStart, v2 posEnd)
+	{
+		int iPtr = entities.add(Entity::Id::OBJECT,
+								Entity::Arch::GATE,
+								posStart,
+								{.canSelect			= false,
+								 .canInteract		= false,
+								 .canDraw			= true,
+								 .canCollideTerrain = false,
+								 .canCollideGroup1	= true});
+		assert(iPtr >= 0);
+		Entity&	 e	  = entities.instances[iPtr];
+		Gateway& gate = *(new (e.data) Gateway);
+		gate.pEntity  = iPtr;
+		gate.posEnd	  = posEnd;
+		return iPtr;
+	}
+};
+void gateUpdate(void* gatePtr, f32 dt)
+{
+	Gateway& gate		   = *(Gateway*)gatePtr;
+	Entity&	 e			   = entities.instances[gate.pEntity];
+	Entity&	 dudeEntity	   = Dude::getRef(GLOBAL.pDudeInstance).getEntity();
+	e.iData.boundingCircle = {.pos = math::projectPointOntoLine(dudeEntity.pos, e.pos, gate.posEnd),
+							  .radius = 4};
+}
+void gateDraw(void* gatePtr)
+{
+	Gateway& gate = *(Gateway*)gatePtr;
+	Entity&	 e	  = entities.instances[gate.pEntity];
+	DrawLineEx(e.pos.toVector2(), gate.posEnd.toVector2(), 4, PINK);
+	if (GLOBAL.drawDebugCollision)
+		DrawCircleV(
+			e.iData.boundingCircle.pos.toVector2(), e.iData.boundingCircle.radius, RED_TRANSPARENT);
+}

@@ -6,11 +6,13 @@ extern void dudeUpdate(void* dudePtr, f32 dt);
 extern void keyUpdate(void* keyPtr, f32 dt);
 extern void tableUpdate(void* tablePtr, f32 dt);
 extern void holeUpdate(void* holePtr, f32 dt);
+extern void gateUpdate(void* gatePtr, f32 dt);
 
 extern void dudeDraw(void* dudePtr);
 extern void keyDraw(void* keyPtr);
 extern void tableDraw(void* tablePtr);
 extern void holeDraw(void* holePtr);
+extern void gateDraw(void* gatePtr);
 
 #define RED_TRANSPARENT \
 	(Color) { 255, 0, 0, 128 }
@@ -66,7 +68,7 @@ struct BoundingCircle
 	f32	 radius;
 	bool computeCollision(const BoundingCircle& other, v2& collisionVector)
 	{
-		f32 rad = radius + other.radius;
+		f32 rad = (radius + other.radius) / 2;
 		if (pos.distToSquared(other.pos) > rad * rad)
 			return false;
 		collisionVector = (other.pos - pos).norm();
@@ -101,7 +103,8 @@ struct Entity
 		DUDE,
 		TABLE,
 		HOLE,
-		KEY
+		KEY,
+		GATE,
 	};
 	Id				id					  = Id::UNKNOWN;
 	Arch			arch				  = Arch::UNKNOWN;
@@ -198,6 +201,9 @@ struct Entities
 					case Entity::Arch::KEY:
 						keyUpdate(&instances[i].data, dt);
 						break;
+					case Entity::Arch::GATE:
+						gateUpdate(&instances[i].data, dt);
+						break;
 					case Entity::Arch::UNKNOWN:
 						break;
 				}
@@ -232,6 +238,9 @@ struct Entities
 					break;
 				case Entity::Arch::KEY:
 					keyDraw(&sortedEntities[i]->data);
+					break;
+				case Entity::Arch::GATE:
+					gateDraw(&sortedEntities[i]->data);
 					break;
 				case Entity::Arch::UNKNOWN:
 					break;

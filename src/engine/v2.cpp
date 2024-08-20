@@ -157,3 +157,17 @@ v2& operator*=(v2& lhs, const v2& rhs) { return lhs = rhs * lhs; }
 v2& operator*=(v2& lhs, float rhs) { return lhs = rhs * lhs; }
 v2& operator/=(v2& lhs, const v2& rhs) { return lhs = lhs / rhs; }
 v2& operator/=(v2& lhs, float rhs) { return lhs = lhs / rhs; }
+
+namespace math
+{
+	// line from A to B, point P
+	v2 projectPointOntoLine(const v2& p, const v2& a, const v2& b)
+	{
+		v2	  ab = b - a;
+		v2	  ap = p - a;
+		float t	 = ap.dot(ab) / ab.dot(ab);
+		if (t > 1. || t < 0.f)
+			return a;
+		return a + ab * t;	// The projected point on the line
+	}
+}  // namespace math

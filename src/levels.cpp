@@ -3,15 +3,6 @@
 #include "engine/v2.cpp"
 #include "entities.cpp"
 
-v2 projectPointOntoLine(const v2& p, const v2& a, const v2& b)
-{
-	v2	  ab = b - a;					 // Vector from a to b
-	v2	  ap = p - a;					 // Vector from a to p
-	float t	 = ap.dot(ab) / ab.dot(ab);	 // Projection factor
-	if (t > 1. || t < 0.f)
-		return a;
-	return a + ab * t;	// The projected point on the line
-}
 struct Level
 {
 	static const u32 maxTerrainVerts = 32;
@@ -26,6 +17,8 @@ struct Level
 	u32	 nHoles			= 0;
 	bool active			= false;
 
+    bool dbgCollidedThisFrame = false;
+
 	void init(v2 position, u32 pTexTerrain)
 	{
 		terrainTexture = pTexTerrain;
@@ -37,7 +30,7 @@ struct Level
 	{
 		if (nTerrainVerticies >= maxTerrainVerts)
 		{
-			printf("Too many verivies!\n");
+			printf("Too many verticies!\n");
 			return false;
 		}
 		terrainVerticies[nTerrainVerticies++] = mousePos;
@@ -56,6 +49,7 @@ struct Level
 
 	bool collidesWithTerrainBorder(BoundingCircle& c, v2& collisionVector)
 	{
+        dbgCollidedThisFrame = false;
 		if (!active)
 			return false;
 		if (nTerrainVerticies < 2)
@@ -65,7 +59,7 @@ struct Level
 		collisionVector = v2();
 		for (u32 i = 1; i <= nTerrainVerticies; i++)
 		{
-			v2 proj = projectPointOntoLine(
+			v2 proj = math::projectPointOntoLine(
 				c.pos,
 				terrainVerticies[i - 1],
 				((i == nTerrainVerticies) ? terrainVerticies[0] : terrainVerticies[i]));
@@ -78,7 +72,9 @@ struct Level
 		}
 		if (collisionVector.isZero())
 			return false;
+        dbgCollidedThisFrame = true;
 		return true;
+
 	}
 
 	void draw()
@@ -88,7 +84,7 @@ struct Level
 		DrawTextureEx(content.textures[terrainTexture], pos.toVector2(), 0.f, 1.f, WHITE);
 		if (!GLOBAL.drawDebugCollision)
 			return;
-		DrawCircleV(bc.pos.toVector2(), bc.radius, YELLOW_TRANSPARENT);
+		DrawCircleV(bc.pos.toVector2(), bc.radius, dbgCollidedThisFrame ? RED_TRANSPARENT : YELLOW_TRANSPARENT);
 		if (nTerrainVerticies < 2)
 			return;
 		for (u32 i = 0; i < nTerrainVerticies; i++)
@@ -178,5 +174,6 @@ void LoadLevel3(Level& level)
 	LoadLayout2(level);
 	Table::add(level.pos + v2(50, 60));
 	Table::add(level.pos + v2(60, 30));
+	Gateway::add(level.pos + v2(30, 50), level.pos + v2(75, 85));
 	level.pHole[level.nHoles++] = Hole::add(level.pos + v2(30, 30));
 }

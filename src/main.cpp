@@ -9,14 +9,12 @@ struct SaveState
 {
 	EngineGlobals globals;
 	Entities	  entities;
-	u32			  pDudeInstance;
 	Level		  levels[32];
 };
 void saveGame(SaveState& save, u32 pDudeInstance)
 {
-	save.globals	   = GLOBAL;
-	save.entities	   = entities;
-	save.pDudeInstance = pDudeInstance;
+	save.globals  = GLOBAL;
+	save.entities = entities;
 	fileio::saveRawFile("1.save", &save, sizeof(save));
 }
 bool loadGame(SaveState& game)
@@ -27,9 +25,8 @@ bool loadGame(SaveState& game)
 		return false;
 	else if (ret != sizeof(loaded))
 		exitWithMessage("Failed to load save!");
-	entities		   = loaded.entities;
-	GLOBAL			   = loaded.globals;
-	game.pDudeInstance = loaded.pDudeInstance;
+	entities = loaded.entities;
+	GLOBAL	 = loaded.globals;
 	memcpy(game.levels, loaded.levels, sizeof(loaded.levels));
 	return true;
 }
@@ -63,7 +60,7 @@ int main(void)
 	Dude& dude = Dude::getRef(dude.add({50, 50}));
 	LoadLevel1(save.levels[0]);
 	LoadLevel2(save.levels[1]);
-    LoadLevel3(save.levels[2]);
+	LoadLevel3(save.levels[2]);
 	Hole::connect(save.levels[0].pHole[0], save.levels[1].pHole[0]);
 	Hole::connect(save.levels[0].pHole[1], save.levels[2].pHole[0]);
 
@@ -155,7 +152,7 @@ int main(void)
 						v2		collisionVector = {};
 						if (e1.iData.boundingCircle.computeCollision(e2.iData.boundingCircle,
 																	 collisionVector))
-							e1.vel -= collisionVector / 2;
+							e1.vel -= collisionVector * e1.vel.getLength() * 1.25f;
 					}
 			}
 			entities.updateAll(dt);
@@ -171,8 +168,8 @@ int main(void)
 						.toVector2();
 			BeginMode2D(GLOBAL.camera);
 			{
-                for(u32 i = 0; i < 32; i++)
-	    			save.levels[i].draw();
+				for (u32 i = 0; i < 32; i++)
+					save.levels[i].draw();
 				entities.drawAll();
 			}
 			EndMode2D();

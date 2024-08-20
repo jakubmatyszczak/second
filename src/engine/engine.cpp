@@ -38,13 +38,13 @@ struct Content
 		TEX_SHADOW,
 		TEX_LEVEL1,
 		TEX_LEVEL2,
-        TEX_ID_MAX
+		TEX_ID_MAX
 	};
 	enum SOUND_ID
 	{
 		SOUND_JUMP,
 		SOUND_WHAM,
-        SOUND_ID_MAX
+		SOUND_ID_MAX
 	};
 	Texture2D textures[32];
 	Sound	  sounds[32];
@@ -54,6 +54,7 @@ struct Content
 };
 struct EngineGlobals
 {
+	u32		  pDudeInstance;
 	Screen	  screen;
 	GameState state;
 	Camera2D  camera;
@@ -61,7 +62,7 @@ struct EngineGlobals
 	bool drawDebugCollision = false;
 };
 EngineGlobals GLOBAL;
-Content	  content;
+Content		  content;
 
 inline void exitWithMessage(const char* msg)
 {
