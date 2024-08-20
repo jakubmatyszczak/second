@@ -1,2 +1,2 @@
-rm second
-g++ src/main.cpp raylib/lib/libraylib.a -Iraylib/include -O0 -g3 -o second
+g++ src/main.cpp raylib/linux/lib/libraylib.a -Iraylib/linux/include -Isrc/ -O0 -g3 -o game
+bear -- g++ src/main.cpp raylib/linux/lib/libraylib.a -Iraylib/linux/include -Isrc/ -O0 -g3 -o game
