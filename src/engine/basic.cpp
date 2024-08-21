@@ -83,6 +83,7 @@ struct InteractionData
 	bool			  shouldPlayerBeBusy = false;
 	BoundingCircle	  boundingCircle;
 	i32				  targetEntityInstance = -1;
+	u32				  accessLevel = 0;
 };
 struct Entity
 {
@@ -184,6 +185,17 @@ struct Entities
 	{
 		selectedPtr = -1;
 		interactPtr = -1;
+	}
+	void setCollision(u32 instancePtr, u32 group, bool enable)
+	{
+		if (group == 0)
+			collidesTerrain[instancePtr] = enable;
+		if (group == 1)
+			collidesGroup1[instancePtr] = enable;
+		if (group == 2)
+			collidesGroup2[instancePtr] = enable;
+        if(group > 2)
+            exitWithMessage("Tried to access collisionGroup not configured [>2]!");
 	}
 	void updateAll(f32 dt)
 	{

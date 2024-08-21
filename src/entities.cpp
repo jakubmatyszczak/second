@@ -30,17 +30,6 @@ struct Dude
 	Entity&		 getEntity() { return entities.instances[pEntity]; }
 	static Dude& getRef(u32 pEntity) { return *(Dude*)entities.instances[pEntity].data; }
 
-	void setCollision(u32 group, bool enable)
-	{
-		Entity* e = &entity(pEntity);
-		if (group == 0)
-			entities.collidesTerrain[e->instancePtr] = enable;
-		if (group == 1)
-			entities.collidesGroup1[e->instancePtr] = enable;
-		if (group == 2)
-			entities.collidesGroup2[e->instancePtr] = enable;
-	}
-
 	static void init()
 	{
 		static_assert(sizeof(Dude) < Entity::MAX_ENTITY_SIZE);
@@ -93,9 +82,9 @@ struct Dude
 			aJumpShadow.activate(0.4f);
 		}
 		if (aJump.anim.active)
-			setCollision(1, false);
+			entities.setCollision(e.instancePtr, 1, false);
 		else
-			setCollision(1, true);
+			entities.setCollision(e.instancePtr, 1, true);
 
 		activeHint			 = NONE;
 		i32 closestEntityPtr = -1;
@@ -116,19 +105,19 @@ struct Dude
 		{
 			if (!entities.interact(closestEntityPtr))
 				return;
-			InteractionData& iData = getInteractionData(closestEntityPtr);
+			InteractionData& closestiData = getInteractionData(closestEntityPtr);
 			if (entities.instances[closestEntityPtr].id == Entity::Id::ITEM)
 			{
-				itemRightHand			   = closestEntityPtr;
-				iData.targetEntityInstance = e.instancePtr;
+				itemRightHand					  = closestEntityPtr;
+				closestiData.targetEntityInstance = e.instancePtr;
 			}
 			interactEntityPtr = closestEntityPtr;
-			busy			  = iData.shouldPlayerBeBusy;
+			busy			  = closestiData.shouldPlayerBeBusy;
 		}
 		else if (interact && closestEntityPtr < 0 && itemRightHand >= 0)
 		{
 			if (entities.interact(itemRightHand))
-				itemRightHand = -1;
+				itemRightHand		= -1;
 		}
 		if (closestEntityPtr >= 0 && entities.select(closestEntityPtr))
 			activeHint = getInteractionData(closestEntityPtr).interaction;
@@ -150,7 +139,7 @@ void dudeUpdate(void* dudePtr, f32 dt)
 
 	if (landing)
 	{
-		dude.setCollision(1, true);
+		entities.setCollision(dude.pEntity, 1, true);
 		for (u32 i = 0; i < entities.maxEntities; i++)
 			if (entities.active[i] && entities.instances[i].id == Entity::Id::PORTAL)
 			{
@@ -292,7 +281,8 @@ struct Key
 		Entity& e			= entities.instances[iPtr];
 		Key&	key			= *(new (e.data) Key);
 		key.pEntity			= iPtr;
-		e.iData.interaction = PICKUP;
+
+		e.iData.accessLevel = 2137;
 
 		key.aHover.anim.looped	= true;
 		key.aShadow.anim.looped = true;
@@ -479,18 +469,27 @@ struct Gateway
 								 .canCollideGroup1	= false,
 								 .canCollideGroup2	= true});
 		assert(iPtr >= 0);
-		Entity&	 e	  = entities.instances[iPtr];
-		Gateway& gate = *(new (e.data) Gateway);
-		gate.pEntity  = iPtr;
-		gate.posEnd	  = posEnd;
+		Entity&	 e			= entities.instances[iPtr];
+		Gateway& gate		= *(new (e.data) Gateway);
+		gate.pEntity		= iPtr;
+		gate.posEnd			= posEnd;
+		e.iData.accessLevel = 2137;
 		return iPtr;
 	}
 };
 void gateUpdate(void* gatePtr, f32 dt)
 {
-	Gateway& gate		   = *(Gateway*)gatePtr;
-	Entity&	 e			   = entities.instances[gate.pEntity];
-	Entity&	 dudeEntity	   = Dude::getRef(GLOBAL.pDudeInstance).getEntity();
+	Gateway& gate		= *(Gateway*)gatePtr;
+	Entity&	 e			= entities.instances[gate.pEntity];
+	Dude&	 dude		= Dude::getRef(GLOBAL.pDudeInstance);
+	Entity&	 dudeEntity = dude.getEntity();
+	Entity&	 itemHeld	= entities.instances[dude.itemRightHand];
+
+	if (e.iData.accessLevel == itemHeld.iData.accessLevel)
+		entities.setCollision(e.instancePtr, 2, false);
+	else
+		entities.setCollision(e.instancePtr, 2, true);
+
 	e.iData.boundingCircle = {.pos = math::projectPointOntoLine(dudeEntity.pos, e.pos, gate.posEnd),
 							  .radius = 2};
 }
