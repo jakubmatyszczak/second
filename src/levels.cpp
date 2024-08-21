@@ -176,6 +176,6 @@ void LoadLevel3(Level& level)
 	LoadLayout2(level);
 	Table::add(level.pos + v2(50, 60));
 	Table::add(level.pos + v2(60, 30));
-	Gateway::add(level.pos + v2(30, 50), level.pos + v2(75, 85));
-	level.pHole[level.nHoles++] = Hole::add(level.pos + v2(30, 30));
+	Gateway::add(level.pos + v2(30, 50), level.pos + v2(90, 50));
+	level.pHole[level.nHoles++] = Hole::add(level.pos + v2(25, 20));
 }

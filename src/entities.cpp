@@ -68,7 +68,7 @@ struct Dude
 				return;
 			interactEntityPtr = -1;
 		}
-        f32 velScale = 0.3f;
+		f32 velScale = 0.3f;
 		e.vel.x += (right - left) * velScale;
 		e.vel.y += (up - down) * velScale;
 		e.vel *= 0.8f;
@@ -462,8 +462,14 @@ struct Gateway
 	u32			pEntity;
 	v2			posEnd;
 	SpriteSheet ss;
-	bool		open = false;
-	static i32	add(v2 posStart, v2 posEnd)
+	bool		open		= false;
+	f32			rotVel		= 0.0f;
+	f32			dRotVel		= 0.01f;
+	f32			rotVelMax	= 0.3f;
+	f32			paddleAngle = -0.7854f;  // texture is at 45deg angle by default
+
+		static i32
+		add(v2 posStart, v2 posEnd)
 	{
 		int iPtr = entities.add(Entity::Id::OBJECT,
 								Entity::Arch::GATE,
@@ -479,6 +485,8 @@ struct Gateway
 		Gateway& gate = *(new (e.data) Gateway);
 		gate.pEntity  = iPtr;
 		gate.posEnd	  = posEnd;
+        v2 gateDirection = posEnd - posStart;
+        gate.paddleAngle += atan2f(gateDirection.y, gateDirection.x);
 		gate.ss.init(Content::TEX_GATE, {8, 8}, 2, 0, false);
 		e.iData.accessLevel = 2137;
 		return iPtr;
@@ -492,11 +500,19 @@ void gateUpdate(void* gatePtr, f32 dt)
 	Entity&	 dudeEntity = dude.getEntity();
 	Entity&	 itemHeld	= entities.instances[dude.itemRightHand];
 
-	gate.open = e.iData.accessLevel == itemHeld.iData.accessLevel;
+	gate.open = (e.iData.accessLevel == itemHeld.iData.accessLevel);
 	if (gate.open)
+	{
+		gate.rotVel -= gate.dRotVel;
 		entities.setCollision(e.instancePtr, 2, false);
+	}
 	else
+	{
+		gate.rotVel += gate.dRotVel;
 		entities.setCollision(e.instancePtr, 2, true);
+	}
+	gate.rotVel = math::limit(gate.rotVel, 0., gate.rotVelMax);
+	e.rot += gate.rotVel;
 
 	e.iData.boundingCircle = {.pos = math::projectPointOntoLine(dudeEntity.pos, e.pos, gate.posEnd),
 							  .radius = 2};
@@ -505,13 +521,14 @@ void gateDraw(void* gatePtr)
 {
 	Gateway& gate = *(Gateway*)gatePtr;
 	Entity&	 e	  = entities.instances[gate.pEntity];
+
 	if (!gate.open)
 		DrawLineEx(e.pos.toVector2(), gate.posEnd.toVector2(), 2, PINK);
 
 	gate.ss.Draw(e.pos, WHITE, e.rot, e.scale, 0, 0);
 	gate.ss.Draw(gate.posEnd, WHITE, e.rot, e.scale, 0, 0);
 	if (!gate.open && e.iData.boundingCircle.pos != e.pos)
-		gate.ss.Draw(e.iData.boundingCircle.pos, WHITE, e.rot, e.scale, 0, 1);
+		gate.ss.Draw(e.iData.boundingCircle.pos, WHITE, gate.paddleAngle, e.scale, 0, 1);
 	if (GLOBAL.drawDebugCollision)
 		DrawCircleV(
 			e.iData.boundingCircle.pos.toVector2(), e.iData.boundingCircle.radius, RED_TRANSPARENT);
