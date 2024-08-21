@@ -68,9 +68,10 @@ struct Dude
 				return;
 			interactEntityPtr = -1;
 		}
-		e.vel.x += right - left;
-		e.vel.y += up - down;
-		e.vel *= 0.5f;
+        f32 velScale = 0.3f;
+		e.vel.x += (right - left) * velScale;
+		e.vel.y += (up - down) * velScale;
+		e.vel *= 0.8f;
 		if (e.vel.isZero())
 			aBreathe.anim.period = 5.f;
 		else
@@ -117,7 +118,7 @@ struct Dude
 		else if (interact && closestEntityPtr < 0 && itemRightHand >= 0)
 		{
 			if (entities.interact(itemRightHand))
-				itemRightHand		= -1;
+				itemRightHand = -1;
 		}
 		if (closestEntityPtr >= 0 && entities.select(closestEntityPtr))
 			activeHint = getInteractionData(closestEntityPtr).interaction;
@@ -278,9 +279,9 @@ struct Key
 								 .canCollideTerrain = false,
 								 .canCollideGroup1	= false});
 		assert(iPtr >= 0);
-		Entity& e			= entities.instances[iPtr];
-		Key&	key			= *(new (e.data) Key);
-		key.pEntity			= iPtr;
+		Entity& e	= entities.instances[iPtr];
+		Key&	key = *(new (e.data) Key);
+		key.pEntity = iPtr;
 
 		e.iData.accessLevel = 2137;
 
@@ -311,11 +312,14 @@ void keyUpdate(void* keyPtr, f32 dt)
 			e.scale = 0.7f;
 		}
 		else
+		{
+			e.vel						 = entities.instances[e.iData.targetEntityInstance].vel;
 			e.iData.targetEntityInstance = -1;
+		}
 		entities.selectable[e.instancePtr] = !key.isPicked;
 	}
 
-	e.vel = v2();
+	e.vel = e.vel * 0.9f;
 	if (e.iData.targetEntityInstance >= 0)
 	{
 		Entity& target = entities.instances[e.iData.targetEntityInstance];
@@ -455,9 +459,11 @@ void tableDraw(void* tablePtr)
 
 struct Gateway
 {
-	u32		   pEntity;
-	v2		   posEnd;
-	static i32 add(v2 posStart, v2 posEnd)
+	u32			pEntity;
+	v2			posEnd;
+	SpriteSheet ss;
+	bool		open = false;
+	static i32	add(v2 posStart, v2 posEnd)
 	{
 		int iPtr = entities.add(Entity::Id::OBJECT,
 								Entity::Arch::GATE,
@@ -469,10 +475,11 @@ struct Gateway
 								 .canCollideGroup1	= false,
 								 .canCollideGroup2	= true});
 		assert(iPtr >= 0);
-		Entity&	 e			= entities.instances[iPtr];
-		Gateway& gate		= *(new (e.data) Gateway);
-		gate.pEntity		= iPtr;
-		gate.posEnd			= posEnd;
+		Entity&	 e	  = entities.instances[iPtr];
+		Gateway& gate = *(new (e.data) Gateway);
+		gate.pEntity  = iPtr;
+		gate.posEnd	  = posEnd;
+		gate.ss.init(Content::TEX_GATE, {8, 8}, 2, 0, false);
 		e.iData.accessLevel = 2137;
 		return iPtr;
 	}
@@ -485,7 +492,8 @@ void gateUpdate(void* gatePtr, f32 dt)
 	Entity&	 dudeEntity = dude.getEntity();
 	Entity&	 itemHeld	= entities.instances[dude.itemRightHand];
 
-	if (e.iData.accessLevel == itemHeld.iData.accessLevel)
+	gate.open = e.iData.accessLevel == itemHeld.iData.accessLevel;
+	if (gate.open)
 		entities.setCollision(e.instancePtr, 2, false);
 	else
 		entities.setCollision(e.instancePtr, 2, true);
@@ -497,7 +505,13 @@ void gateDraw(void* gatePtr)
 {
 	Gateway& gate = *(Gateway*)gatePtr;
 	Entity&	 e	  = entities.instances[gate.pEntity];
-	DrawLineEx(e.pos.toVector2(), gate.posEnd.toVector2(), 4, PINK);
+	if (!gate.open)
+		DrawLineEx(e.pos.toVector2(), gate.posEnd.toVector2(), 2, PINK);
+
+	gate.ss.Draw(e.pos, WHITE, e.rot, e.scale, 0, 0);
+	gate.ss.Draw(gate.posEnd, WHITE, e.rot, e.scale, 0, 0);
+	if (!gate.open && e.iData.boundingCircle.pos != e.pos)
+		gate.ss.Draw(e.iData.boundingCircle.pos, WHITE, e.rot, e.scale, 0, 1);
 	if (GLOBAL.drawDebugCollision)
 		DrawCircleV(
 			e.iData.boundingCircle.pos.toVector2(), e.iData.boundingCircle.radius, RED_TRANSPARENT);

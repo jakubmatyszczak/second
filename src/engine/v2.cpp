@@ -157,6 +157,7 @@ v2& operator*=(v2& lhs, const v2& rhs) { return lhs = rhs * lhs; }
 v2& operator*=(v2& lhs, float rhs) { return lhs = rhs * lhs; }
 v2& operator/=(v2& lhs, const v2& rhs) { return lhs = lhs / rhs; }
 v2& operator/=(v2& lhs, float rhs) { return lhs = lhs / rhs; }
+bool operator!=(const v2& lhs, const v2& rhs) { return !(lhs == rhs); }
 
 namespace math
 {

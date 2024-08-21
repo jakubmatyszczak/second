@@ -46,6 +46,7 @@ int main(void)
 	content.loadTexture("res/art/level1.png", Content::TEX_LEVEL1);
 	content.loadTexture("res/art/level2.png", Content::TEX_LEVEL2);
 	content.loadTexture("res/art/hole_ss.png", Content::TEX_HOLE);
+	content.loadTexture("res/art/gateway_ss.png", Content::TEX_GATE);
 	content.loadSound("res/sound/jump.wav", Content::SOUND_JUMP);
 	content.loadSound("res/sound/punch.wav", Content::SOUND_WHAM);
 
