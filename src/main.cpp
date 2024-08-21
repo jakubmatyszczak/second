@@ -154,6 +154,24 @@ int main(void)
 																	 collisionVector))
 							e1.vel -= collisionVector * e1.vel.getLength() * 1.25f;
 					}
+				// group 2
+				Entity* group2[entities.maxEntities] = {};
+				u32		nGroup2						 = 0;
+				for (u32 i = 0; i < entities.maxEntities; i++)
+					if (entities.active[i] && entities.collidesGroup2[i])
+						group2[nGroup2++] = &entities.instances[i];
+				for (u32 i = 0; i < nGroup2; i++)
+					for (u32 j = 0; j < nGroup2; j++)
+					{
+						if (i == j)
+							continue;
+						Entity& e1				= *group2[i];
+						Entity& e2				= *group2[j];
+						v2		collisionVector = {};
+						if (e1.iData.boundingCircle.computeCollision(e2.iData.boundingCircle,
+																	 collisionVector))
+							e1.vel -= collisionVector * e1.vel.getLength() * 1.25f;
+					}
 			}
 			entities.updateAll(dt);
 		}

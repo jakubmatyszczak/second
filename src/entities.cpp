@@ -37,6 +37,8 @@ struct Dude
 			entities.collidesTerrain[e->instancePtr] = enable;
 		if (group == 1)
 			entities.collidesGroup1[e->instancePtr] = enable;
+		if (group == 2)
+			entities.collidesGroup2[e->instancePtr] = enable;
 	}
 
 	static void init()
@@ -55,7 +57,8 @@ struct Dude
 								 .canInteract		= false,
 								 .canDraw			= true,
 								 .canCollideTerrain = true,
-								 .canCollideGroup1	= true});
+								 .canCollideGroup1	= true,
+								 .canCollideGroup2	= true});
 		assert(iPtr > -1);
 		Dude& dude	 = *(new (entities.instances[iPtr].data) Dude);
 		dude.pEntity = iPtr;
@@ -473,7 +476,8 @@ struct Gateway
 								 .canInteract		= false,
 								 .canDraw			= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= true});
+								 .canCollideGroup1	= false,
+								 .canCollideGroup2	= true});
 		assert(iPtr >= 0);
 		Entity&	 e	  = entities.instances[iPtr];
 		Gateway& gate = *(new (e.data) Gateway);
@@ -488,7 +492,7 @@ void gateUpdate(void* gatePtr, f32 dt)
 	Entity&	 e			   = entities.instances[gate.pEntity];
 	Entity&	 dudeEntity	   = Dude::getRef(GLOBAL.pDudeInstance).getEntity();
 	e.iData.boundingCircle = {.pos = math::projectPointOntoLine(dudeEntity.pos, e.pos, gate.posEnd),
-							  .radius = 4};
+							  .radius = 2};
 }
 void gateDraw(void* gatePtr)
 {

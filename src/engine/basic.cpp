@@ -68,7 +68,7 @@ struct BoundingCircle
 	f32	 radius;
 	bool computeCollision(const BoundingCircle& other, v2& collisionVector)
 	{
-		f32 rad = (radius + other.radius) / 2;
+		f32 rad = radius + other.radius;
 		if (pos.distToSquared(other.pos) > rad * rad)
 			return false;
 		collisionVector = (other.pos - pos).norm();
@@ -121,7 +121,7 @@ struct Entities
 	static const u32 maxEntities = 128;
 	struct flagInit
 	{
-		bool canSelect, canInteract, canDraw, canCollideTerrain, canCollideGroup1;
+		bool canSelect, canInteract, canDraw, canCollideTerrain, canCollideGroup1, canCollideGroup2;
 	};
 
 	Entity instances[maxEntities] = {};
@@ -132,6 +132,7 @@ struct Entities
 	u8 drawable[maxEntities]		= {};
 	u8 collidesTerrain[maxEntities] = {};
 	u8 collidesGroup1[maxEntities]	= {};
+	u8 collidesGroup2[maxEntities]	= {};
 
 	u32 nActive		= 0;
 	i32 selectedPtr = -1;
@@ -151,6 +152,7 @@ struct Entities
 			drawable[i]		   = flags.canDraw;
 			collidesTerrain[i] = flags.canCollideTerrain;
 			collidesGroup1[i]  = flags.canCollideGroup1;
+			collidesGroup2[i]  = flags.canCollideGroup2;
 			active[i]		   = true;
 			nActive++;
 			return i;

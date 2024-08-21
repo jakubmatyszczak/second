@@ -55,7 +55,10 @@ struct Level
 		if (nTerrainVerticies < 2)
 			return false;
 		if (!bc.computeCollision(c, collisionVector))  // We dont care about result here
+        {
+            dbgCollidedThisFrame = true;
 			return false;
+        }
 		collisionVector = v2();
 		for (u32 i = 1; i <= nTerrainVerticies; i++)
 		{
@@ -72,7 +75,6 @@ struct Level
 		}
 		if (collisionVector.isZero())
 			return false;
-        dbgCollidedThisFrame = true;
 		return true;
 
 	}
