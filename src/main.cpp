@@ -50,6 +50,15 @@ int main(void)
 	content.loadTexture("res/art/baddie_ss.png", Content::TEX_BADDIE);
 	content.loadSound("res/sound/jump.wav", Content::SOUND_JUMP);
 	content.loadSound("res/sound/punch.wav", Content::SOUND_WHAM);
+	content.loadSound("res/sound/laser.wav", Content::SOUND_LASER);
+	content.loadSound("res/sound/baddie/GetOverHere.wav", Content::SOUND_BADDIE_TARGET_FOUND1);
+	content.loadSound("res/sound/baddie/Initializing.wav", Content::SOUND_BADDIE_TARGET_FOUND2);
+	content.loadSound("res/sound/baddie/MissionObjectiveSet.wav", Content::SOUND_BADDIE_TARGET_FOUND3);
+	content.loadSound("res/sound/baddie/TargetAcquired.wav", Content::SOUND_BADDIE_TARGET_FOUND4);
+	content.loadSound("res/sound/baddie/TargetFound.wav", Content::SOUND_BADDIE_TARGET_FOUND5);
+	content.loadSound("res/sound/baddie/TargetLost.wav", Content::SOUND_BADDIE_TARGET_LOST1);
+	content.loadSound("res/sound/baddie/TargetOutOfSight.wav", Content::SOUND_BADDIE_TARGET_LOST2);
+	content.loadSound("res/sound/baddie/robotstep2.wav", Content::SOUND_BADDIE_STOMP);
 
 	Dude::init();
 	Table::init();

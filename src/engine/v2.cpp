@@ -23,10 +23,21 @@ namespace math
 		return value;
 	}
 	float limit(float value, float minmax) { return limit(value, -minmax, minmax); }
-	float random(float min, float max)
+	float randomf(float min, float max)
 	{
 		float range = fabsf(max - min);
 		return (fmodf(rand(), range * 1000.f) / 1000.f + (min < max ? min : max));
+	}
+	i32 random(i32 min, i32 max)
+	{
+		if (max < min)
+		{
+			max = max + min;  // swap without 3rd variable
+			min = max - min;
+			max = max - min;
+		}
+		i32 range = max - min;
+		return (rand() % range) + min;
 	}
 }  // namespace math
 
@@ -131,7 +142,10 @@ float v2::distToSquared(const v2& a) const { return distSquared(*this, a); }
 float v2::dot(const v2& a, const v2& b) { return a.x * b.x + a.y * b.y; }
 float v2::dist(const v2& a, const v2& b) { return (b - a).getLength(); }
 float v2::distSquared(const v2& a, const v2& b) { return (b - a).getLengthSquared(); }
-v2 v2::random(float range) { return v2(math::random(-range, range), math::random(-range, range)); }
+v2	  v2::random(float range)
+{
+	return v2(math::randomf(-range, range), math::randomf(-range, range));
+}
 bool v2::isHeadingTowards(const v2& aPos, const v2& aVel, const v2& bPos)
 {
 	v2 dir = bPos - aPos;
@@ -150,13 +164,13 @@ bool	v2::operator==(const v2& obj) const { return (x == obj.x) & (y == obj.y); }
 
 std::ostream& operator<<(std::ostream& os, const v2& obj) { return os << obj.x << ", " << obj.y; }
 
-v2	operator*(const float lhs, const v2& rhs) { return rhs * lhs; }
-v2& operator+=(v2& lhs, const v2& rhs) { return lhs = lhs + rhs; }
-v2& operator-=(v2& lhs, const v2& rhs) { return lhs = lhs - rhs; }
-v2& operator*=(v2& lhs, const v2& rhs) { return lhs = rhs * lhs; }
-v2& operator*=(v2& lhs, float rhs) { return lhs = rhs * lhs; }
-v2& operator/=(v2& lhs, const v2& rhs) { return lhs = lhs / rhs; }
-v2& operator/=(v2& lhs, float rhs) { return lhs = lhs / rhs; }
+v2	 operator*(const float lhs, const v2& rhs) { return rhs * lhs; }
+v2&	 operator+=(v2& lhs, const v2& rhs) { return lhs = lhs + rhs; }
+v2&	 operator-=(v2& lhs, const v2& rhs) { return lhs = lhs - rhs; }
+v2&	 operator*=(v2& lhs, const v2& rhs) { return lhs = rhs * lhs; }
+v2&	 operator*=(v2& lhs, float rhs) { return lhs = rhs * lhs; }
+v2&	 operator/=(v2& lhs, const v2& rhs) { return lhs = lhs / rhs; }
+v2&	 operator/=(v2& lhs, float rhs) { return lhs = lhs / rhs; }
 bool operator!=(const v2& lhs, const v2& rhs) { return !(lhs == rhs); }
 
 namespace math

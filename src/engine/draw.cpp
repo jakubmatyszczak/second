@@ -24,18 +24,21 @@ struct SpriteSheet
 		fps		 = _fps;
 		animate	 = _animate;
 	}
-	void update(f32 deltaTime)
+    // returns true if frame changed
+	bool update(f32 deltaTime)
 	{
 		if (!animate)
-			return;
+			return false;
 		timer += deltaTime;
 		if (timer > 1.f / fps)
 		{
 			frame++;
 			timer = 0;
+            return true;
 		}
 		if (frame >= frames)
 			frame = 0;
+        return false;
 	}
 	void Draw(v2		   pos,
 			  const Color& tint		   = WHITE,

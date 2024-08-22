@@ -534,8 +534,12 @@ void gateDraw(void* gatePtr)
 }
 struct Baddie
 {
-	static inline u32  pTexShadow  = 0;
-	static inline bool initialized = 0;
+	static inline u32  pTexShadow			= 0;
+	static inline u32  pSoundTargetFound[5] = {};
+	static inline u32  pSoundTargetLost[2]	= {};
+	static inline u32  pSoundLaser			= 0;
+	static inline u32  pSoundStomp			= 0;
+	static inline bool initialized			= 0;
 
 	u32			pEntity;
 	SpriteSheet ss;
@@ -546,8 +550,19 @@ struct Baddie
 	static void init()
 	{
 		static_assert(sizeof(Baddie) < Entity::MAX_ENTITY_SIZE);
-		Baddie::pTexShadow = Content::TEX_SHADOW;
-		initialized		   = true;
+		Baddie::pTexShadow			 = Content::TEX_SHADOW;
+		Baddie::pSoundLaser			 = Content::SOUND_LASER;
+		Baddie::pSoundLaser			 = Content::SOUND_BADDIE_STOMP;
+		Baddie::pSoundTargetFound[0] = Content::SOUND_BADDIE_TARGET_FOUND1;
+		Baddie::pSoundTargetFound[1] = Content::SOUND_BADDIE_TARGET_FOUND2;
+		Baddie::pSoundTargetFound[2] = Content::SOUND_BADDIE_TARGET_FOUND3;
+		Baddie::pSoundTargetFound[3] = Content::SOUND_BADDIE_TARGET_FOUND4;
+		Baddie::pSoundTargetFound[4] = Content::SOUND_BADDIE_TARGET_FOUND5;
+		Baddie::pSoundTargetLost[0]	 = Content::SOUND_BADDIE_TARGET_LOST1;
+		Baddie::pSoundTargetLost[1]	 = Content::SOUND_BADDIE_TARGET_LOST2;
+		SetSoundVolume(content.sounds[Content::SOUND_LASER], 0.2f);
+		SetSoundVolume(content.sounds[Content::SOUND_BADDIE_STOMP], 0.4f);
+		initialized = true;
 	}
 	static i32 add(v2 pos)
 	{
@@ -568,7 +583,7 @@ struct Baddie
 		baddie.pEntity = iPtr;
 
 		e.iData.boundingCircle = {.radius = 4};
-		baddie.ss.init(Content::TEX_BADDIE, {8, 16}, 2, 4, true);
+		baddie.ss.init(Content::TEX_BADDIE, {8, 16}, 2, 2, true);
 		return iPtr;
 	}
 };
@@ -582,18 +597,29 @@ void baddieUpdate(void* baddiePtr, f32 dt)
 
 	if (e.pos.distTo(dudeEntity.pos) < baddie.sensorRange && itemHeld.arch == Entity::Arch::KEY)
 	{
-		e.vel				= (dudeEntity.pos - e.pos).norm() * 0.3f;
+		e.vel = (dudeEntity.pos - e.pos).norm() * 0.3f;
+		if (!baddie.targetLocked)
+		{
+			PlaySound(content.sounds[Content::SOUND_LASER]);
+			PlaySound(content.sounds[Content::SOUND_BADDIE_TARGET_FOUND1 + math::random(0, 5)]);
+		}
 		baddie.targetLocked = true;
 	}
 	else
 	{
 		e.vel *= 0.8f;
+		if (baddie.targetLocked)
+			PlaySound(content.sounds[Content::SOUND_BADDIE_TARGET_LOST1 + math::random(0, 2)]);
 		baddie.targetLocked = false;
 	}
 
 	e.pos += e.vel;
 	e.iData.boundingCircle.pos = e.pos + v2(0, 4);
-	baddie.ss.update(dt);
+	if(baddie.ss.update(dt) && !e.vel.isZero())
+    { 
+        SetSoundPitch(content.sounds[Content::SOUND_BADDIE_STOMP], math::randomf(.9f, 1.1f));
+        PlaySound(content.sounds[Content::SOUND_BADDIE_STOMP]);
+    }
 }
 void baddieDraw(void* baddiePtr)
 {
