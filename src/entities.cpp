@@ -185,7 +185,7 @@ void dudeDraw(void* dudePtr)
 	if (GLOBAL.drawDebugCollision)
 	{
 		BoundingCircle& bc = getInteractionData(e.instancePtr).boundingCircle;
-		DrawCircleV(bc.pos.toVector2(), bc.radius, RED_TRANSPARENT);
+		DrawCircleV(bc.pos.toVector2(), bc.radius, RED_CLEAR);
 	}
 };
 
@@ -243,7 +243,7 @@ void holeDraw(void* hole)
 	if (GLOBAL.drawDebugCollision)
 	{
 		BoundingCircle& bc = getInteractionData(e.instancePtr).boundingCircle;
-		DrawCircleV(bc.pos.toVector2(), bc.radius, RED_TRANSPARENT);
+		DrawCircleV(bc.pos.toVector2(), bc.radius, RED_CLEAR);
 	}
 }
 struct Key
@@ -466,10 +466,9 @@ struct Gateway
 	f32			rotVel		= 0.0f;
 	f32			dRotVel		= 0.01f;
 	f32			rotVelMax	= 0.3f;
-	f32			paddleAngle = -0.7854f;  // texture is at 45deg angle by default
+	f32			paddleAngle = -0.7854f;	 // texture is at 45deg angle by default
 
-		static i32
-		add(v2 posStart, v2 posEnd)
+	static i32 add(v2 posStart, v2 posEnd)
 	{
 		int iPtr = entities.add(Entity::Id::OBJECT,
 								Entity::Arch::GATE,
@@ -481,12 +480,12 @@ struct Gateway
 								 .canCollideGroup1	= false,
 								 .canCollideGroup2	= true});
 		assert(iPtr >= 0);
-		Entity&	 e	  = entities.instances[iPtr];
-		Gateway& gate = *(new (e.data) Gateway);
-		gate.pEntity  = iPtr;
-		gate.posEnd	  = posEnd;
-        v2 gateDirection = posEnd - posStart;
-        gate.paddleAngle += atan2f(gateDirection.y, gateDirection.x);
+		Entity&	 e		 = entities.instances[iPtr];
+		Gateway& gate	 = *(new (e.data) Gateway);
+		gate.pEntity	 = iPtr;
+		gate.posEnd		 = posEnd;
+		v2 gateDirection = posEnd - posStart;
+		gate.paddleAngle += atan2f(gateDirection.y, gateDirection.x);
 		gate.ss.init(Content::TEX_GATE, {8, 8}, 2, 0, false);
 		e.iData.accessLevel = 2137;
 		return iPtr;
@@ -531,5 +530,98 @@ void gateDraw(void* gatePtr)
 		gate.ss.Draw(e.iData.boundingCircle.pos, WHITE, gate.paddleAngle, e.scale, 0, 1);
 	if (GLOBAL.drawDebugCollision)
 		DrawCircleV(
-			e.iData.boundingCircle.pos.toVector2(), e.iData.boundingCircle.radius, RED_TRANSPARENT);
+			e.iData.boundingCircle.pos.toVector2(), e.iData.boundingCircle.radius, RED_CLEAR);
+}
+struct Baddie
+{
+	static inline u32  pTexShadow  = 0;
+	static inline bool initialized = 0;
+
+	u32			pEntity;
+	SpriteSheet ss;
+
+	f32	 sensorRange  = 50;
+	bool targetLocked = false;
+
+	static void init()
+	{
+		static_assert(sizeof(Baddie) < Entity::MAX_ENTITY_SIZE);
+		Baddie::pTexShadow = Content::TEX_SHADOW;
+		initialized		   = true;
+	}
+	static i32 add(v2 pos)
+	{
+		if (!initialized)
+			exitWithMessage("Baddie is not initialized!");
+		int iPtr = entities.add(Entity::Id::ENEMY,
+								Entity::Arch::BADDIE,
+								pos,
+								{.canSelect			= false,
+								 .canInteract		= false,
+								 .canDraw			= true,
+								 .canCollideTerrain = true,
+								 .canCollideGroup1	= false,
+								 .canCollideGroup2	= true});
+		assert(iPtr >= 0);
+		Entity& e	   = entities.instances[iPtr];
+		Baddie& baddie = *(new (e.data) Baddie);
+		baddie.pEntity = iPtr;
+
+		e.iData.boundingCircle = {.radius = 4};
+		baddie.ss.init(Content::TEX_BADDIE, {8, 16}, 2, 4, true);
+		return iPtr;
+	}
+};
+void baddieUpdate(void* baddiePtr, f32 dt)
+{
+	Baddie& baddie	   = *(Baddie*)baddiePtr;
+	Entity& e		   = entities.instances[baddie.pEntity];
+	Dude&	dude	   = Dude::getRef(GLOBAL.pDudeInstance);
+	Entity& dudeEntity = dude.getEntity();
+	Entity& itemHeld   = entities.instances[dude.itemRightHand];
+
+	if (e.pos.distTo(dudeEntity.pos) < baddie.sensorRange && itemHeld.arch == Entity::Arch::KEY)
+	{
+		e.vel				= (dudeEntity.pos - e.pos).norm() * 0.3f;
+		baddie.targetLocked = true;
+	}
+	else
+	{
+		e.vel *= 0.8f;
+		baddie.targetLocked = false;
+	}
+
+	e.pos += e.vel;
+	e.iData.boundingCircle.pos = e.pos + v2(0, 4);
+	baddie.ss.update(dt);
+}
+void baddieDraw(void* baddiePtr)
+{
+	Baddie& baddie	   = *(Baddie*)baddiePtr;
+	Entity& e		   = entities.instances[baddie.pEntity];
+	Dude&	dude	   = Dude::getRef(GLOBAL.pDudeInstance);
+	Entity& dudeEntity = dude.getEntity();
+
+	Texture2D& texShadow	= content.textures[baddie.pTexShadow];
+	v2		   shadowSize	= v2(texShadow.width, texShadow.height);
+	v2		   shadowOffset = v2(0, 5.f);
+	DrawTextureEx(
+		texShadow, (e.pos - shadowSize * 0.5f + shadowOffset).toVector2(), 0.f, 1.f, WHITE);
+	if (e.vel.isZero())
+		baddie.ss.Draw(e.pos, WHITE, e.rot, e.scale, 0);
+	else if (e.vel.y > 0)
+	{
+		baddie.ss.Draw(e.pos, WHITE, e.rot, e.scale, 1);
+		if (baddie.targetLocked)
+			DrawLineEx((e.pos + v2(0, -4)).toVector2(), dudeEntity.pos.toVector2(), 2, RED_CLEAR);
+	}
+	else
+	{
+		if (baddie.targetLocked)
+			DrawLineEx((e.pos + v2(0, -4)).toVector2(), dudeEntity.pos.toVector2(), 2, RED_CLEAR);
+		baddie.ss.Draw(e.pos, WHITE, e.rot, e.scale, 2);
+	}
+	if (GLOBAL.drawDebugCollision)
+		DrawCircleV(
+			e.iData.boundingCircle.pos.toVector2(), e.iData.boundingCircle.radius, RED_CLEAR);
 }

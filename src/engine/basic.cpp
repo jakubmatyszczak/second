@@ -7,18 +7,20 @@ extern void keyUpdate(void* keyPtr, f32 dt);
 extern void tableUpdate(void* tablePtr, f32 dt);
 extern void holeUpdate(void* holePtr, f32 dt);
 extern void gateUpdate(void* gatePtr, f32 dt);
+extern void baddieUpdate(void* baddiePtr, f32 dt);
 
 extern void dudeDraw(void* dudePtr);
 extern void keyDraw(void* keyPtr);
 extern void tableDraw(void* tablePtr);
 extern void holeDraw(void* holePtr);
 extern void gateDraw(void* gatePtr);
+extern void baddieDraw(void* baddiePtr);
 
-#define RED_TRANSPARENT \
+#define RED_CLEAR \
 	(Color) { 255, 0, 0, 128 }
-#define GREEN_TRANSPARENT \
+#define GREEN_CLEAR \
 	(Color) { 0, 200, 0, 128 }
-#define YELLOW_TRANSPARENT \
+#define YELLOW_CLEAR \
 	(Color) { 200, 200, 0, 128 }
 
 f32			lerp(f32 start, f32 end, f32 time) { return start + (end - start) * time; }
@@ -83,7 +85,7 @@ struct InteractionData
 	bool			  shouldPlayerBeBusy = false;
 	BoundingCircle	  boundingCircle;
 	i32				  targetEntityInstance = -1;
-	u32				  accessLevel = 0;
+	u32				  accessLevel		   = 0;
 };
 struct Entity
 {
@@ -95,6 +97,7 @@ struct Entity
 		ITEM,
 		OBJECT,
 		PORTAL,
+		ENEMY,
 		// Add Types here
 		ID_MAX	// Keep this last
 	};
@@ -106,6 +109,7 @@ struct Entity
 		HOLE,
 		KEY,
 		GATE,
+		BADDIE
 	};
 	Id				id					  = Id::UNKNOWN;
 	Arch			arch				  = Arch::UNKNOWN;
@@ -194,8 +198,8 @@ struct Entities
 			collidesGroup1[instancePtr] = enable;
 		if (group == 2)
 			collidesGroup2[instancePtr] = enable;
-        if(group > 2)
-            exitWithMessage("Tried to access collisionGroup not configured [>2]!");
+		if (group > 2)
+			exitWithMessage("Tried to access collisionGroup not configured [>2]!");
 	}
 	void updateAll(f32 dt)
 	{
@@ -217,6 +221,9 @@ struct Entities
 						break;
 					case Entity::Arch::GATE:
 						gateUpdate(&instances[i].data, dt);
+						break;
+					case Entity::Arch::BADDIE:
+						baddieUpdate(&instances[i].data, dt);
 						break;
 					case Entity::Arch::UNKNOWN:
 						break;
@@ -255,6 +262,9 @@ struct Entities
 					break;
 				case Entity::Arch::GATE:
 					gateDraw(&sortedEntities[i]->data);
+					break;
+				case Entity::Arch::BADDIE:
+					baddieDraw(&sortedEntities[i]->data);
 					break;
 				case Entity::Arch::UNKNOWN:
 					break;

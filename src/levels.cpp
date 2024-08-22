@@ -17,7 +17,7 @@ struct Level
 	u32	 nHoles			= 0;
 	bool active			= false;
 
-    bool dbgCollidedThisFrame = false;
+	bool dbgCollidedThisFrame = false;
 
 	void init(v2 position, u32 pTexTerrain)
 	{
@@ -49,16 +49,16 @@ struct Level
 
 	bool collidesWithTerrainBorder(BoundingCircle& c, v2& collisionVector)
 	{
-        dbgCollidedThisFrame = false;
+		dbgCollidedThisFrame = false;
 		if (!active)
 			return false;
 		if (nTerrainVerticies < 2)
 			return false;
 		if (!bc.computeCollision(c, collisionVector))  // We dont care about result here
-        {
-            dbgCollidedThisFrame = true;
+		{
+			dbgCollidedThisFrame = true;
 			return false;
-        }
+		}
 		collisionVector = v2();
 		for (u32 i = 1; i <= nTerrainVerticies; i++)
 		{
@@ -76,7 +76,6 @@ struct Level
 		if (collisionVector.isZero())
 			return false;
 		return true;
-
 	}
 
 	void draw()
@@ -86,7 +85,7 @@ struct Level
 		DrawTextureEx(content.textures[terrainTexture], pos.toVector2(), 0.f, 1.f, WHITE);
 		if (!GLOBAL.drawDebugCollision)
 			return;
-		DrawCircleV(bc.pos.toVector2(), bc.radius, dbgCollidedThisFrame ? RED_TRANSPARENT : YELLOW_TRANSPARENT);
+		DrawCircleV(bc.pos.toVector2(), bc.radius, dbgCollidedThisFrame ? RED_CLEAR : YELLOW_CLEAR);
 		if (nTerrainVerticies < 2)
 			return;
 		for (u32 i = 0; i < nTerrainVerticies; i++)
@@ -161,6 +160,7 @@ void LoadLevel1(Level& level)
 	Table::add(level.pos + v2(60, 25));
 	Table::add(level.pos + v2(50, 85));
 	Table::add(level.pos + v2(90, 90));
+	Baddie::add(level.pos + v2(75, 75));
 	level.pHole[level.nHoles++] = Hole::add(level.pos + v2(100, 50));
 	level.pHole[level.nHoles++] = Hole::add(level.pos + v2(50, 60));
 }

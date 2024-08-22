@@ -47,6 +47,7 @@ int main(void)
 	content.loadTexture("res/art/level2.png", Content::TEX_LEVEL2);
 	content.loadTexture("res/art/hole_ss.png", Content::TEX_HOLE);
 	content.loadTexture("res/art/gateway_ss.png", Content::TEX_GATE);
+	content.loadTexture("res/art/baddie_ss.png", Content::TEX_BADDIE);
 	content.loadSound("res/sound/jump.wav", Content::SOUND_JUMP);
 	content.loadSound("res/sound/punch.wav", Content::SOUND_WHAM);
 
@@ -54,6 +55,7 @@ int main(void)
 	Table::init();
 	Key::init();
 	Hole::init();
+    Baddie::init();
 	save.levels[0].init(v2(), Content::TEX_LEVEL1);
 	save.levels[1].init({200.0, 0.}, Content::TEX_LEVEL1);
 	save.levels[2].init({0.f, 200.}, Content::TEX_LEVEL2);
