@@ -11,7 +11,6 @@ namespace fileio
 		int fd = open(filepath, O_RDONLY);
 		if (fd < 0)
 			return -1;
-		long fileSize = lseek(fd, 0, SEEK_END);
 		lseek(fd, 0, SEEK_SET);
 		int dataRead = read(fd, data, maxSize);
 		close(fd);

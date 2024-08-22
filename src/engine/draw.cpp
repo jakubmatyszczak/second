@@ -18,13 +18,13 @@ struct SpriteSheet
 	u32	 frame = 0;
 	void init(u32 t, v2 _cellSize, u32 _frames, f32 _fps, bool _animate)
 	{
-		pTexture		 = t;
+		pTexture = t;
 		cellSize = _cellSize;
 		frames	 = _frames;
 		fps		 = _fps;
 		animate	 = _animate;
 	}
-    // returns true if frame changed
+	// returns true if frame changed
 	bool update(f32 deltaTime)
 	{
 		if (!animate)
@@ -34,21 +34,21 @@ struct SpriteSheet
 		{
 			frame++;
 			timer = 0;
-            return true;
+			return true;
 		}
 		if (frame >= frames)
 			frame = 0;
-        return false;
+		return false;
 	}
 	void Draw(v2		   pos,
 			  const Color& tint		   = WHITE,
 			  f32		   rot		   = 0.0f,
 			  f32		   scale	   = 1.0f,
-			  int		   row		   = 0,
-			  int		   customFrame = -1)
+			  i32		   row		   = 0,
+			  i32		   customFrame = -1)
 	{
-		u32 tmpFrame = frame;
-		if (customFrame > -1 && customFrame < frames)
+		i32 tmpFrame = frame;
+		if (customFrame > -1 && customFrame < (i32)frames)
 			tmpFrame = customFrame;
 		rot = math::radToDeg(rot);
 		DrawTexturePro(content.textures[pTexture],

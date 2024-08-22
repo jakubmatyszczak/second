@@ -66,8 +66,8 @@ enum PlayerInteraction : i32
 };
 struct BoundingCircle
 {
-	v2	 pos;
-	f32	 radius;
+	v2	 pos = v2();
+	f32	 radius = 0.f;
 	bool computeCollision(const BoundingCircle& other, v2& collisionVector)
 	{
 		f32 rad = radius + other.radius;
@@ -81,9 +81,9 @@ struct InteractionData
 {
 	inline static const v2 inventoryOffset = v2(10, -4);
 
-	PlayerInteraction interaction;
+	PlayerInteraction interaction = PlayerInteraction::NONE;
 	bool			  shouldPlayerBeBusy = false;
-	BoundingCircle	  boundingCircle;
+	BoundingCircle	  boundingCircle = BoundingCircle();
 	i32				  targetEntityInstance = -1;
 	u32				  accessLevel		   = 0;
 };
@@ -124,6 +124,7 @@ struct Entity
 struct Entities
 {
 	static const u32 maxEntities = 128;
+
 	struct flagInit
 	{
 		bool canSelect, canInteract, canDraw, canCollideTerrain, canCollideGroup1, canCollideGroup2;
@@ -175,14 +176,14 @@ struct Entities
 	{
 		if (instancePtr < maxEntities)
 			if (active[instancePtr] && selectable[instancePtr])
-				return selectedPtr = instancePtr;
+				return (selectedPtr = instancePtr);
 		return false;
 	}
 	bool interact(u32 instancePtr)
 	{
 		if (instancePtr < maxEntities)
 			if (active[instancePtr] && interactable[instancePtr])
-				return interactPtr = instancePtr;
+				return (interactPtr = instancePtr);
 		return false;
 	}
 	void refresh()
@@ -245,7 +246,7 @@ struct Entities
 				nSortedEntities++;
 			}
 		bubble_sort((u64*)sortedEntities, posValueY, (u64)nSortedEntities);
-		for (i32 i = 0; i < nSortedEntities; i++)
+		for (u32 i = 0; i < nSortedEntities; i++)
 			switch (sortedEntities[i]->arch)
 			{
 				case Entity::Arch::DUDE:

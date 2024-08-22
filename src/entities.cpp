@@ -215,7 +215,8 @@ struct Hole
 								 .canInteract		= false,
 								 .canDraw			= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= true});
+								 .canCollideGroup1	= true,
+								 .canCollideGroup2	= false});
 		assert(iPtr >= 0);
 		Hole&	hole = *(new (entities.instances[iPtr].data) Hole);
 		Entity& e	 = entities.instances[iPtr];
@@ -277,7 +278,8 @@ struct Key
 								 .canInteract		= true,
 								 .canDraw			= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= false});
+								 .canCollideGroup1	= false,
+								 .canCollideGroup2	= false});
 		assert(iPtr >= 0);
 		Entity& e	= entities.instances[iPtr];
 		Key&	key = *(new (e.data) Key);
@@ -382,7 +384,8 @@ struct Table
 								 .canInteract		= true,
 								 .canDraw			= true,
 								 .canCollideTerrain = false,
-								 .canCollideGroup1	= false});
+								 .canCollideGroup1	= false,
+								 .canCollideGroup2	= false});
 		assert(iPtr >= 0);
 		Entity& e			= entities.instances[iPtr];
 		Table&	table		= *(new (e.data) Table);
@@ -615,11 +618,11 @@ void baddieUpdate(void* baddiePtr, f32 dt)
 
 	e.pos += e.vel;
 	e.iData.boundingCircle.pos = e.pos + v2(0, 4);
-	if(baddie.ss.update(dt) && !e.vel.isZero())
-    { 
-        SetSoundPitch(content.sounds[Content::SOUND_BADDIE_STOMP], math::randomf(.9f, 1.1f));
-        PlaySound(content.sounds[Content::SOUND_BADDIE_STOMP]);
-    }
+	if (baddie.ss.update(dt) && !e.vel.isZero())
+	{
+		SetSoundPitch(content.sounds[Content::SOUND_BADDIE_STOMP], math::randomf(.9f, 1.1f));
+		PlaySound(content.sounds[Content::SOUND_BADDIE_STOMP]);
+	}
 }
 void baddieDraw(void* baddiePtr)
 {
