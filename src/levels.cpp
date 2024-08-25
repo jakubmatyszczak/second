@@ -17,8 +17,6 @@ struct Level
 	u32	 nHoles			= 0;
 	bool active			= false;
 
-	bool dbgCollidedThisFrame = false;
-
 	void init(v2 position, u32 pTexTerrain)
 	{
 		terrainTexture = pTexTerrain;
@@ -49,16 +47,12 @@ struct Level
 
 	bool collidesWithTerrainBorder(BoundingCircle& c, v2& collisionVector)
 	{
-		dbgCollidedThisFrame = false;
 		if (!active)
 			return false;
 		if (nTerrainVerticies < 2)
 			return false;
 		if (!bc.computeCollision(c, collisionVector))  // We dont care about result here
-		{
-			dbgCollidedThisFrame = true;
 			return false;
-		}
 		collisionVector = v2();
 		for (u32 i = 1; i <= nTerrainVerticies; i++)
 		{
@@ -85,7 +79,6 @@ struct Level
 		DrawTextureEx(content.textures[terrainTexture], pos.toVector2(), 0.f, 1.f, WHITE);
 		if (!GLOBAL.drawDebugCollision)
 			return;
-		DrawCircleV(bc.pos.toVector2(), bc.radius, dbgCollidedThisFrame ? RED_CLEAR : YELLOW_CLEAR);
 		if (nTerrainVerticies < 2)
 			return;
 		for (u32 i = 0; i < nTerrainVerticies; i++)
