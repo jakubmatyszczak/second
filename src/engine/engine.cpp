@@ -74,6 +74,29 @@ struct EngineGlobals
 };
 EngineGlobals GLOBAL;
 Content		  content;
+void loadContent(Content& content)
+{
+	content.loadTexture("res/art/dude_ss.png", Content::TEX_DUDE);
+	content.loadTexture("res/art/table_tex.png", Content::TEX_TABLE);
+	content.loadTexture("res/art/key.png", Content::TEX_KEY);
+	content.loadTexture("res/art/shadow_tex.png", Content::TEX_SHADOW);
+	content.loadTexture("res/art/level1.png", Content::TEX_LEVEL1);
+	content.loadTexture("res/art/level2.png", Content::TEX_LEVEL2);
+	content.loadTexture("res/art/hole_ss.png", Content::TEX_HOLE);
+	content.loadTexture("res/art/gateway_ss.png", Content::TEX_GATE);
+	content.loadTexture("res/art/baddie_ss.png", Content::TEX_BADDIE);
+	content.loadSound("res/sound/jump.wav", Content::SOUND_JUMP);
+	content.loadSound("res/sound/punch.wav", Content::SOUND_WHAM);
+	content.loadSound("res/sound/laser.wav", Content::SOUND_LASER);
+	content.loadSound("res/sound/baddie/GetOverHere.wav", Content::SOUND_BADDIE_TARGET_FOUND1);
+	content.loadSound("res/sound/baddie/Initializing.wav", Content::SOUND_BADDIE_TARGET_FOUND2);
+	content.loadSound("res/sound/baddie/MissionObjectiveSet.wav", Content::SOUND_BADDIE_TARGET_FOUND3);
+	content.loadSound("res/sound/baddie/TargetAcquired.wav", Content::SOUND_BADDIE_TARGET_FOUND4);
+	content.loadSound("res/sound/baddie/TargetFound.wav", Content::SOUND_BADDIE_TARGET_FOUND5);
+	content.loadSound("res/sound/baddie/TargetLost.wav", Content::SOUND_BADDIE_TARGET_LOST1);
+	content.loadSound("res/sound/baddie/TargetOutOfSight.wav", Content::SOUND_BADDIE_TARGET_LOST2);
+	content.loadSound("res/sound/baddie/robotstep2.wav", Content::SOUND_BADDIE_STOMP);
+};
 
 inline void exitWithMessage(const char* msg)
 {
