@@ -1,5 +1,6 @@
 #pragma once
 #include <cassert>
+#include "raylib.h"
 #include "engine/basic.cpp"
 #include "engine/draw.cpp"
 

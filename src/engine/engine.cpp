@@ -38,6 +38,7 @@ struct Content
 		TEX_SHADOW,
 		TEX_GATE,
 		TEX_BADDIE,
+		TEX_CLOUD,
 		TEX_LEVEL1,
 		TEX_LEVEL2,
 		TEX_ID_MAX
@@ -85,6 +86,7 @@ void loadContent(Content& content)
 	content.loadTexture("res/art/hole_ss.png", Content::TEX_HOLE);
 	content.loadTexture("res/art/gateway_ss.png", Content::TEX_GATE);
 	content.loadTexture("res/art/baddie_ss.png", Content::TEX_BADDIE);
+	content.loadTexture("res/art/cloud_tex.png", Content::TEX_CLOUD);
 	content.loadSound("res/sound/jump.wav", Content::SOUND_JUMP);
 	content.loadSound("res/sound/punch.wav", Content::SOUND_WHAM);
 	content.loadSound("res/sound/laser.wav", Content::SOUND_LASER);

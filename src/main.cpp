@@ -2,6 +2,7 @@
 #include "engine/engine.cpp"
 #include "engine/basic.cpp"
 #include "engine/fileio.cpp"
+#include "sceneAssets.cpp"
 #include "entities.cpp"
 #include "levels.cpp"
 
@@ -20,7 +21,7 @@ void saveGame(WorldState& save, u32 pDudeInstance)
 bool loadGame(WorldState& game)
 {
 	WorldState loaded;
-	i32		  ret = fileio::loadRawFile("1.save", sizeof(loaded), &loaded);
+	i32		   ret = fileio::loadRawFile("1.save", sizeof(loaded), &loaded);
 	if (ret < 0)
 		return false;
 	else if (ret != sizeof(loaded))
@@ -39,13 +40,13 @@ int main(void)
 	InitAudioDevice();
 	bool done		 = false;
 	bool levelEditor = false;
-    loadContent(content);
+	loadContent(content);
 
 	Dude::init();
 	Table::init();
 	Key::init();
 	Hole::init();
-    Baddie::init();
+	Baddie::init();
 	worldState.levels[0].init(v2(), Content::TEX_LEVEL1);
 	worldState.levels[1].init({200.0, 0.}, Content::TEX_LEVEL1);
 	worldState.levels[2].init({0.f, 200.}, Content::TEX_LEVEL2);
@@ -56,6 +57,14 @@ int main(void)
 	LoadLevel3(worldState.levels[2]);
 	Hole::connect(worldState.levels[0].pHole[0], worldState.levels[1].pHole[0]);
 	Hole::connect(worldState.levels[0].pHole[1], worldState.levels[2].pHole[0]);
+
+	ParalaxAsset::add(content.TEX_LEVEL2, v2(-30, -30), {0, 0}, 3.f, GREEN);
+	for (int i = 0; i < 120; i++)
+		ParalaxAsset::add(content.TEX_CLOUD,
+						  v2(math::randomf(-1000, 0), math::randomf(-300, 500)),
+						  v2(math::randomf(0.02, 0.15), 0),
+						  math::randomf(0.1f, 2.f),
+						  math::randomf(0, 2) > 1.f ? WHITE : LIGHTGRAY);
 
 	loadGame(worldState);
 
@@ -179,6 +188,7 @@ int main(void)
 						.toVector2();
 			BeginMode2D(GLOBAL.camera);
 			{
+				sceneAssets.drawBackground();
 				for (u32 i = 0; i < 32; i++)
 					worldState.levels[i].draw();
 				entities.drawAll();

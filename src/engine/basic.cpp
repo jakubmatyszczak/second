@@ -1,6 +1,7 @@
 #pragma once
 #include <cstring>
 #include "v2.cpp"
+#include "scene.cpp"
 
 extern void dudeUpdate(void* dudePtr, f32 dt);
 extern void keyUpdate(void* keyPtr, f32 dt);
@@ -273,6 +274,13 @@ struct Entities
 	}
 };
 Entities entities = {};
+
+void drawGame()
+{
+    sceneAssets.drawBackground(); 
+    entities.drawAll();
+    sceneAssets.drawForeground(); 
+}
 
 struct Keyframe
 {

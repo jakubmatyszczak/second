@@ -2,6 +2,7 @@
 #include "engine/basic.cpp"
 #include "engine/v2.cpp"
 #include "entities.cpp"
+#include "sceneAssets.cpp"
 
 struct Level
 {
