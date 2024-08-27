@@ -44,12 +44,12 @@ int main(void)
 
 	Dude::init();
 	Table::init();
-	Key::init();
 	Hole::init();
 	Baddie::init();
-	LoadLevelSurface(worldState.levels[0], {0, 0});
 
 	Dude& dude = Dude::getRef(dude.add({50, 50}));
+	LoadLevelSurface(worldState.levels[0], {0, 0});
+
 
 	ParalaxAsset::add(content.TEX_LEVEL2, v2(-30, -30), {0, 0}, 3.f, GREEN);
 	for (int i = 0; i < 120; i++)

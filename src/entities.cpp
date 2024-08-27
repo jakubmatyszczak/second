@@ -248,111 +248,149 @@ void holeDraw(void* hole)
 		DrawCircleV(bc.pos.toVector2(), bc.radius, RED_CLEAR);
 	}
 }
-struct Key
+struct Item
 {
-	u32 pEntity;
-
-	inline static u32  pTexKey	   = 0;
-	inline static u32  pTexShadow  = 0;
-	inline static bool initialized = false;
+	u32 pTexItem;
+	u32 pTexShadow;
 
 	AnimHoverFloat		 aHover;
 	AnimHoverFloatShadow aShadow;
 	bool				 isPicked = false;
 	Color				 tint	  = WHITE;
-
-	static void init()
-	{
-		static_assert(sizeof(Dude) < Entity::MAX_ENTITY_SIZE);
-		pTexShadow	= Content::TEX_SHADOW;
-		pTexKey		= Content::TEX_KEY;
-		initialized = true;
-	}
-	static u32 add(v2 pos)
-	{
-		if (!initialized)
-			exitWithMessage("Key not initialized!");
-		int iPtr = entities.add(Entity::Id::ITEM,
-								Entity::Arch::KEY,
-								pos,
-								{.canSelect			= true,
-								 .canInteract		= true,
-								 .canDraw			= true,
-								 .canCollideTerrain = false,
-								 .canCollideGroup1	= false,
-								 .canCollideGroup2	= false});
-		assert(iPtr >= 0);
-		Entity& e	= entities.instances[iPtr];
-		Key&	key = *(new (e.data) Key);
-		key.pEntity = iPtr;
-
-		e.iData.accessLevel = 2137;
-
-		key.aHover.anim.looped	= true;
-		key.aShadow.anim.looped = true;
-		key.aHover.activate(3.0f);
-		key.aShadow.activate(3.0f);
-
-		return iPtr;
-	}
 };
-void keyUpdate(void* keyPtr, f32 dt)
+u32 itemAdd(Entity::Arch arch, v2 pos)
 {
-	Key&	key = *(Key*)keyPtr;
-	Entity& e	= entities.instances[key.pEntity];
+	i32 pEntity = entities.add(Entity::Id::ITEM,
+							   arch,
+							   pos,
+							   {.canSelect		   = true,
+								.canInteract	   = true,
+								.canDraw		   = true,
+								.canCollideTerrain = false,
+								.canCollideGroup1  = false,
+								.canCollideGroup2  = false});
+	assert(pEntity >= 0);
+	return pEntity;
+}
+void itemInit(Item& item, u32 pTexItem, u32 pTexShadow)
+{
+	item.pTexItem			 = pTexItem;
+	item.pTexShadow			 = pTexShadow;
+	item.aHover.anim.looped	 = true;
+	item.aShadow.anim.looped = true;
+	item.aHover.activate(3.0f);
+	item.aShadow.activate(3.0f);
+}
+void itemUpdate(Item& item, u32 pEntity, f32 dt)
+{
+	Entity& e = entities.instances[pEntity];
 	if (entities.selectedPtr == e.instancePtr)
-		key.tint = RED;
+		item.tint = RED;
 	else
-		key.tint = WHITE;
+		item.tint = WHITE;
 	if (entities.interactPtr == e.instancePtr)
 	{
-		key.isPicked = !key.isPicked;
-		e.rot		 = 0.f;
-		e.scale		 = 1.f;
-		if (key.isPicked)
+		item.isPicked = !item.isPicked;
+		e.rot		  = 0.f;
+		e.scale		  = .5f;
+		if (item.isPicked)
 		{
 			e.rot	= 1.f;
-			e.scale = 0.7f;
+			e.scale = 0.4f;
 		}
 		else
 		{
 			e.vel						 = entities.instances[e.iData.targetEntityInstance].vel;
 			e.iData.targetEntityInstance = -1;
 		}
-		entities.selectable[e.instancePtr] = !key.isPicked;
+		entities.selectable[e.instancePtr] = !item.isPicked;
 	}
-
 	e.vel = e.vel * 0.9f;
 	if (e.iData.targetEntityInstance >= 0)
 	{
 		Entity& target = entities.instances[e.iData.targetEntityInstance];
 		e.vel		   = (target.pos + e.iData.inventoryOffset - e.pos) * 0.35f;
 	}
-
 	e.pos += e.vel;
-	key.aHover.update(dt);
-	key.aShadow.update(dt);
+	item.aHover.update(dt);
+	item.aShadow.update(dt);
+}
+void itemDraw(Item& item, u32 pEntity)
+{
+	Entity&	   e		  = entities.instances[pEntity];
+	Texture2D& texShadow  = content.textures[item.pTexShadow];
+	Texture2D& texitem	  = content.textures[item.pTexItem];
+	v2		   shadowSize = v2(texShadow.width, texShadow.height) * item.aShadow.getScale();
+	v2		   itemSize	  = v2(texitem.width / 2.f, texitem.height / 2.f) * e.scale;
+	if (!item.isPicked)
+		DrawTextureEx(texShadow,
+					  (e.pos - itemSize - shadowSize * 0.5).toVector2(),
+					  0.f,
+					  e.scale + item.aShadow.getScale(),
+					  WHITE);
+	DrawTextureEx(texitem,
+				  (e.pos + item.aHover.getPos() - itemSize).toVector2(),
+				  math::radToDeg(e.rot),
+				  e.scale,
+				  item.tint);
+}
+struct Key
+{
+	u32	 pEntity;
+	Item item;
+
+	static u32 add(v2 pos)
+	{
+		static_assert(sizeof(Key) < Entity::MAX_ENTITY_SIZE);
+		i32		pEntity = itemAdd(Entity::Arch::KEY, pos);
+		Entity& e		= entities.instances[pEntity];
+		Key&	key		= *(new (e.data) Key);
+		key.pEntity		= pEntity;
+        e.scale = 0.5f; //TODO: Temporary until we go to 16x16 px textures by defautl
+		itemInit(key.item, content.TEX_KEY, content.TEX_SHADOW);
+
+		e.iData.accessLevel = 2137;
+		return pEntity;
+	}
+};
+void keyUpdate(void* keyPtr, f32 dt)
+{
+	Key& key = *(Key*)keyPtr;
+	itemUpdate(key.item, key.pEntity, dt);
 }
 void keyDraw(void* keyPtr)
 {
-	Key&	   key		  = *(Key*)keyPtr;
-	Entity&	   e		  = entities.instances[key.pEntity];
-	Texture2D& texShadow  = content.textures[key.pTexShadow];
-	Texture2D& texKey	  = content.textures[key.pTexKey];
-	v2		   shadowSize = v2(texShadow.width, texShadow.height) * key.aShadow.getScale();
-	v2		   keySize	  = v2(texKey.width / 2.f, texKey.height / 2.f) * e.scale;
-	if (!key.isPicked)
-		DrawTextureEx(texShadow,
-					  (e.pos - keySize - shadowSize * 0.5).toVector2(),
-					  0.f,
-					  e.scale + key.aShadow.getScale(),
-					  WHITE);
-	DrawTextureEx(texKey,
-				  (e.pos + key.aHover.getPos() - keySize).toVector2(),
-				  math::radToDeg(e.rot),
-				  e.scale,
-				  key.tint);
+	Key& key = *(Key*)keyPtr;
+	itemDraw(key.item, key.pEntity);
 }
+struct Pick
+{
+	u32	 pEntity;
+	Item item;
+
+	static u32 add(v2 pos)
+	{
+		static_assert(sizeof(Pick) < Entity::MAX_ENTITY_SIZE);
+		u32		pEntity = itemAdd(Entity::Arch::PICK, pos);
+		Entity& e		= entities.instances[pEntity];
+		Pick&	pick	= *(new (e.data) Pick);
+		pick.pEntity	= pEntity;
+        e.scale = 0.5f; //TODO: Temporary until we go to 16x16 px textures by defautl
+		itemInit(pick.item, content.TEX_PICK, content.TEX_SHADOW);
+		return pEntity;
+	}
+};
+void pickUpdate(void* pickPtr, f32 dt)
+{
+	Pick& pick = *(Pick*)pickPtr;
+	itemUpdate(pick.item, pick.pEntity, dt);
+}
+void pickDraw(void* pickPtr)
+{
+	Pick& pick = *(Pick*)pickPtr;
+	itemDraw(pick.item, pick.pEntity);
+}
+
 struct Table
 {
 	u32				   pEntity;

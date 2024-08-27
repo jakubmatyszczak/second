@@ -9,13 +9,15 @@ extern void tableUpdate(void* tablePtr, f32 dt);
 extern void holeUpdate(void* holePtr, f32 dt);
 extern void gateUpdate(void* gatePtr, f32 dt);
 extern void baddieUpdate(void* baddiePtr, f32 dt);
+extern void pickUpdate(void* baddiePtr, f32 dt);
 
 extern void dudeDraw(void* dudePtr);
 extern void keyDraw(void* keyPtr);
 extern void tableDraw(void* tablePtr);
 extern void holeDraw(void* holePtr);
 extern void gateDraw(void* gatePtr);
-extern void baddieDraw(void* baddiePtr);
+extern void baddieDraw(void* gatePtr);
+extern void pickDraw(void* baddiePtr);
 
 #define RED_CLEAR \
 	(Color) { 255, 0, 0, 128 }
@@ -110,6 +112,7 @@ struct Entity
 		HOLE,
 		KEY,
 		GATE,
+        PICK,
 		BADDIE
 	};
 	Id				id					  = Id::UNKNOWN;
@@ -227,6 +230,9 @@ struct Entities
 					case Entity::Arch::BADDIE:
 						baddieUpdate(&instances[i].data, dt);
 						break;
+					case Entity::Arch::PICK:
+						pickUpdate(&instances[i].data, dt);
+						break;
 					case Entity::Arch::UNKNOWN:
 						break;
 				}
@@ -267,6 +273,9 @@ struct Entities
 					break;
 				case Entity::Arch::BADDIE:
 					baddieDraw(&sortedEntities[i]->data);
+					break;
+				case Entity::Arch::PICK:
+					pickDraw(&sortedEntities[i]->data);
 					break;
 				case Entity::Arch::UNKNOWN:
 					break;

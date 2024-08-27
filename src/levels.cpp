@@ -29,8 +29,10 @@ void LoadLevelSurface(Level& level, v2 origin)
 		{
 			level.tileset[x][y] = Tile::GRASS;
 			level.variant[x][y] = Content::TEX_TILESET;
-			level.rot[x][y]		= math::random(0, 4);
+			level.rot[x][y]		= math::random(0, 3);
 		}
+    Key::add({100, 100});
+    Pick::add({150, 150});
 }
 
 void drawLevel(Level& level)

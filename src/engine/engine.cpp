@@ -42,6 +42,7 @@ struct Content
 		TEX_LEVEL1,
 		TEX_LEVEL2,
         TEX_TILESET,
+        TEX_PICK,
 		TEX_ID_MAX
 	};
 	enum SOUND_ID
@@ -89,6 +90,7 @@ void loadContent(Content& content)
 	content.loadTexture("res/art/baddie_ss.png", Content::TEX_BADDIE);
 	content.loadTexture("res/art/cloud_tex.png", Content::TEX_CLOUD);
 	content.loadTexture("res/art/tileset.png", Content::TEX_TILESET);
+	content.loadTexture("res/art/pick.png", Content::TEX_PICK);
 	content.loadSound("res/sound/jump.wav", Content::SOUND_JUMP);
 	content.loadSound("res/sound/punch.wav", Content::SOUND_WHAM);
 	content.loadSound("res/sound/laser.wav", Content::SOUND_LASER);
