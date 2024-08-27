@@ -77,14 +77,16 @@ struct EngineGlobals
 };
 struct FrameData
 {
-	i32	 selectedPtr  = -1;
-	i32	 interactPtr  = -1;
-	i32	 useActionPtr = -1;
-	void clear()
+	i32		selectedPtr	 = -1;
+	i32		interactPtr	 = -1;
+	i32		useActionPtr = -1;
+	Vector2 hitCoords	 = {};
+	void	clear()
 	{
 		selectedPtr	 = -1;
 		interactPtr	 = -1;
 		useActionPtr = -1;
+		hitCoords	 = {};
 	}
 };
 FrameData	  FRAME;

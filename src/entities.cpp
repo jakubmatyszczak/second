@@ -382,8 +382,8 @@ struct Pick
 	// TODO: Potentialy create struct "Swing" with fields below?
 	bool	  swings = false;
 	AnimSwing aSwing;
-	const v2  origin = {16, 16};
-    const v2  bonkOffset = {-18, 8};
+	const v2  origin	 = {16, 16};
+	const v2  bonkOffset = {-18, 8};
 
 	static u32 add(v2 pos)
 	{
@@ -396,6 +396,7 @@ struct Pick
 		e.scale		 = 0.5f;  // TODO: Temporary until we go to 16x16 px textures by defautl
 		return pEntity;
 	}
+	v2 getHitCoords() { return entity(pEntity).pos + bonkOffset; }
 };
 void pickUpdate(void* pickPtr, f32 dt)
 {
@@ -406,22 +407,23 @@ void pickUpdate(void* pickPtr, f32 dt)
 		pick.aSwing.activate(0.3f);
 	}
 	if (pick.swings)
-    {
-        // if(pick.aSwing.getHitThisFrame())
-            //TODO
+	{
+		if (pick.aSwing.getHitThisFrame())
+			FRAME.hitCoords = pick.getHitCoords().toVector2();
 		if (pick.aSwing.update(dt))
 			pick.swings = false;
-    }
+	}
 }
 void pickDraw(void* pickPtr)
 {
 	Pick&	pick = *(Pick*)pickPtr;
 	Entity& e	 = entities.instances[pick.pEntity];
 	DrawCircleV(e.pos.toVector2(), 1, RED);
-	DrawCircleV((e.pos + pick.bonkOffset).toVector2(), 1, YELLOW);
+	if (pick.aSwing.getHitThisFrame())
+		DrawCircleV((e.pos + pick.bonkOffset).toVector2(), 5, YELLOW);
 	itemDraw(pick.item, pick.pEntity);
-    if(!pick.swings)
-        return;
+	if (!pick.swings)
+		return;
 	v2	drawPos = e.pos + pick.aSwing.getPos();
 	f32 drawRot = e.rot + pick.aSwing.getRot();
 	DrawTexturePro(CONTENT.textures[pick.item.pTexItem],

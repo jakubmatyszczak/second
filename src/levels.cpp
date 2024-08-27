@@ -19,6 +19,17 @@ struct Level
 	u32	 variant[gridSize][gridSize] = {};
 	u8	 rot[gridSize][gridSize];
 	v2	 origin;  // top left corner
+	//
+	bool tileContainsPoint(u32 xTile, u32 yTile, Vector2& point)
+	{
+		v2 tileOrigin = origin + v2(xTile * tileSize, yTile * tileSize);
+		v2 size		  = {tileSize, tileSize};
+		if (point.x < tileOrigin.x || point.y < tileOrigin.y)
+			return false;
+		if (point.x > tileOrigin.x + size.x || point.y > tileOrigin.y + size.y)
+			return false;
+		return true;
+	}
 };
 
 void LoadLevelSurface(Level& level, v2 origin)
@@ -31,8 +42,19 @@ void LoadLevelSurface(Level& level, v2 origin)
 			level.variant[x][y] = Content::TEX_TILESET;
 			level.rot[x][y]		= math::random(0, 3);
 		}
-    Key::add({100, 100});
-    Pick::add({15, 15});
+	Key::add({100, 100});
+	Pick::add({15, 15});
+}
+void updateLevel(Level& level)
+{
+	if (FRAME.hitCoords.x == 0 && FRAME.hitCoords.y == 0)
+		return;
+	for (int x = 0; x < level.gridSize; x++)
+		for (int y = 0; y < level.gridSize; y++)
+		{
+			if (level.tileContainsPoint(x, y, FRAME.hitCoords))
+				level.tileset[x][y] = Tile::HOLE;
+		}
 }
 
 void drawLevel(Level& level)

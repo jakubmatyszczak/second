@@ -143,6 +143,7 @@ int main(void)
 					}
 			}
 			entities.updateAll(dt);
+            updateLevel(worldState.levels[0]);
 		}
 
 		v2 dudePos = dude.getEntity().pos;
