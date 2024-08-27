@@ -47,16 +47,9 @@ int main(void)
 	Key::init();
 	Hole::init();
 	Baddie::init();
-	worldState.levels[0].init(v2(), Content::TEX_LEVEL1);
-	worldState.levels[1].init({200.0, 0.}, Content::TEX_LEVEL1);
-	worldState.levels[2].init({0.f, 200.}, Content::TEX_LEVEL2);
+	LoadLevelSurface(worldState.levels[0], {0, 0});
 
 	Dude& dude = Dude::getRef(dude.add({50, 50}));
-	LoadLevel1(worldState.levels[0]);
-	LoadLevel2(worldState.levels[1]);
-	LoadLevel3(worldState.levels[2]);
-	Hole::connect(worldState.levels[0].pHole[0], worldState.levels[1].pHole[0]);
-	Hole::connect(worldState.levels[0].pHole[1], worldState.levels[2].pHole[0]);
 
 	ParalaxAsset::add(content.TEX_LEVEL2, v2(-30, -30), {0, 0}, 3.f, GREEN);
 	for (int i = 0; i < 120; i++)
@@ -100,18 +93,6 @@ int main(void)
 				GLOBAL.camera.target.y -= 3;
 			if (mousePosWindow.y > GLOBAL.screen.height * 0.9)
 				GLOBAL.camera.target.y += 3;
-			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-			{
-				BoundingCircle mouseBc = {mousePosWorld, 1};
-				v2			   dummy;
-				for (u32 i = 0; i < 32; i++)
-				{
-					if (!worldState.levels[i].bc.computeCollision(mouseBc, dummy))
-						continue;
-					worldState.levels[i].appendVertexFromMouse(mouseBc.pos);
-					break;
-				}
-			}
 		}
 		else
 		{
@@ -124,20 +105,6 @@ int main(void)
 
 			// collisions
 			{
-				// terrain
-				for (u32 i = 0; i < entities.maxEntities; i++)
-					if (entities.active[i] && entities.collidesTerrain[i])
-					{
-						Entity& e = entities.instances[i];
-						v2		collisionVector;
-						for (u32 j = 0; j < 32; j++)
-						{
-							Level& l = worldState.levels[j];
-							if (l.collidesWithTerrainBorder(e.iData.boundingCircle,
-															collisionVector))
-								e.vel -= collisionVector;
-						}
-					}
 				// group 1
 				Entity* group1[entities.maxEntities] = {};
 				u32		nGroup1						 = 0;
@@ -189,8 +156,7 @@ int main(void)
 			BeginMode2D(GLOBAL.camera);
 			{
 				sceneAssets.drawBackground();
-				for (u32 i = 0; i < 32; i++)
-					worldState.levels[i].draw();
+				drawLevel(worldState.levels[0]);
 				entities.drawAll();
 			}
 			EndMode2D();
