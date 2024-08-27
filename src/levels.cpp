@@ -41,7 +41,7 @@ void drawLevel(Level& level)
 		for (int y = 0; y < level.gridSize; y++)
 		{
 			v2		   tilePos		 = level.origin + v2(x * level.tileSize, y * level.tileSize);
-			Texture2D* tileTex		 = &content.textures[content.TEX_TILESET];
+			Texture2D* tileTex		 = &CONTENT.textures[CONTENT.TEX_TILESET];
 			f32		   tileSetOffset = (u32)level.tileset[x][y] * level.tileSize;
 			DrawTexturePro(*tileTex,
 						   {tileSetOffset, 0, 16, 16},

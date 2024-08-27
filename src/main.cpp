@@ -40,7 +40,7 @@ int main(void)
 	InitAudioDevice();
 	bool done		 = false;
 	bool levelEditor = false;
-	loadContent(content);
+	loadContent(CONTENT);
 
 	Dude::init();
 	Table::init();
@@ -50,9 +50,9 @@ int main(void)
 	Dude& dude = Dude::getRef(dude.add({50, 50}));
 	LoadLevelSurface(worldState.levels[0], {0, 0});
 
-	ParalaxAsset::add(content.TEX_LEVEL2, v2(-30, -30), {0, 0}, 3.f, GREEN);
+	ParalaxAsset::add(CONTENT.TEX_LEVEL2, v2(-30, -30), {0, 0}, 3.f, GREEN);
 	for (int i = 0; i < 120; i++)
-		ParalaxAsset::add(content.TEX_CLOUD,
+		ParalaxAsset::add(CONTENT.TEX_CLOUD,
 						  v2(math::randomf(-1000, 0), math::randomf(-300, 500)),
 						  v2(math::randomf(0.02, 0.15), 0),
 						  math::randomf(0.1f, 2.f),
@@ -68,7 +68,7 @@ int main(void)
 		v2 mousePosWorld  = GetScreenToWorld2D(GetMousePosition(), GLOBAL.camera);
 		v2 mousePosWindow = GetMousePosition();
 		frame++;
-		entities.refresh();
+        FRAME.clear();
 
 		f32 dt = GetFrameTime();
 		dt	   = 0.016f;

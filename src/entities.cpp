@@ -79,7 +79,7 @@ struct Dude
 			aBreathe.anim.period = 1.f;
 		if (jump && !aJump.anim.active)
 		{
-			PlaySound(content.sounds[pSoundJump]);
+			PlaySound(CONTENT.sounds[pSoundJump]);
 			aJump.activate(0.4f);
 			aJumpShadow.activate(0.4f);
 		}
@@ -126,7 +126,7 @@ struct Dude
 		if (use)
 		{
 			if (itemRightHand > 0 && getInteractionData(itemRightHand).hasAction)
-				entities.useActionPtr = itemRightHand;
+				FRAME.useActionPtr = itemRightHand;
 		}
 	}
 	void drawOverlay()
@@ -171,7 +171,7 @@ void dudeDraw(void* dudePtr)
 {
 	Dude&	   dude			= *(Dude*)dudePtr;
 	Entity&	   e			= entities.instances[dude.pEntity];
-	Texture2D& texShadow	= content.textures[dude.pTexShadow];
+	Texture2D& texShadow	= CONTENT.textures[dude.pTexShadow];
 	v2		   shadowSize	= v2(texShadow.width, texShadow.height) * dude.aJumpShadow.getScale();
 	v2		   shadowOffset = v2(0, 1) / dude.aJumpShadow.getScale();
 	DrawTextureEx(texShadow,
@@ -292,11 +292,11 @@ void itemInit(Item& item, u32 pTexItem, u32 pTexShadow)
 bool itemUpdate(Item& item, u32 pEntity, f32 dt)
 {
 	Entity& e = entities.instances[pEntity];
-	if (entities.selectedPtr == e.instancePtr)
+	if (FRAME.selectedPtr == e.instancePtr)
 		item.tint = RED;
 	else
 		item.tint = WHITE;
-	if (entities.interactPtr == e.instancePtr)
+	if (FRAME.interactPtr == e.instancePtr)
 	{
 		item.isPicked = !item.isPicked;
 		e.rot		  = 0.f;
@@ -322,15 +322,15 @@ bool itemUpdate(Item& item, u32 pEntity, f32 dt)
 	e.pos += e.vel;
 	item.aHover.update(dt);
 	item.aShadow.update(dt);
-	if (entities.useActionPtr == pEntity)
+	if (FRAME.useActionPtr == pEntity)
 		return true;
 	return false;
 }
 void itemDraw(Item& item, u32 pEntity)
 {
 	Entity&	   e		  = entities.instances[pEntity];
-	Texture2D& texShadow  = content.textures[item.pTexShadow];
-	Texture2D& texitem	  = content.textures[item.pTexItem];
+	Texture2D& texShadow  = CONTENT.textures[item.pTexShadow];
+	Texture2D& texitem	  = CONTENT.textures[item.pTexItem];
 	v2		   shadowSize = v2(texShadow.width, texShadow.height) * item.aShadow.getScale();
 	v2		   itemSize	  = v2(texitem.width / 2.f, texitem.height / 2.f) * e.scale;
 	if (!item.isPicked)
@@ -358,7 +358,7 @@ struct Key
 		Key&	key		= *(new (e.data) Key);
 		key.pEntity		= pEntity;
 		e.scale			= 0.5f;	 // TODO: Temporary until we go to 16x16 px textures by defautl
-		itemInit(key.item, content.TEX_KEY, content.TEX_SHADOW);
+		itemInit(key.item, CONTENT.TEX_KEY, CONTENT.TEX_SHADOW);
 
 		e.iData.accessLevel = 2137;
 		return pEntity;
@@ -391,7 +391,7 @@ struct Pick
 		u32		pEntity = itemAdd(Entity::Arch::PICK, true, pos);
 		Entity& e		= entities.instances[pEntity];
 		Pick&	pick	= *(new (e.data) Pick);
-		itemInit(pick.item, content.TEX_PICK, content.TEX_SHADOW);
+		itemInit(pick.item, CONTENT.TEX_PICK, CONTENT.TEX_SHADOW);
 		pick.pEntity = pEntity;
 		e.scale		 = 0.5f;  // TODO: Temporary until we go to 16x16 px textures by defautl
 		return pEntity;
@@ -406,8 +406,12 @@ void pickUpdate(void* pickPtr, f32 dt)
 		pick.aSwing.activate(0.3f);
 	}
 	if (pick.swings)
+    {
+        // if(pick.aSwing.getHitThisFrame())
+            //TODO
 		if (pick.aSwing.update(dt))
 			pick.swings = false;
+    }
 }
 void pickDraw(void* pickPtr)
 {
@@ -420,7 +424,7 @@ void pickDraw(void* pickPtr)
         return;
 	v2	drawPos = e.pos + pick.aSwing.getPos();
 	f32 drawRot = e.rot + pick.aSwing.getRot();
-	DrawTexturePro(content.textures[pick.item.pTexItem],
+	DrawTexturePro(CONTENT.textures[pick.item.pTexItem],
 				   {0, 0, 16, 16},
 				   {drawPos.x, drawPos.y, 8, 8},
 				   {8, 8},
@@ -474,11 +478,11 @@ void tableUpdate(void* tablePtr, f32 dt)
 {
 	Table&	table = *(Table*)tablePtr;
 	Entity& e	  = entities.instances[table.pEntity];
-	if (entities.selectedPtr == e.instancePtr)
+	if (FRAME.selectedPtr == e.instancePtr)
 		table.tint = RED;
 	else
 		table.tint = WHITE;
-	if (!table.aFlip.anim.active && entities.interactPtr == e.instancePtr)
+	if (!table.aFlip.anim.active && FRAME.interactPtr == e.instancePtr)
 	{
 		f32 flipPeriod = 0.3f;
 		if (table.flipped)
@@ -498,7 +502,7 @@ void tableUpdate(void* tablePtr, f32 dt)
 		entities.selectable[e.instancePtr] = true;
 		if (table.flipped)
 		{
-			PlaySound(content.sounds[table.pSoundWham]);
+			PlaySound(CONTENT.sounds[table.pSoundWham]);
 			e.iData.shouldPlayerBeBusy = true;
 			e.iData.interaction		   = RESTORE;
 		}
@@ -515,7 +519,7 @@ void tableDraw(void* tablePtr)
 {
 	Table&	   table		= *(Table*)tablePtr;
 	Entity&	   e			= entities.instances[table.pEntity];
-	Texture2D& texShadow	= content.textures[table.pTexShadow];
+	Texture2D& texShadow	= CONTENT.textures[table.pTexShadow];
 	v2		   shadowSize	= v2(texShadow.width, texShadow.height) * table.aJumpShadow.getScale();
 	v2		   shadowOffset = v2(0, 1.f) / table.aJumpShadow.getScale();
 	DrawTextureEx(texShadow,
@@ -524,7 +528,7 @@ void tableDraw(void* tablePtr)
 				  table.aJumpShadow.getScale(),
 				  WHITE);
 
-	Texture2D& texTable = content.textures[table.pTexTable];
+	Texture2D& texTable = CONTENT.textures[table.pTexTable];
 	v2		   flipPos	= table.aFlip.getPos() * (table.aFlip.anim.reversed ? .25f : 1.f);
 	v2		   drawPos	= e.pos + flipPos;
 	f32		   drawrot	= math::radToDeg(e.rot + table.aFlip.getRot());
@@ -639,8 +643,8 @@ struct Baddie
 		Baddie::pSoundTargetFound[4] = Content::SOUND_BADDIE_TARGET_FOUND5;
 		Baddie::pSoundTargetLost[0]	 = Content::SOUND_BADDIE_TARGET_LOST1;
 		Baddie::pSoundTargetLost[1]	 = Content::SOUND_BADDIE_TARGET_LOST2;
-		SetSoundVolume(content.sounds[Content::SOUND_LASER], 0.2f);
-		SetSoundVolume(content.sounds[Content::SOUND_BADDIE_STOMP], 0.4f);
+		SetSoundVolume(CONTENT.sounds[Content::SOUND_LASER], 0.2f);
+		SetSoundVolume(CONTENT.sounds[Content::SOUND_BADDIE_STOMP], 0.4f);
 		initialized = true;
 	}
 	static i32 add(v2 pos)
@@ -679,8 +683,8 @@ void baddieUpdate(void* baddiePtr, f32 dt)
 		e.vel = (dudeEntity.pos - e.pos).norm() * 0.3f;
 		if (!baddie.targetLocked)
 		{
-			PlaySound(content.sounds[Content::SOUND_LASER]);
-			PlaySound(content.sounds[Content::SOUND_BADDIE_TARGET_FOUND1 + math::random(0, 5)]);
+			PlaySound(CONTENT.sounds[Content::SOUND_LASER]);
+			PlaySound(CONTENT.sounds[Content::SOUND_BADDIE_TARGET_FOUND1 + math::random(0, 5)]);
 		}
 		baddie.targetLocked = true;
 	}
@@ -688,7 +692,7 @@ void baddieUpdate(void* baddiePtr, f32 dt)
 	{
 		e.vel *= 0.8f;
 		if (baddie.targetLocked)
-			PlaySound(content.sounds[Content::SOUND_BADDIE_TARGET_LOST1 + math::random(0, 2)]);
+			PlaySound(CONTENT.sounds[Content::SOUND_BADDIE_TARGET_LOST1 + math::random(0, 2)]);
 		baddie.targetLocked = false;
 	}
 
@@ -696,8 +700,8 @@ void baddieUpdate(void* baddiePtr, f32 dt)
 	e.iData.boundingCircle.pos = e.pos + v2(0, 4);
 	if (baddie.ss.update(dt) && !e.vel.isZero())
 	{
-		SetSoundPitch(content.sounds[Content::SOUND_BADDIE_STOMP], math::randomf(.9f, 1.1f));
-		PlaySound(content.sounds[Content::SOUND_BADDIE_STOMP]);
+		SetSoundPitch(CONTENT.sounds[Content::SOUND_BADDIE_STOMP], math::randomf(.9f, 1.1f));
+		PlaySound(CONTENT.sounds[Content::SOUND_BADDIE_STOMP]);
 	}
 }
 void baddieDraw(void* baddiePtr)
@@ -707,7 +711,7 @@ void baddieDraw(void* baddiePtr)
 	Dude&	dude	   = Dude::getRef(GLOBAL.pDudeInstance);
 	Entity& dudeEntity = dude.getEntity();
 
-	Texture2D& texShadow	= content.textures[baddie.pTexShadow];
+	Texture2D& texShadow	= CONTENT.textures[baddie.pTexShadow];
 	v2		   shadowSize	= v2(texShadow.width, texShadow.height);
 	v2		   shadowOffset = v2(0, 5.f);
 	DrawTextureEx(

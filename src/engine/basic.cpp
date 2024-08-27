@@ -146,9 +146,6 @@ struct Entities
 	u8 collidesGroup2[maxEntities]	= {};
 
 	u32 nActive		 = 0;
-	i32 selectedPtr	 = -1;
-	i32 interactPtr	 = -1;
-	i32 useActionPtr = -1;
 
 	i32 add(Entity::Id idType, Entity::Arch archType, v2 pos, flagInit flags)
 	{
@@ -182,21 +179,15 @@ struct Entities
 	{
 		if (instancePtr < maxEntities)
 			if (active[instancePtr] && selectable[instancePtr])
-				return (selectedPtr = instancePtr);
+				return (FRAME.selectedPtr = instancePtr);
 		return false;
 	}
 	bool interact(u32 instancePtr)
 	{
 		if (instancePtr < maxEntities)
 			if (active[instancePtr] && interactable[instancePtr])
-				return (interactPtr = instancePtr);
+				return (FRAME.interactPtr = instancePtr);
 		return false;
-	}
-	void refresh()
-	{
-		selectedPtr	 = -1;
-		interactPtr	 = -1;
-		useActionPtr = -1;
 	}
 	void setCollision(u32 instancePtr, u32 group, bool enable)
 	{
@@ -473,6 +464,8 @@ struct AnimSwing
 {
 	Animation		 anim;
 	static const u32 nKeyFrames			   = 5;
+	u32				 hitKeyFrame		   = 3;
+	bool			 hitThisFrame		   = false;
 	Keyframe		 keyFrames[nKeyFrames] = {
 		{.pos = v2(), .rot = 0.f, .duration = 0.1f},
 		{.pos = v2(-4, 2), .rot = 0.2f, .duration = 0.2f},
@@ -482,8 +475,17 @@ struct AnimSwing
 	};
 	void activate(f32 period) { anim.activate(nKeyFrames, period, false); }
 	// returns true if completed
-	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
+	bool update(f32 dt) {
+        hitThisFrame = false;
+        u32 preFrame = anim.frame;
+        bool completed = anim.update(dt, keyFrames, nKeyFrames);
+        if(anim.frame > preFrame && anim.frame == hitKeyFrame)
+            hitThisFrame = true;
+        return completed;
+
+    }
 	// f32	 getScale() { return anim.scale; }
-	v2	getPos() { return anim.posOffset; }
-	f32 getRot() { return anim.rotOffset; }
+	v2	 getPos() { return anim.posOffset; }
+	f32	 getRot() { return anim.rotOffset; }
+	bool getHitThisFrame() { return hitThisFrame; };
 };

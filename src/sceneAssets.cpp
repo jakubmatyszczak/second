@@ -30,5 +30,5 @@ void updateAndDrawParalaxAsset(void* paralaxData)
     
     // draw
     v2 drawPos = a.pos + (v2)GLOBAL.camera.target / GLOBAL.camera.zoom;
-	DrawTextureEx(content.textures[paralax.pTexture], drawPos.toVector2(), 0.f, a.scale, a.color);
+	DrawTextureEx(CONTENT.textures[paralax.pTexture], drawPos.toVector2(), 0.f, a.scale, a.color);
 }

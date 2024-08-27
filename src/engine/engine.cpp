@@ -41,23 +41,23 @@ struct Content
 		TEX_CLOUD,
 		TEX_LEVEL1,
 		TEX_LEVEL2,
-        TEX_TILESET,
-        TEX_PICK,
+		TEX_TILESET,
+		TEX_PICK,
 		TEX_ID_MAX
 	};
 	enum SOUND_ID
 	{
 		SOUND_JUMP,
 		SOUND_WHAM,
-        SOUND_LASER,
-        SOUND_BADDIE_TARGET_FOUND1,
-        SOUND_BADDIE_TARGET_FOUND2,
-        SOUND_BADDIE_TARGET_FOUND3,
-        SOUND_BADDIE_TARGET_FOUND4,
-        SOUND_BADDIE_TARGET_FOUND5,
-        SOUND_BADDIE_TARGET_LOST1,
-        SOUND_BADDIE_TARGET_LOST2,
-        SOUND_BADDIE_STOMP,
+		SOUND_LASER,
+		SOUND_BADDIE_TARGET_FOUND1,
+		SOUND_BADDIE_TARGET_FOUND2,
+		SOUND_BADDIE_TARGET_FOUND3,
+		SOUND_BADDIE_TARGET_FOUND4,
+		SOUND_BADDIE_TARGET_FOUND5,
+		SOUND_BADDIE_TARGET_LOST1,
+		SOUND_BADDIE_TARGET_LOST2,
+		SOUND_BADDIE_STOMP,
 		SOUND_ID_MAX
 	};
 	Texture2D textures[32];
@@ -75,8 +75,22 @@ struct EngineGlobals
 
 	bool drawDebugCollision = false;
 };
+struct FrameData
+{
+	i32	 selectedPtr  = -1;
+	i32	 interactPtr  = -1;
+	i32	 useActionPtr = -1;
+	void clear()
+	{
+		selectedPtr	 = -1;
+		interactPtr	 = -1;
+		useActionPtr = -1;
+	}
+};
+FrameData	  FRAME;
 EngineGlobals GLOBAL;
-Content		  content;
+Content		  CONTENT;
+
 void loadContent(Content& content)
 {
 	content.loadTexture("res/art/dude_ss.png", Content::TEX_DUDE);
@@ -96,7 +110,8 @@ void loadContent(Content& content)
 	content.loadSound("res/sound/laser.wav", Content::SOUND_LASER);
 	content.loadSound("res/sound/baddie/GetOverHere.wav", Content::SOUND_BADDIE_TARGET_FOUND1);
 	content.loadSound("res/sound/baddie/Initializing.wav", Content::SOUND_BADDIE_TARGET_FOUND2);
-	content.loadSound("res/sound/baddie/MissionObjectiveSet.wav", Content::SOUND_BADDIE_TARGET_FOUND3);
+	content.loadSound("res/sound/baddie/MissionObjectiveSet.wav",
+					  Content::SOUND_BADDIE_TARGET_FOUND3);
 	content.loadSound("res/sound/baddie/TargetAcquired.wav", Content::SOUND_BADDIE_TARGET_FOUND4);
 	content.loadSound("res/sound/baddie/TargetFound.wav", Content::SOUND_BADDIE_TARGET_FOUND5);
 	content.loadSound("res/sound/baddie/TargetLost.wav", Content::SOUND_BADDIE_TARGET_LOST1);

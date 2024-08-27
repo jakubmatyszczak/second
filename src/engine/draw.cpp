@@ -51,7 +51,7 @@ struct SpriteSheet
 		if (customFrame > -1 && customFrame < (i32)frames)
 			tmpFrame = customFrame;
 		rot = math::radToDeg(rot);
-		DrawTexturePro(content.textures[pTexture],
+		DrawTexturePro(CONTENT.textures[pTexture],
 					   {tmpFrame * cellSize.x,
 						(f32)textureOffset + row * cellSize.y,
 						flipX ? -cellSize.x : cellSize.x,
