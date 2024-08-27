@@ -69,7 +69,7 @@ enum PlayerInteraction : i32
 };
 struct BoundingCircle
 {
-	v2	 pos = v2();
+	v2	 pos	= v2();
 	f32	 radius = 0.f;
 	bool computeCollision(const BoundingCircle& other, v2& collisionVector)
 	{
@@ -82,13 +82,14 @@ struct BoundingCircle
 };
 struct InteractionData
 {
-	inline static const v2 inventoryOffset = v2(10, -4);
+	inline static const v2 inventoryOffset = v2(8, -4);
 
-	PlayerInteraction interaction = PlayerInteraction::NONE;
-	bool			  shouldPlayerBeBusy = false;
-	BoundingCircle	  boundingCircle = BoundingCircle();
+	PlayerInteraction interaction		   = PlayerInteraction::NONE;
+	bool			  shouldPlayerBeBusy   = false;
+	BoundingCircle	  boundingCircle	   = BoundingCircle();
 	i32				  targetEntityInstance = -1;
 	u32				  accessLevel		   = 0;
+	bool			  hasAction			   = false;
 };
 struct Entity
 {
@@ -112,7 +113,7 @@ struct Entity
 		HOLE,
 		KEY,
 		GATE,
-        PICK,
+		PICK,
 		BADDIE
 	};
 	Id				id					  = Id::UNKNOWN;
@@ -144,9 +145,10 @@ struct Entities
 	u8 collidesGroup1[maxEntities]	= {};
 	u8 collidesGroup2[maxEntities]	= {};
 
-	u32 nActive		= 0;
-	i32 selectedPtr = -1;
-	i32 interactPtr = -1;
+	u32 nActive		 = 0;
+	i32 selectedPtr	 = -1;
+	i32 interactPtr	 = -1;
+	i32 useActionPtr = -1;
 
 	i32 add(Entity::Id idType, Entity::Arch archType, v2 pos, flagInit flags)
 	{
@@ -192,8 +194,9 @@ struct Entities
 	}
 	void refresh()
 	{
-		selectedPtr = -1;
-		interactPtr = -1;
+		selectedPtr	 = -1;
+		interactPtr	 = -1;
+		useActionPtr = -1;
 	}
 	void setCollision(u32 instancePtr, u32 group, bool enable)
 	{
@@ -286,9 +289,9 @@ Entities entities = {};
 
 void drawGame()
 {
-    sceneAssets.drawBackground(); 
-    entities.drawAll();
-    sceneAssets.drawForeground(); 
+	sceneAssets.drawBackground();
+	entities.drawAll();
+	sceneAssets.drawForeground();
 }
 
 struct Keyframe
@@ -465,4 +468,22 @@ struct AnimHoverFloatShadow
 	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	f32	 getScale() { return anim.scale; }
 	v2	 getPos() { return anim.posOffset; }
+};
+struct AnimSwing
+{
+	Animation		 anim;
+	static const u32 nKeyFrames			   = 5;
+	Keyframe		 keyFrames[nKeyFrames] = {
+		{.pos = v2(), .rot = 0.f, .duration = 0.1f},
+		{.pos = v2(-4, 2), .rot = 0.2f, .duration = 0.2f},
+		{.pos = v2(-12, 6), .rot = -2.f, .duration = 0.4f},
+		{.pos = v2(-8, 8), .rot = -0.8, .duration = 0.35f},
+		{.pos = v2(), .rot = 0.f, .duration = 0.05f},
+	};
+	void activate(f32 period) { anim.activate(nKeyFrames, period, false); }
+	// returns true if completed
+	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
+	// f32	 getScale() { return anim.scale; }
+	v2	getPos() { return anim.posOffset; }
+	f32 getRot() { return anim.rotOffset; }
 };

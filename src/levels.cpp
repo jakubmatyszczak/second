@@ -32,7 +32,7 @@ void LoadLevelSurface(Level& level, v2 origin)
 			level.rot[x][y]		= math::random(0, 3);
 		}
     Key::add({100, 100});
-    Pick::add({150, 150});
+    Pick::add({15, 15});
 }
 
 void drawLevel(Level& level)

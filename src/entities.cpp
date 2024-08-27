@@ -58,7 +58,7 @@ struct Dude
 		dude.aBreathe.activate(5.f);
 		return dude.pEntity;
 	};
-	void input(bool up, bool down, bool left, bool right, bool interact, bool jump)
+	void input(bool up, bool down, bool left, bool right, bool interact, bool jump, bool use)
 	{
 		Entity& e = entities.instances[pEntity];
 		if (busy)
@@ -123,6 +123,11 @@ struct Dude
 		}
 		if (closestEntityPtr >= 0 && entities.select(closestEntityPtr))
 			activeHint = getInteractionData(closestEntityPtr).interaction;
+		if (use)
+		{
+			if (itemRightHand > 0 && getInteractionData(itemRightHand).hasAction)
+				entities.useActionPtr = itemRightHand;
+		}
 	}
 	void drawOverlay()
 	{
@@ -258,7 +263,7 @@ struct Item
 	bool				 isPicked = false;
 	Color				 tint	  = WHITE;
 };
-u32 itemAdd(Entity::Arch arch, v2 pos)
+u32 itemAdd(Entity::Arch arch, bool hasAction, v2 pos)
 {
 	i32 pEntity = entities.add(Entity::Id::ITEM,
 							   arch,
@@ -270,6 +275,7 @@ u32 itemAdd(Entity::Arch arch, v2 pos)
 								.canCollideGroup1  = false,
 								.canCollideGroup2  = false});
 	assert(pEntity >= 0);
+	entities.instances[pEntity].iData.hasAction = hasAction;
 	return pEntity;
 }
 void itemInit(Item& item, u32 pTexItem, u32 pTexShadow)
@@ -281,7 +287,9 @@ void itemInit(Item& item, u32 pTexItem, u32 pTexShadow)
 	item.aHover.activate(3.0f);
 	item.aShadow.activate(3.0f);
 }
-void itemUpdate(Item& item, u32 pEntity, f32 dt)
+
+// returns true if should do "USE" action
+bool itemUpdate(Item& item, u32 pEntity, f32 dt)
 {
 	Entity& e = entities.instances[pEntity];
 	if (entities.selectedPtr == e.instancePtr)
@@ -314,6 +322,9 @@ void itemUpdate(Item& item, u32 pEntity, f32 dt)
 	e.pos += e.vel;
 	item.aHover.update(dt);
 	item.aShadow.update(dt);
+	if (entities.useActionPtr == pEntity)
+		return true;
+	return false;
 }
 void itemDraw(Item& item, u32 pEntity)
 {
@@ -342,11 +353,11 @@ struct Key
 	static u32 add(v2 pos)
 	{
 		static_assert(sizeof(Key) < Entity::MAX_ENTITY_SIZE);
-		i32		pEntity = itemAdd(Entity::Arch::KEY, pos);
+		i32		pEntity = itemAdd(Entity::Arch::KEY, false, pos);
 		Entity& e		= entities.instances[pEntity];
 		Key&	key		= *(new (e.data) Key);
 		key.pEntity		= pEntity;
-        e.scale = 0.5f; //TODO: Temporary until we go to 16x16 px textures by defautl
+		e.scale			= 0.5f;	 // TODO: Temporary until we go to 16x16 px textures by defautl
 		itemInit(key.item, content.TEX_KEY, content.TEX_SHADOW);
 
 		e.iData.accessLevel = 2137;
@@ -368,27 +379,53 @@ struct Pick
 	u32	 pEntity;
 	Item item;
 
+	// TODO: Potentialy create struct "Swing" with fields below?
+	bool	  swings = false;
+	AnimSwing aSwing;
+	const v2  origin = {16, 16};
+    const v2  bonkOffset = {-18, 8};
+
 	static u32 add(v2 pos)
 	{
 		static_assert(sizeof(Pick) < Entity::MAX_ENTITY_SIZE);
-		u32		pEntity = itemAdd(Entity::Arch::PICK, pos);
+		u32		pEntity = itemAdd(Entity::Arch::PICK, true, pos);
 		Entity& e		= entities.instances[pEntity];
 		Pick&	pick	= *(new (e.data) Pick);
-		pick.pEntity	= pEntity;
-        e.scale = 0.5f; //TODO: Temporary until we go to 16x16 px textures by defautl
 		itemInit(pick.item, content.TEX_PICK, content.TEX_SHADOW);
+		pick.pEntity = pEntity;
+		e.scale		 = 0.5f;  // TODO: Temporary until we go to 16x16 px textures by defautl
 		return pEntity;
 	}
 };
 void pickUpdate(void* pickPtr, f32 dt)
 {
 	Pick& pick = *(Pick*)pickPtr;
-	itemUpdate(pick.item, pick.pEntity, dt);
+	if (itemUpdate(pick.item, pick.pEntity, dt))
+	{
+		pick.swings = true;
+		pick.aSwing.activate(0.3f);
+	}
+	if (pick.swings)
+		if (pick.aSwing.update(dt))
+			pick.swings = false;
 }
 void pickDraw(void* pickPtr)
 {
-	Pick& pick = *(Pick*)pickPtr;
+	Pick&	pick = *(Pick*)pickPtr;
+	Entity& e	 = entities.instances[pick.pEntity];
+	DrawCircleV(e.pos.toVector2(), 1, RED);
+	DrawCircleV((e.pos + pick.bonkOffset).toVector2(), 1, YELLOW);
 	itemDraw(pick.item, pick.pEntity);
+    if(!pick.swings)
+        return;
+	v2	drawPos = e.pos + pick.aSwing.getPos();
+	f32 drawRot = e.rot + pick.aSwing.getRot();
+	DrawTexturePro(content.textures[pick.item.pTexItem],
+				   {0, 0, 16, 16},
+				   {drawPos.x, drawPos.y, 8, 8},
+				   {8, 8},
+				   math::radToDeg(drawRot),
+				   pick.item.tint);
 }
 
 struct Table

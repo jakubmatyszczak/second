@@ -50,7 +50,6 @@ int main(void)
 	Dude& dude = Dude::getRef(dude.add({50, 50}));
 	LoadLevelSurface(worldState.levels[0], {0, 0});
 
-
 	ParalaxAsset::add(content.TEX_LEVEL2, v2(-30, -30), {0, 0}, 3.f, GREEN);
 	for (int i = 0; i < 120; i++)
 		ParalaxAsset::add(content.TEX_CLOUD,
@@ -101,7 +100,8 @@ int main(void)
 					   IsKeyDown(KEY_H),
 					   IsKeyDown(KEY_L),
 					   IsKeyPressed(KEY_E),
-					   IsKeyDown(KEY_W));
+					   IsKeyDown(KEY_W),
+					   IsKeyPressed(KEY_R));
 
 			// collisions
 			{
