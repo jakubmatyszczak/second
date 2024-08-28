@@ -19,6 +19,8 @@ extern void gateDraw(void* gatePtr);
 extern void baddieDraw(void* gatePtr);
 extern void pickDraw(void* baddiePtr);
 
+#define BLACK_CLEAR \
+	(Color) { 0, 0, 0, 128 }
 #define RED_CLEAR \
 	(Color) { 255, 0, 0, 128 }
 #define GREEN_CLEAR \
@@ -120,6 +122,7 @@ struct Entity
 	Arch			arch				  = Arch::UNKNOWN;
 	u32				instancePtr			  = 0;
 	v2				pos					  = {};
+	i32				zLevel				  = 0;
 	v2				vel					  = {};
 	f32				rot					  = 0.f;
 	f32				scale				  = 1.f;
@@ -147,7 +150,7 @@ struct Entities
 
 	u32 nActive = 0;
 
-	i32 add(Entity::Id idType, Entity::Arch archType, v2 pos, flagInit flags)
+	i32 add(Entity::Id idType, Entity::Arch archType, v2 pos, i32 zLevel, flagInit flags)
 	{
 		for (u32 i = 0; i < maxEntities; i++)
 		{
@@ -155,7 +158,7 @@ struct Entities
 				continue;
 			Entity& e = instances[i];
 			memset(&e, 0, sizeof(Entity));
-			e				   = {.id = idType, .arch = archType, .instancePtr = i, .pos = pos};
+			e = {.id = idType, .arch = archType, .instancePtr = i, .pos = pos, .zLevel = zLevel};
 			selectable[i]	   = flags.canSelect;
 			interactable[i]	   = flags.canInteract;
 			drawable[i]		   = flags.canDraw;

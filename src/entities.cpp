@@ -38,11 +38,12 @@ struct Dude
 		Dude::pTexShadow = Content::TEX_SHADOW;
 		Dude::pSoundJump = Content::SOUND_JUMP;
 	}
-	static u32 add(v2 pos)
+	static u32 add(v2 pos, i32 zLevel)
 	{
 		int iPtr = entities.add(Entity::Id::PLAYER,
 								Entity::Arch::DUDE,
 								pos,
+								zLevel,
 								{.canSelect			= false,
 								 .canInteract		= false,
 								 .canDraw			= true,
@@ -71,7 +72,7 @@ struct Dude
 		}
 		f32 velScale = 0.35f;
 		v2	dv		 = v2(right - left, up - down).norm() * velScale;
-		e.vel = (e.vel + dv) * 0.7f;
+		e.vel		 = (e.vel + dv) * 0.7f;
 		if (e.vel.isZero())
 			aBreathe.anim.period = 5.f;
 		else
@@ -209,13 +210,14 @@ struct Hole
 		pSsTexture	= Content::TEX_HOLE;
 		initialized = true;
 	}
-	static u32 add(v2 pos)
+	static u32 add(v2 pos, i32 zLevel)
 	{
 		if (!initialized)
 			exitWithMessage("Hole not initialized!");
 		i32 iPtr = entities.add(Entity::Id::PORTAL,
 								Entity::Arch::HOLE,
 								pos,
+								zLevel,
 								{.canSelect			= false,
 								 .canInteract		= false,
 								 .canDraw			= true,
@@ -262,11 +264,12 @@ struct Item
 	bool				 isPicked = false;
 	Color				 tint	  = WHITE;
 };
-u32 itemAdd(Entity::Arch arch, bool hasAction, v2 pos)
+u32 itemAdd(Entity::Arch arch, bool hasAction, v2 pos, i32 zLevel)
 {
 	i32 pEntity = entities.add(Entity::Id::ITEM,
 							   arch,
 							   pos,
+							   zLevel,
 							   {.canSelect		   = true,
 								.canInteract	   = true,
 								.canDraw		   = true,
@@ -349,14 +352,14 @@ struct Key
 	u32	 pEntity;
 	Item item;
 
-	static u32 add(v2 pos)
+	static u32 add(v2 pos, i32 zLevel)
 	{
 		static_assert(sizeof(Key) < Entity::MAX_ENTITY_SIZE);
-		i32		pEntity = itemAdd(Entity::Arch::KEY, false, pos);
+		i32		pEntity = itemAdd(Entity::Arch::KEY, false, pos, zLevel);
 		Entity& e		= entities.instances[pEntity];
 		Key&	key		= *(new (e.data) Key);
-		key.pEntity		= pEntity;
-		e.scale			= 0.5f;	 // TODO: Temporary until we go to 16x16 px textures by defautl
+		e.zLevel = key.pEntity = pEntity;
+		e.scale = 0.5f;	 // TODO: Temporary until we go to 16x16 px textures by defautl
 		itemInit(key.item, CONTENT.TEX_KEY, CONTENT.TEX_SHADOW);
 
 		e.iData.accessLevel = 2137;
@@ -384,10 +387,10 @@ struct Pick
 	const v2  origin	 = {16, 16};
 	const v2  bonkOffset = {-18, 6};
 
-	static u32 add(v2 pos)
+	static u32 add(v2 pos, i32 zLevel)
 	{
 		static_assert(sizeof(Pick) < Entity::MAX_ENTITY_SIZE);
-		u32		pEntity = itemAdd(Entity::Arch::PICK, true, pos);
+		u32		pEntity = itemAdd(Entity::Arch::PICK, true, pos, zLevel);
 		Entity& e		= entities.instances[pEntity];
 		Pick&	pick	= *(new (e.data) Pick);
 		itemInit(pick.item, CONTENT.TEX_PICK, CONTENT.TEX_SHADOW);
@@ -456,13 +459,14 @@ struct Table
 		Table::pSoundWham = Content::SOUND_WHAM;
 		initialized		  = true;
 	}
-	static u32 add(v2 pos)
+	static u32 add(v2 pos, i32 zLevel)
 	{
 		if (!initialized)
 			exitWithMessage("Table not initialized!");
 		int iPtr = entities.add(Entity::Id::OBJECT,
 								Entity::Arch::TABLE,
 								pos,
+								zLevel,
 								{.canSelect			= true,
 								 .canInteract		= true,
 								 .canDraw			= true,
@@ -554,11 +558,12 @@ struct Gateway
 	f32			rotVelMax	= 0.3f;
 	f32			paddleAngle = -0.7854f;	 // texture is at 45deg angle by default
 
-	static i32 add(v2 posStart, v2 posEnd)
+	static i32 add(v2 posStart, v2 posEnd, i32 zLevel)
 	{
 		int iPtr = entities.add(Entity::Id::OBJECT,
 								Entity::Arch::GATE,
 								posStart,
+								zLevel,
 								{.canSelect			= false,
 								 .canInteract		= false,
 								 .canDraw			= true,
@@ -650,13 +655,14 @@ struct Baddie
 		SetSoundVolume(CONTENT.sounds[Content::SOUND_BADDIE_STOMP], 0.4f);
 		initialized = true;
 	}
-	static i32 add(v2 pos)
+	static i32 add(v2 pos, i32 zLevel)
 	{
 		if (!initialized)
 			exitWithMessage("Baddie is not initialized!");
 		int iPtr = entities.add(Entity::Id::ENEMY,
 								Entity::Arch::BADDIE,
 								pos,
+								zLevel,
 								{.canSelect			= false,
 								 .canInteract		= false,
 								 .canDraw			= true,

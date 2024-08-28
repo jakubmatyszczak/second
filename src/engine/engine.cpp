@@ -81,7 +81,9 @@ struct FrameData
 	i32		interactPtr	 = -1;
 	i32		useActionPtr = -1;
 	Vector2 hitCoords	 = {};
+	i32		hitZLevel	 = {};
 	Vector2 aimCoords	 = {};
+	i32		aimZLevel	 = {};
 	void	clear()
 	{
 		selectedPtr	 = -1;

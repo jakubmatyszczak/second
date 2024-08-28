@@ -47,8 +47,11 @@ int main(void)
 	Hole::init();
 	Baddie::init();
 
-	Dude& dude = Dude::getRef(dude.add({50, 50}));
+	Dude& dude = Dude::getRef(dude.add({50, 50}, 0));
 	LoadLevelSurface(worldState.levels[0], {0, 0});
+	LoadLevelUndergroud(worldState.levels[1], {}, 1);
+	LoadLevelUndergroud(worldState.levels[2], {}, 2);
+	LoadLevelUndergroud2(worldState.levels[3], {}, 3);
 
 	ParalaxAsset::add(CONTENT.TEX_LEVEL2, v2(-30, -30), {0, 0}, 3.f, GREEN);
 	for (int i = 0; i < 120; i++)
@@ -68,7 +71,7 @@ int main(void)
 		v2 mousePosWorld  = GetScreenToWorld2D(GetMousePosition(), GLOBAL.camera);
 		v2 mousePosWindow = GetMousePosition();
 		frame++;
-        FRAME.clear();
+		FRAME.clear();
 
 		f32 dt = GetFrameTime();
 		dt	   = 0.016f;
@@ -143,7 +146,7 @@ int main(void)
 					}
 			}
 			entities.updateAll(dt);
-            updateLevel(worldState.levels[0]);
+			updateLevels(worldState.levels, 0, 3);
 		}
 
 		v2 dudePos = dude.getEntity().pos;
@@ -157,7 +160,8 @@ int main(void)
 			BeginMode2D(GLOBAL.camera);
 			{
 				sceneAssets.drawBackground();
-				drawLevel(worldState.levels[0]);
+				i32 dudeZLevel = dude.getEntity().zLevel;
+				drawLevels(worldState.levels, dudeZLevel, dudeZLevel + 1);
 				entities.drawAll();
 			}
 			EndMode2D();

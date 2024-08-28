@@ -40,6 +40,11 @@ namespace math
 		return (rand() % range) + min;
 	}
 }  // namespace math
+class v3i
+{
+public:
+    i32 x, y, z;
+};
 
 class v2
 {
