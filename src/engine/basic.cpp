@@ -145,7 +145,7 @@ struct Entities
 	u8 collidesGroup1[maxEntities]	= {};
 	u8 collidesGroup2[maxEntities]	= {};
 
-	u32 nActive		 = 0;
+	u32 nActive = 0;
 
 	i32 add(Entity::Id idType, Entity::Arch archType, v2 pos, flagInit flags)
 	{
@@ -469,21 +469,21 @@ struct AnimSwing
 	Keyframe		 keyFrames[nKeyFrames] = {
 		{.pos = v2(), .rot = 0.f, .duration = 0.1f},
 		{.pos = v2(-4, 2), .rot = 0.2f, .duration = 0.2f},
-		{.pos = v2(-12, 6), .rot = -2.f, .duration = 0.4f},
-		{.pos = v2(-8, 8), .rot = -0.8, .duration = 0.35f},
+		{.pos = v2(-12, 4), .rot = -2.f, .duration = 0.4f},
+		{.pos = v2(-8, 6), .rot = -0.8, .duration = 0.35f},
 		{.pos = v2(), .rot = 0.f, .duration = 0.05f},
 	};
 	void activate(f32 period) { anim.activate(nKeyFrames, period, false); }
 	// returns true if completed
-	bool update(f32 dt) {
-        hitThisFrame = false;
-        u32 preFrame = anim.frame;
-        bool completed = anim.update(dt, keyFrames, nKeyFrames);
-        if(anim.frame > preFrame && anim.frame == hitKeyFrame)
-            hitThisFrame = true;
-        return completed;
-
-    }
+	bool update(f32 dt)
+	{
+		hitThisFrame   = false;
+		u32	 preFrame  = anim.frame;
+		bool completed = anim.update(dt, keyFrames, nKeyFrames);
+		if (anim.frame > preFrame && anim.frame == hitKeyFrame)
+			hitThisFrame = true;
+		return completed;
+	}
 	// f32	 getScale() { return anim.scale; }
 	v2	 getPos() { return anim.posOffset; }
 	f32	 getRot() { return anim.rotOffset; }

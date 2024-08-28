@@ -69,10 +69,9 @@ struct Dude
 				return;
 			interactEntityPtr = -1;
 		}
-		f32 velScale = 0.3f;
-		e.vel.x += (right - left) * velScale;
-		e.vel.y += (up - down) * velScale;
-		e.vel *= 0.8f;
+		f32 velScale = 0.35f;
+		v2	dv		 = v2(right - left, up - down).norm() * velScale;
+		e.vel = (e.vel + dv) * 0.7f;
 		if (e.vel.isZero())
 			aBreathe.anim.period = 5.f;
 		else
@@ -383,7 +382,7 @@ struct Pick
 	bool	  swings = false;
 	AnimSwing aSwing;
 	const v2  origin	 = {16, 16};
-	const v2  bonkOffset = {-18, 8};
+	const v2  bonkOffset = {-18, 6};
 
 	static u32 add(v2 pos)
 	{
@@ -413,25 +412,27 @@ void pickUpdate(void* pickPtr, f32 dt)
 		if (pick.aSwing.update(dt))
 			pick.swings = false;
 	}
+	if (pick.item.isPicked)
+		FRAME.aimCoords = pick.getHitCoords().toVector2();
 }
 void pickDraw(void* pickPtr)
 {
 	Pick&	pick = *(Pick*)pickPtr;
 	Entity& e	 = entities.instances[pick.pEntity];
-	DrawCircleV(e.pos.toVector2(), 1, RED);
-	if (pick.aSwing.getHitThisFrame())
-		DrawCircleV((e.pos + pick.bonkOffset).toVector2(), 5, YELLOW);
 	itemDraw(pick.item, pick.pEntity);
-	if (!pick.swings)
-		return;
 	v2	drawPos = e.pos + pick.aSwing.getPos();
 	f32 drawRot = e.rot + pick.aSwing.getRot();
-	DrawTexturePro(CONTENT.textures[pick.item.pTexItem],
-				   {0, 0, 16, 16},
-				   {drawPos.x, drawPos.y, 8, 8},
-				   {8, 8},
-				   math::radToDeg(drawRot),
-				   pick.item.tint);
+	if (pick.item.isPicked)
+	{
+		DrawCircleV(pick.getHitCoords().toVector2(), 4, YELLOW_CLEAR);
+		if (pick.swings)
+			DrawTexturePro(CONTENT.textures[pick.item.pTexItem],
+						   {0, 0, 16, 16},
+						   {drawPos.x, drawPos.y, 8, 8},
+						   {8, 8},
+						   math::radToDeg(drawRot),
+						   pick.item.tint);
+	}
 }
 
 struct Table

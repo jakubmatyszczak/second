@@ -81,12 +81,14 @@ struct FrameData
 	i32		interactPtr	 = -1;
 	i32		useActionPtr = -1;
 	Vector2 hitCoords	 = {};
+	Vector2 aimCoords	 = {};
 	void	clear()
 	{
 		selectedPtr	 = -1;
 		interactPtr	 = -1;
 		useActionPtr = -1;
 		hitCoords	 = {};
+		aimCoords	 = {};
 	}
 };
 FrameData	  FRAME;
