@@ -25,9 +25,10 @@ struct Entities
 		{
 			if (active[i])
 				continue;
+			memset(&arr[i], 0, sizeof(arr[i]));
 			arr[i].arch = archetype;
 			arr[i].iPos = pos;
-			arr[i].fPos = {(f32)pos.x, (f32)pos.y};
+			arr[i].fPos = {(f32)pos.x * 16, (f32)pos.y * 16};
 			arr[i].fVel = {};
 			active[i]	= true;
 			return i;
@@ -50,9 +51,11 @@ struct Player
 		Entity& e		= ENTITIES.arr[pEntity];
 		Player& dude	= *new (e.data) Player();
 		dude.pTexture	= CONTENT.TEX_TILESET;
+		dude.pEntity	= pEntity;
 		return pEntity;
 	}
 	static Player& get(EntityPtr pEntity) { return *(Player*)ENTITIES.arr[pEntity].data; };
+	Entity&		   getEntity() { return ENTITIES.arr[pEntity]; }
 
 	void input(bool up, bool down, bool left, bool right)
 	{
@@ -63,7 +66,7 @@ struct Player
 	void update(f32 dt)
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-		e.fVel	  = (toV2f(e.iPos*16) - e.fPos) * 0.1f;
+		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
 		e.fPos += e.fVel;
 	}
 	void draw()
