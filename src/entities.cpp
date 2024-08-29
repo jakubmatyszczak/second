@@ -8,7 +8,9 @@ struct Entity
 		DUDE,
 	};
 	Arch arch;
-	v3i	 pos;
+	v3i	 iPos;
+	v2f	 fPos;
+	v2f	 fVel;
 	u8	 data[1024];
 };
 struct Entities
@@ -24,7 +26,9 @@ struct Entities
 			if (active[i])
 				continue;
 			arr[i].arch = archetype;
-			arr[i].pos	= pos;
+			arr[i].iPos = pos;
+			arr[i].fPos = {(f32)pos.x, (f32)pos.y};
+			arr[i].fVel = {};
 			active[i]	= true;
 			return i;
 		}
@@ -53,16 +57,21 @@ struct Player
 	void input(bool up, bool down, bool left, bool right)
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-		e.pos.y += (s32)(down - up);
-		e.pos.x += (s32)(right - left);
+		e.iPos.y += (s32)(down - up);
+		e.iPos.x += (s32)(right - left);
 	}
-	void update(f32 dt) {}
+	void update(f32 dt)
+	{
+		Entity& e = ENTITIES.arr[pEntity];
+		e.fVel	  = (toV2f(e.iPos*16) - e.fPos) * 0.1f;
+		e.fPos += e.fVel;
+	}
 	void draw()
 	{
 		Entity& e = ENTITIES.arr[pEntity];
 		DrawTexturePro(CONTENT.textures[pTexture],
 					   {0, 16, 16, 16},
-					   {(f32)e.pos.x * 16, (f32)e.pos.y * 16, 16.f, 16.f},
+					   {e.fPos.x, e.fPos.y, 16.f, 16.f},
 					   {0, 0},
 					   0.f,
 					   WHITE);

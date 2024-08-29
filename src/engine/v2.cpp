@@ -167,9 +167,11 @@ struct v3i
 	bool	operator==(const v3i& obj) const { return (x == obj.x && y == obj.y && z == obj.z); };
 	bool	operator!=(const v3i& obj) const { return !(*this == obj); };
 };
-v3i operator*(f32 lhs, const v3i& rhs) { return rhs * lhs; };
+v3i	 operator*(f32 lhs, const v3i& rhs) { return rhs * lhs; };
 v3i& operator+=(v3i& lhs, const v3i& rhs) { return lhs = lhs + rhs; }
 v3i& operator-=(v3i& lhs, const v3i& rhs) { return lhs = lhs - rhs; }
 v3i& operator*=(v3i& lhs, const v3i& rhs) { return lhs = rhs * lhs; }
 v3i& operator/=(v3i& lhs, const v3i& rhs) { return lhs = lhs / rhs; }
 
+v2f toV2f(const v3i& v) { return {(f32)v.x, (f32)v.y}; }
+v3i toV3i(const v2f& v) { return {(s32)v.x, (s32)v.y, 0}; }
