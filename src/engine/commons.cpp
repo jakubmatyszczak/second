@@ -73,6 +73,14 @@ namespace math
 	inline f32 radToDeg(f32 value) { return value * 180.f / pi; };
 	inline f32 sq(f32 value) { return value * value; }
 
+	s32 limit(s32 value, s32 min, s32 max)
+	{
+		if (value > max)
+			return max;
+		if (value < min)
+			return min;
+		return value;
+	}
 	f32 limit(float value, float min, float max)
 	{
 		if (value > max)
@@ -82,6 +90,7 @@ namespace math
 		return value;
 	}
 	float limit(float value, float minmax) { return limit(value, -minmax, minmax); }
+	s32 limit(s32 value, s32 minmax) { return limit(value, -minmax, minmax); }
 	float randomf(float min, float max)
 	{
 		float range = fabsf(max - min);

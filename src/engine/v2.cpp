@@ -166,6 +166,12 @@ struct v3i
 	v3i		operator/(f32 obj) const { return v3i(x / obj, y / obj, z / obj); };
 	bool	operator==(const v3i& obj) const { return (x == obj.x && y == obj.y && z == obj.z); };
 	bool	operator!=(const v3i& obj) const { return !(*this == obj); };
+	void	norm()
+	{
+		x = math::limit(x, 1);
+		y = math::limit(y, 1);
+		z = math::limit(z, 1);
+	}
 };
 v3i	 operator*(f32 lhs, const v3i& rhs) { return rhs * lhs; };
 v3i& operator+=(v3i& lhs, const v3i& rhs) { return lhs = lhs + rhs; }

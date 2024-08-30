@@ -79,24 +79,21 @@ void drawLevel(Level levels[], s32 bottomLevel, s32 topLevel)
 		for (s32 x = 0; x < Level::nTiles; x++)
 			for (s32 y = 0; y < Level::nTiles; y++)
 			{
-				Color clr = WHITE;
-				if (FRAME.aimTile ==
-					v3i(x + levels[z].origin.x, y + levels[z].origin.y, FRAME.aimTile.z))
-				{
-					clr = WHITE_CLEAR;
-				}
-				Texture2D* texture = &CONTENT.textures[CONTENT.TEX_TILESET];
-				v3i		   tilePos =
-					(levels[z].origin * 16) + v3i(x * GLOBAL.tileSize, y * GLOBAL.tileSize, 0);
-				DrawTexturePro(*texture,
-							   {levels[z].tiles[x][y] * (f32)GLOBAL.tileSize,
-								0,
-								GLOBAL.tileSize,
-								GLOBAL.tileSize},
-							   {(f32)tilePos.x, (f32)tilePos.y, GLOBAL.tileSize, GLOBAL.tileSize},
-							   {0, 0},
-							   0,
-							   clr);
+				Level&		 l		 = levels[z];
+				Level::Tile& tile	 = l.tiles[x][y];
+				Texture2D*	 texture = &CONTENT.textures[CONTENT.TEX_TILESET];
+				v3i tilePos = (l.origin * 16) + v3i(x * GLOBAL.tileSize, y * GLOBAL.tileSize, 0);
+				if (tile == Level::EMPTY)
+					DrawRectangleV(
+						tilePos.toVector2(), {GLOBAL.tileSize, GLOBAL.tileSize}, BLUESKY_CLEAR);
+				else
+					DrawTexturePro(
+						*texture,
+						{(u32)tile * (f32)GLOBAL.tileSize, 0, GLOBAL.tileSize, GLOBAL.tileSize},
+						{(f32)tilePos.x, (f32)tilePos.y, GLOBAL.tileSize, GLOBAL.tileSize},
+						{0, 0},
+						0,
+						WHITE);
 			}
 }
 struct WorldState
@@ -170,6 +167,7 @@ int main(void)
 				   IsKeyPressed(KEY_A),
 				   IsKeyPressed(KEY_D),
 				   IsKeyPressed(KEY_E),
+				   IsKeyPressed(KEY_G),
 				   isTileEmpty(eDude.iPos));
 
 		dude.update(0.016f);
