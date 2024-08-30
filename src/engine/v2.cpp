@@ -19,6 +19,7 @@ class v2f
 	v2f			proj(v2f onTo) const;
 	v2f			norm() const;
 	v2f			squared() const;
+	v2f			round() const;
 	bool		isZero() const;
 	f32			distTo(const v2f& a) const;
 	f32			distToSquared(const v2f& a) const;
@@ -91,6 +92,7 @@ v2f v2f::norm() const
 	return {x / len, y / len};
 }
 v2f	 v2f::squared() const { return {x * x, y * x}; }
+v2f	 v2f::round() const { return v2f(roundf(x), roundf(y)); }
 bool v2f::isZero() const
 {
 	if (fabsf(x) < 0.0001 && fabsf(y) < 0.0001f)

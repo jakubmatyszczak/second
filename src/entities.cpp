@@ -45,7 +45,7 @@ struct Player
 {
 	EntityPtr  pEntity;
 	TexturePtr pTexture;
-	v3i		   direction;
+	v2f		   direction;
 
 	static s32 add(v3i pos)
 	{
@@ -66,12 +66,12 @@ struct Player
 			e.iPos.z--;
 		if (up | down | left | right)
 		{
-			direction += {right - left, down - up, 0};
-			direction.norm();
+			direction += {(f32)(right - left), (f32)(down - up)};
+			direction = direction.norm().round();
 		}
 		if (go)
 		{
-			e.iPos += direction;
+			e.iPos += toV3i(direction);
 		}
 		if (hit)
 			FRAME.hit = true;
@@ -82,7 +82,7 @@ struct Player
 		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
 		e.fPos += e.fVel;
 		v3i realPos	  = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), 0};
-		FRAME.aimTile = realPos + direction;
+		FRAME.aimTile = realPos + toV3i(direction);
 	}
 	void draw()
 	{
@@ -97,8 +97,8 @@ struct Player
 		t += 0.256f;
 		f32 scaling = 8.f + ((sinf(t) * 0.5f + 0.5f) * 2.f);
 
-		DrawCircle(e.fPos.x + 8 + (f32)direction.x * scaling,
-				   e.fPos.y + 8 + direction.y * scaling,
+		DrawCircle(e.fPos.x + 8 + roundf(direction.x) * scaling,
+				   e.fPos.y + 8 + roundf(direction.y) * scaling,
 				   2,
 				   RED);
 	}
