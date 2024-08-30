@@ -1,19 +1,11 @@
 #include "engine/commons.cpp"
 #include "engine/fileio.cpp"
 #include "engine/v2.cpp"
+#include "globals.cpp"
 #include "entities.cpp"
 
-struct FrameData
-{
-	v2f	 mousePosWorld;
-	v2f	 mousePosWindow;
-	v3i	 aimTile;
-	void clear() { memset(this, 0, sizeof(FrameData)); }
-};
-struct Globals
-{
-	Camera2D camera;
-};
+Entities ENTITIES;
+
 struct Level
 {
 	static const u32 nTiles = 8;
@@ -25,6 +17,31 @@ struct Level
 	};
 	v3i	 origin;
 	Tile tiles[nTiles][nTiles];
+	v3i	 posWorld[nTiles][nTiles];
+	v3i	 toLocalCoords(v3i worldPos)
+	{
+		v3i local = worldPos - origin;
+		return local;
+	}
+	bool containsXY(v3i worldPos)
+	{
+		v3i local = toLocalCoords(worldPos);
+		if (local.x >= 0 && local.x < nTiles && local.y >= 0 && local.y < nTiles)
+			return true;
+		return false;
+	}
+	bool containsXYZ(v3i worldPos)
+	{
+		v3i local = toLocalCoords(worldPos);
+		if (local.z == 0 && local.x >= 0 && local.x < nTiles && local.y >= 0 && local.y < nTiles)
+			return true;
+		return false;
+	}
+	Tile& getTileAt(v3i worldPos)
+	{
+		v3i local = toLocalCoords(worldPos);
+		return tiles[local.x][local.y];
+	}
 };
 void createLevelSurface(v3i origin, Level& level)
 {
@@ -32,7 +49,8 @@ void createLevelSurface(v3i origin, Level& level)
 	for (u32 x = 0; x < level.nTiles; x++)
 		for (u32 y = 0; y < level.nTiles; y++)
 		{
-			level.tiles[x][y] = Level::GRASS;
+			level.tiles[x][y]	 = Level::GRASS;
+			level.posWorld[x][y] = origin + v3i(x, y, 0);
 		}
 }
 void createLevelUnderground(v3i origin, Level& level)
@@ -41,37 +59,65 @@ void createLevelUnderground(v3i origin, Level& level)
 	for (u32 x = 0; x < level.nTiles; x++)
 		for (u32 y = 0; y < level.nTiles; y++)
 		{
-			level.tiles[x][y] = Level::DIRT;
+			level.tiles[x][y]	 = Level::DIRT;
+			level.posWorld[x][y] = origin + v3i(x, y, 0);
 		}
 }
-void drawLevel(Level levels[], u32 bottomLevel, u32 topLevel)
+void updateLevel(Level& level)
 {
-	for (u32 i = bottomLevel; i < topLevel + 1; i++)
-		for (u32 x = 0; x < Level::nTiles; x++)
-			for (u32 y = 0; y < Level::nTiles; y++)
+	if (!FRAME.hit)
+		return;
+	for (u32 x = 0; x < Level::nTiles; x++)
+		for (u32 y = 0; y < Level::nTiles; y++)
+			if (level.posWorld[x][y] ==
+				v3i(FRAME.aimTile.x, FRAME.aimTile.y, level.posWorld[x][y].z))
+				return (void)(level.tiles[x][y] = Level::EMPTY);
+}
+void drawLevel(Level levels[], s32 bottomLevel, s32 topLevel)
+{
+	for (s32 z = bottomLevel; z <= topLevel; z++)
+		for (s32 x = 0; x < Level::nTiles; x++)
+			for (s32 y = 0; y < Level::nTiles; y++)
 			{
+				Color clr = WHITE;
+				if (FRAME.aimTile ==
+					v3i(x + levels[z].origin.x, y + levels[z].origin.y, FRAME.aimTile.z))
+				{
+					clr = WHITE_CLEAR;
+				}
 				Texture2D* texture = &CONTENT.textures[CONTENT.TEX_TILESET];
-				v3i		   tilePos = levels[i].origin + v3i(x * 16, y * 16, 0);
+				v3i		   tilePos =
+					(levels[z].origin * 16) + v3i(x * GLOBAL.tileSize, y * GLOBAL.tileSize, 0);
 				DrawTexturePro(*texture,
-							   {levels[i].tiles[x][y] * 16.f, 0, 16, 16},
-							   {(f32)tilePos.x, (f32)tilePos.y, 16, 16},
+							   {levels[z].tiles[x][y] * (f32)GLOBAL.tileSize,
+								0,
+								GLOBAL.tileSize,
+								GLOBAL.tileSize},
+							   {(f32)tilePos.x, (f32)tilePos.y, GLOBAL.tileSize, GLOBAL.tileSize},
 							   {0, 0},
 							   0,
-							   WHITE);
+							   clr);
 			}
 }
-
-FrameData FRAME;
-Globals	  GLOBAL;
-Entities  ENTITIES;
-Content	  CONTENT;
-
 struct WorldState
 {
-	Globals	 globals;
-	Entities entities;
-	Level	 levels[33];
+	static constexpr u32 nLevels	 = 8;
+	static constexpr u32 nLevelsDown = 6;
+	static constexpr u32 nLevelsUp	 = nLevels - nLevelsDown - 1;
+	Globals				 globals;
+	Entities			 entities;
+	Level				 levelArray[nLevels];
+	Level*				 level = &levelArray[nLevelsDown];
 };
+WorldState WORLD;
+bool	   isTileEmpty(v3i& pos)
+{
+	Level& l = WORLD.level[pos.z];
+	if (l.containsXYZ(pos) && l.getTileAt(pos) == Level::EMPTY)
+		return true;
+	return false;
+}
+
 void saveGame(WorldState& save)
 {
 	save.globals  = GLOBAL;
@@ -94,17 +140,16 @@ bool loadGame(WorldState& game)
 
 int main(void)
 {
-	WorldState worldState;
 	InitWindow(800, 600, "SECOND");
 	SetTargetFPS(60.f);
 	InitAudioDevice();
 	CONTENT.loadAll();
 
-	loadGame(worldState);
+	loadGame(WORLD);
 
-	createLevelSurface({64, 64, 32}, worldState.levels[32]);
-	createLevelUnderground({64 + 16, 64 + 16, 31}, worldState.levels[31]);
-	createLevelUnderground({64 + 32, 64 + 31, 30}, worldState.levels[30]);
+	createLevelSurface({4, 4, 0}, WORLD.level[0]);
+	createLevelUnderground({5, 5, -1}, WORLD.level[-1]);
+	createLevelUnderground({6, 6, -2}, WORLD.level[-2]);
 
 	GLOBAL.camera.zoom	 = 6.f;
 	GLOBAL.camera.offset = {400, 300};
@@ -120,20 +165,26 @@ int main(void)
 		FRAME.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), GLOBAL.camera);
 		FRAME.mousePosWindow = GetMousePosition();
 
-		dude.input(
-			IsKeyPressed(KEY_W), IsKeyPressed(KEY_S), IsKeyPressed(KEY_A), IsKeyPressed(KEY_D));
+		dude.input(IsKeyPressed(KEY_W),
+				   IsKeyPressed(KEY_S),
+				   IsKeyPressed(KEY_A),
+				   IsKeyPressed(KEY_D),
+				   IsKeyPressed(KEY_E),
+				   isTileEmpty(eDude.iPos));
 
 		dude.update(0.016f);
 		GLOBAL.camera.target =
 			(v2f(GLOBAL.camera.target) + (dude.getEntity().fPos - v2f(GLOBAL.camera.target)) * 0.1f)
 				.toVector2();
 
+		updateLevel(WORLD.level[eDude.iPos.z]);
+
 		BeginDrawing();
 		{
 			ClearBackground(SKYBLUE);
 			BeginMode2D(GLOBAL.camera);
 			{
-				drawLevel(worldState.levels, 30, 32);
+				drawLevel(WORLD.level, eDude.iPos.z - 1, eDude.iPos.z);
 				dude.draw();
 			}
 			EndMode2D();
