@@ -119,10 +119,10 @@ struct Player
 		Entity& e = ENTITIES.arr[pEntity];
 		DrawTexturePro(C.textures[pTexture],
 					   {0, 16, 16, 16},
-					   {e.fPos.x, e.fPos.y, 16.f, 16.f},
+					   {e.fPos.x + 2, e.fPos.y + 2, 12.f, 12.f},
 					   {0, 0},
 					   0.f,
-					   WHITE_CLEAR);
+					   WHITE);
 		static f32 t = 0.f;
 		t += 0.128f;
 		f32 scaling = 8.f + ((sinf(t) * 0.5f + 0.5f) * 2.f);
@@ -138,7 +138,7 @@ struct Player
 						   math::radToDeg(atan2f(direction.y, direction.x)) + 90.f,
 						   WHITE_CLEAR);
 		if (direction.isZero())
-			DrawCircle(e.fPos.x + 8, e.fPos.y + 8, 2 * scaling * 0.25, RED_CLEAR);
+			DrawCircle(e.fPos.x + 8, e.fPos.y + 8, 2 * scaling * 0.15, RED_CLEAR);
 		if (canClimb)
 			DrawTexturePro(C.textures[pTexture],
 						   {16, 16, 16, 16},

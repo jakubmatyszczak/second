@@ -255,7 +255,7 @@ int main(void)
 	G.camera.offset = {660, 360};
 	u32		frame	= 0;
 	bool	done	= false;
-	Player& dude	= Player::get(Player::add({10, 10, 0}));
+	Player& dude	= Player::get(Player::add({32, 32, 0}));
 	Entity& eDude	= dude.getEntity();
 
 	while (!done)
