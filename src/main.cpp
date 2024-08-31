@@ -45,7 +45,8 @@ void saveGame()
 {
 	WORLD.entities = ENTITIES;
 	WORLD.globals  = G;
-	fileio::saveRawFile("1.save", &WORLD, sizeof(WORLD));
+	if (fileio::saveRawFile("1.save", &WORLD, sizeof(WORLD)))
+		printf("GAME SAVED!\n");
 }
 bool loadGame()
 {
@@ -56,9 +57,10 @@ bool loadGame()
 	else if (ret != sizeof(loaded))
 		exitWithMessage("Failed to load save!");
 	memcpy(&WORLD, &loaded, sizeof(loaded));
-    WORLD.reloadPtr();
+	WORLD.reloadPtr();
 	ENTITIES = loaded.entities;
 	G		 = loaded.globals;
+	printf("GAME LOADED!\n");
 	return true;
 }
 
@@ -85,11 +87,11 @@ int main(void)
 
 	while (!done)
 	{
-        if(IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S))
-            saveGame();
-        if(IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_L))
-            loadGame();
-            
+		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S))
+			saveGame();
+		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_L))
+			loadGame();
+
 		frame++;
 		F.clear();
 		F.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), G.camera);
