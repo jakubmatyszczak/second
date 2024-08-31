@@ -1,12 +1,16 @@
 #pragma once
 #include "globals.cpp"
 
+void updatePickaxe(void*, f32);
+void drawPickaxe(void*);
+
 struct Entity
 {
 	enum Arch
 	{
 		UNKNOWN,
 		DUDE,
+		PICKAXE,
 	};
 	Arch arch;
 	v3i	 iPos;
@@ -36,6 +40,40 @@ struct Entities
 			return i;
 		}
 		return -1;
+	}
+	void updateAll(f32 dt)
+	{
+		for (u32 i = 1; i < nMax; i++)
+			if (active[i])
+			{
+				switch (arr[i].arch)
+				{
+					case Entity::UNKNOWN:
+						break;
+					case Entity::DUDE:
+						break;
+					case Entity::PICKAXE:
+						updatePickaxe(arr[i].data, dt);
+						break;
+				}
+			}
+	}
+	void drawAll()
+	{
+		for (u32 i = 1; i < nMax; i++)
+			if (active[i])
+			{
+				switch (arr[i].arch)
+				{
+					case Entity::UNKNOWN:
+						break;
+					case Entity::DUDE:
+						break;
+					case Entity::PICKAXE:
+						drawPickaxe(arr[i].data);
+						break;
+				}
+			}
 	}
 };
 
@@ -80,7 +118,6 @@ struct Player
 			   bool go,
 			   bool goUp,
 			   bool goDown,
-			   bool willFall,
 			   bool canClimb,
 			   bool canGoDown)
 	{
@@ -97,7 +134,7 @@ struct Player
 		}
 		if (go)
 			e.iMoveTarget = e.iPos + toV3i(direction);
-		if (willFall || (canGoDown && go && direction.isZero()))
+		if (canGoDown && go && direction.isZero())
 			e.iMoveTarget.z--;
 		if (canClimb && goUp && direction.isZero())
 			e.iMoveTarget.z++;
@@ -168,3 +205,54 @@ struct Player
 	}
 	void drawOverlay() { DrawText(TextFormat("%d, %d", canClimb, canGoDown), 10, 30, 18, RED); }
 };
+
+struct Pickaxe
+{
+	EntityPtr  pEntity;
+	TexturePtr pTexture;
+	SoundPtr   pSfxHit;
+
+	bool picked;
+	f32	 digPower = 1;
+
+	static s32 add(v3i pos)
+	{
+		s32		 pEntity = ENTITIES.add(Entity::PICKAXE, pos);
+		Entity&	 e		 = ENTITIES.arr[pEntity];
+		Pickaxe& item	 = *new (e.data) Pickaxe();
+		item.pEntity	 = pEntity;
+		item.pTexture	 = C.TEX_TILESET;
+		item.pSfxHit	 = C.SFX_HIT;
+		return pEntity;
+	}
+};
+void updatePickaxe(void* data, f32 dt)
+{
+	Pickaxe& item = *(Pickaxe*)data;
+	Entity&	 e	  = ENTITIES.arr[item.pEntity];
+
+	if (!item.picked)
+		e.fPos = toV2f(e.iPos) * G.tileSize;
+}
+void drawPickaxe(void* data)
+{
+	Pickaxe& item = *(Pickaxe*)data;
+	Entity&	 e	  = ENTITIES.arr[item.pEntity];
+
+	Texture&   tex	   = C.textures[item.pTexture];
+	v2f		   origin  = {4, 4};
+	v2f		   drawPos = e.fPos + origin * 2;
+	static f32 t	   = 0;
+	t += 0.064f;
+	f32 breath = ((sinf(t) + 1) * 0.5f) * 0.25f + 0.75f;
+	if (!item.picked)
+	{
+		DrawEllipse(drawPos.x, drawPos.y + 6, 4 * breath, 2 * breath, GRAY_CLEAR);
+		DrawTexturePro(tex,
+					   {0, 32, G.tileSize, G.tileSize},
+					   {drawPos.x, drawPos.y - 4 * breath, 8.f, 8.f},
+					   origin.toVector2(),
+					   45.f,
+					   WHITE);
+	}
+}

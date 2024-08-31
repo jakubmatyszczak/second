@@ -5,15 +5,6 @@
 Entities   ENTITIES;
 WorldState WORLD;
 
-bool willFall(v3i& pos)
-{
-	Level& lcurrent = WORLD.level[pos.z];
-	Level& lbelow	= WORLD.level[pos.z - 1];
-	if (lcurrent.containsXYZ(pos) && lcurrent.getTileAt(pos).type == Level::Tile::EMPTY)
-		if (lbelow.containsXY(pos) && lbelow.getTileAt(pos).type == Level::Tile::EMPTY)
-			return true;
-	return false;
-}
 bool canClimb(v3i& pos)
 {
 	Level& lcurrent = WORLD.level[pos.z];
@@ -105,11 +96,10 @@ int main(void)
 				   IsKeyPressed(KEY_G),
 				   IsKeyPressed(KEY_X),
 				   IsKeyPressed(KEY_Z),
-				   // willFall(eDude.iPos),
-				   false,
 				   canClimb(eDude.iPos),
 				   canGoDown(eDude.iPos));
 
+        ENTITIES.updateAll(0.016f);
 		dude.update(0.016f);
 		G.camera.target =
 			(v2f(G.camera.target) + (dude.getEntity().fPos - v2f(G.camera.target)) * 0.1f)
@@ -126,6 +116,7 @@ int main(void)
 			BeginMode2D(G.camera);
 			{
 				drawLevel(WORLD.level, eDude.iPos.z - 2, eDude.iPos.z);
+                ENTITIES.drawAll();
 				dude.draw();
 			}
 			EndMode2D();

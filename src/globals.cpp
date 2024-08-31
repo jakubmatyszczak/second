@@ -4,6 +4,7 @@
 
 constexpr Color WHITE_CLEAR	  = {255, 255, 255, 100};
 constexpr Color BLACK_CLEAR	  = {0, 0, 0, 100};
+constexpr Color GRAY_CLEAR	  = {100, 100, 100, 100};
 constexpr Color BLUESKY_CLEAR = {0x87, 0xCE, 0xFF, 100};
 constexpr Color GREEN_CLEAR	  = {0, 200, 0, 100};
 constexpr Color RED_CLEAR	  = {200, 0, 0, 100};
