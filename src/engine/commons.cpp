@@ -28,15 +28,24 @@ struct Content
 		TEX_TILESET,
 		TEX_ID_MAX
 	};
-	enum SOUND_ID
+	enum SFX_ID
 	{
-		SOUND_ID_MAX
+		SFX_HIT,
+		SFX_STEP_GRASS,
+		SFX_STEP_ROCK,
+		SFX_ID_MAX
 	};
 	Texture2D textures[32];
 	Sound	  sounds[32];
 	void	  loadTexture(const char* filepath, TEX_ID id) { textures[id] = LoadTexture(filepath); }
-	void	  loadSound(const char* filepath, SOUND_ID id) { sounds[id] = LoadSound(filepath); }
-	void	  loadAll() { loadTexture("res/art/tileset.png", TEX_TILESET); }
+	void	  loadSfx(const char* filepath, SFX_ID id) { sounds[id] = LoadSound(filepath); }
+	void	  loadAll()
+	{
+		loadTexture("res/art/tileset.png", TEX_TILESET);
+		loadSfx("res/sound/playerSfx/hit.wav", SFX_HIT);
+		loadSfx("res/sound/playerSfx/step_grass.wav", SFX_STEP_GRASS);
+		loadSfx("res/sound/playerSfx/step_rock.wav", SFX_STEP_ROCK);
+	}
 };
 
 inline void exitWithMessage(const char* msg)
@@ -90,7 +99,7 @@ namespace math
 		return value;
 	}
 	float limit(float value, float minmax) { return limit(value, -minmax, minmax); }
-	s32 limit(s32 value, s32 minmax) { return limit(value, -minmax, minmax); }
+	s32	  limit(s32 value, s32 minmax) { return limit(value, -minmax, minmax); }
 	float randomf(float min, float max)
 	{
 		float range = fabsf(max - min);

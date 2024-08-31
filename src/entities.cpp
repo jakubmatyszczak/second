@@ -46,17 +46,24 @@ struct Player
 {
 	EntityPtr  pEntity;
 	TexturePtr pTexture;
-	v2f		   direction;
-	bool	   canClimb;
-	bool	   canGoDown;
+	SoundPtr   pSfxHit;
+	SoundPtr   pSfxStepGrass;
+	SoundPtr   pSfxStepRock;
+
+	v2f	 direction;
+	bool canClimb;
+	bool canGoDown;
 
 	static s32 add(v3i pos)
 	{
-		s32		pEntity = ENTITIES.add(Entity::DUDE, pos);
-		Entity& e		= ENTITIES.arr[pEntity];
-		Player& dude	= *new (e.data) Player();
-		dude.pTexture	= C.TEX_TILESET;
-		dude.pEntity	= pEntity;
+		s32		pEntity	   = ENTITIES.add(Entity::DUDE, pos);
+		Entity& e		   = ENTITIES.arr[pEntity];
+		Player& dude	   = *new (e.data) Player();
+		dude.pEntity	   = pEntity;
+		dude.pTexture	   = C.TEX_TILESET;
+		dude.pSfxHit	   = C.SFX_HIT;
+		dude.pSfxStepGrass = C.SFX_STEP_GRASS;
+		dude.pSfxStepRock  = C.SFX_STEP_ROCK;
 
 		F.dudePos = pos;
 		return pEntity;
@@ -94,7 +101,10 @@ struct Player
 		if (canClimb && goUp && direction.isZero())
 			e.iMoveTarget.z++;
 		if (hit)
+		{
 			F.dudeHit = true;
+			PlaySound(C.sounds[pSfxHit]);
+		}
 	}
 	void update(f32 dt)
 	{
@@ -113,6 +123,7 @@ struct Player
 		if (e.iMoveTarget == e.iPos || e.iMoveTarget == v3i())
 			return;
 		e.iPos = e.iMoveTarget;
+		PlaySound(C.sounds[pSfxStepGrass]);
 	}
 	void draw()
 	{

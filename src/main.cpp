@@ -18,6 +18,7 @@ struct Level
 			ROCK,
 			RAMP,
 		};
+		s32	 hitPoints;
 		Type type;
 		bool crossable;
 		bool discovered;
@@ -62,6 +63,7 @@ void createLevelSurface(v3i origin, Level& level)
 		{
 			level.tile[x][y].type		= Level::Tile::GRASS;
 			level.tile[x][y].floor		= true;
+			level.tile[x][y].hitPoints	= 1;
 			level.tile[x][y].crossable	= true;
 			level.tile[x][y].surface	= true;
 			level.tile[x][y].discovered = true;
@@ -75,6 +77,7 @@ void createLevelUnderground(v3i origin, Level& level)
 		for (u32 y = 0; y < level.nTiles; y++)
 		{
 			level.tile[x][y].type  = Level::Tile::DIRT;
+			level.tile[x][y].hitPoints	= 3;
 			level.tile[x][y].floor = true;
 			level.posWorld[x][y]   = origin + v3i(x, y, 0);
 		}
@@ -86,6 +89,7 @@ void createLevelDeepUnderground(v3i origin, Level& level)
 		for (u32 y = 0; y < level.nTiles; y++)
 		{
 			level.tile[x][y].type  = Level::Tile::ROCK;
+			level.tile[x][y].hitPoints	= 10;
 			level.tile[x][y].floor = true;
 			level.posWorld[x][y]   = origin + v3i(x, y, 0);
 		}
@@ -107,6 +111,9 @@ void updateLevels(Level levels[])
 	if (l.containsXYZ(F.dudeAimTile))
 	{
 		Level::Tile& tile = l.getTileAt(F.dudeAimTile);
+        tile.hitPoints--;
+        if(tile.hitPoints > 0)
+            return;
 		tile.type		  = tile.EMPTY;
 		tile.crossable	  = true;
 		tile.discovered	  = true;
