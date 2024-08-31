@@ -1,3 +1,4 @@
+#pragma once
 #include "globals.cpp"
 
 struct Entity
