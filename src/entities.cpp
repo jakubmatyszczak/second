@@ -89,9 +89,15 @@ struct Player
 	SoundPtr   pSfxStepGrass;
 	SoundPtr   pSfxStepRock;
 
+	static constexpr u32 nItemsMax = 6;
+	EntityPtr			 inventory[nItemsMax];
+	TexturePtr			 inventoryThumbnail[nItemsMax];
+	Vector2				 inventoryTexOffset[nItemsMax];
+
 	v2f	 direction;
 	bool canClimb;
 	bool canGoDown;
+	f32	 digPower;
 
 	static s32 add(v3i pos)
 	{
@@ -143,8 +149,8 @@ struct Player
 			F.dudeHit = true;
 			PlaySound(C.sounds[pSfxHit]);
 		}
-        if(use)
-            F.dudeUse = true;
+		if (use)
+			F.dudeUse = true;
 	}
 	void update(f32 dt)
 	{
@@ -164,6 +170,25 @@ struct Player
 			return;
 		e.iPos = e.iMoveTarget;
 		PlaySound(C.sounds[pSfxStepGrass]);
+	}
+	void interact()
+	{
+		Entity& e = ENTITIES.arr[pEntity];
+		if (F.eUsed)
+		{
+			if (ENTITIES.arr[F.eUsed].arch == Entity::PICKAXE)
+			{
+				for (u32 i = 0; i < nItemsMax; i++)
+				{
+					if (inventory[i])
+						continue;
+					inventory[i]		  = F.eUsed;
+					inventoryThumbnail[i] = F.eUsedThum;
+					inventoryTexOffset[i] = F.eTexOffset;
+                    break;
+				}
+			}
+		}
 	}
 	void draw()
 	{
@@ -205,7 +230,24 @@ struct Player
 						   180.f,
 						   RED_CLEAR);
 	}
-	void drawOverlay() { DrawText(TextFormat("%d, %d", canClimb, canGoDown), 10, 30, 18, RED); }
+	void drawOverlay()
+	{
+		DrawText(TextFormat("%d, %d", canClimb, canGoDown), 10, 30, 10, RED);
+		for (u32 i = 0; i < 6; i++)
+		{
+			Vector2 itemPos = {10.f + 74 * i, 720 - 64 - 10};
+			DrawRectangle(itemPos.x, itemPos.y, 64, 64, GRAY_CLEAR);
+			if (!inventory[i])
+				continue;
+			DrawTexturePro(
+				C.textures[inventoryThumbnail[i]],
+				{inventoryTexOffset[i].x, inventoryTexOffset[i].y, G.tileSize, G.tileSize},
+				{itemPos.x, itemPos.y, 64, 64},
+				{0, 0},
+				0.f,
+				WHITE);
+		}
+	}
 };
 
 struct Pickaxe
@@ -233,8 +275,13 @@ void updatePickaxe(void* data, f32 dt)
 	Pickaxe& item = *(Pickaxe*)data;
 	Entity&	 e	  = ENTITIES.arr[item.pEntity];
 
-    if(F.dudeUse && F.dudePos == e.iPos)
-        item.picked = true;
+	if (F.dudeUse && F.dudePos == e.iPos)
+	{
+		item.picked	 = true;
+		F.eUsed		 = item.pEntity;
+		F.eUsedThum	 = item.pTexture;
+		F.eTexOffset = {0, 32};
+	}
 
 	if (!item.picked)
 		e.fPos = toV2f(e.iPos) * G.tileSize;

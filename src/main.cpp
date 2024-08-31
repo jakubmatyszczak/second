@@ -101,6 +101,7 @@ int main(void)
 
 		dude.update(0.016f);
         ENTITIES.updateAll(0.016f);
+        dude.interact();
 		G.camera.target =
 			(v2f(G.camera.target) + (dude.getEntity().fPos - v2f(G.camera.target)) * 0.1f)
 				.toVector2();

@@ -17,6 +17,9 @@ struct FrameData
 	v3i	 dudeAimTile;
 	bool dudeHit;
     bool dudeUse;
+    EntityPtr eUsed;
+    TexturePtr eUsedThum;
+    Vector2 eTexOffset;
 	void clear() { memset(this, 0, sizeof(FrameData)); }
 };
 struct Globals

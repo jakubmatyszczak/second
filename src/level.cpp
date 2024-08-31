@@ -65,6 +65,8 @@ void createLevelSurface(v3i origin, Level& level)
 			level.posWorld[x][y]		= origin + v3i(x, y, 0);
 		}
     Pickaxe::add(v3i(30,30,0));
+    Pickaxe::add(v3i(32,30,0));
+    Pickaxe::add(v3i(34,30,0));
 }
 void createLevelUnderground(v3i origin, Level& level)
 {
