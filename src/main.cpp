@@ -95,12 +95,12 @@ int main(void)
 				   IsKeyPressed(KEY_E),
 				   IsKeyPressed(KEY_G),
 				   IsKeyPressed(KEY_X),
-				   IsKeyPressed(KEY_Z),
+				   IsKeyPressed(KEY_F),
 				   canClimb(eDude.iPos),
 				   canGoDown(eDude.iPos));
 
-        ENTITIES.updateAll(0.016f);
 		dude.update(0.016f);
+        ENTITIES.updateAll(0.016f);
 		G.camera.target =
 			(v2f(G.camera.target) + (dude.getEntity().fPos - v2f(G.camera.target)) * 0.1f)
 				.toVector2();

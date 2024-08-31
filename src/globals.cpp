@@ -16,6 +16,7 @@ struct FrameData
 	v3i	 dudePos;
 	v3i	 dudeAimTile;
 	bool dudeHit;
+    bool dudeUse;
 	void clear() { memset(this, 0, sizeof(FrameData)); }
 };
 struct Globals

@@ -117,7 +117,7 @@ struct Player
 			   bool hit,
 			   bool go,
 			   bool goUp,
-			   bool goDown,
+			   bool use,
 			   bool canClimb,
 			   bool canGoDown)
 	{
@@ -143,6 +143,8 @@ struct Player
 			F.dudeHit = true;
 			PlaySound(C.sounds[pSfxHit]);
 		}
+        if(use)
+            F.dudeUse = true;
 	}
 	void update(f32 dt)
 	{
@@ -230,6 +232,9 @@ void updatePickaxe(void* data, f32 dt)
 {
 	Pickaxe& item = *(Pickaxe*)data;
 	Entity&	 e	  = ENTITIES.arr[item.pEntity];
+
+    if(F.dudeUse && F.dudePos == e.iPos)
+        item.picked = true;
 
 	if (!item.picked)
 		e.fPos = toV2f(e.iPos) * G.tileSize;
