@@ -102,10 +102,10 @@ struct Player
 		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
 		e.fPos += e.fVel;
 		v3i realPos	  = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
-		F.dudePos = e.iPos;
+		F.dudePos	  = e.iPos;
 		F.dudeAimTile = realPos + toV3i(direction);
-        if(F.dudeAimTile == F.dudePos)
-            F.dudeAimTile.z--;
+		if (F.dudeAimTile == F.dudePos)
+			F.dudeAimTile.z--;
 	}
 	void move()
 	{
@@ -124,13 +124,35 @@ struct Player
 					   0.f,
 					   WHITE_CLEAR);
 		static f32 t = 0.f;
-		t += 0.256f;
+		t += 0.128f;
 		f32 scaling = 8.f + ((sinf(t) * 0.5f + 0.5f) * 2.f);
 
-		DrawCircle(e.fPos.x + 8 + roundf(direction.x) * scaling,
-				   e.fPos.y + 8 + roundf(direction.y) * scaling,
-				   2,
-				   canClimb ? GREEN : RED);
+		if (!direction.isZero())
+			DrawTexturePro(C.textures[pTexture],
+						   {16, 16, 16, 16},
+						   {e.fPos.x + 8 + roundf(direction.x) * scaling,
+							e.fPos.y + 8 + roundf(direction.y) * scaling,
+							12.f,
+							12.f},
+						   {6, 6},
+						   math::radToDeg(atan2f(direction.y, direction.x)) + 90.f,
+						   WHITE_CLEAR);
+		if (direction.isZero())
+			DrawCircle(e.fPos.x + 8, e.fPos.y + 8, 2 * scaling * 0.25, RED_CLEAR);
+		if (canClimb)
+			DrawTexturePro(C.textures[pTexture],
+						   {16, 16, 16, 16},
+						   {e.fPos.x + 8, e.fPos.y + 8, 8.f, 8.f},
+						   Vector2({4, 4 + scaling * 0.5f}),
+						   0.f,
+						   GREEN_CLEAR);
+		if (canGoDown)
+			DrawTexturePro(C.textures[pTexture],
+						   {16, 16, 16, 16},
+						   {e.fPos.x + 8, e.fPos.y + 8, 8.f, 8.f},
+						   Vector2({4, 4.f + scaling * 0.5f}),
+						   180.f,
+						   RED_CLEAR);
 	}
 	void drawOverlay() { DrawText(TextFormat("%d, %d", canClimb, canGoDown), 10, 30, 18, RED); }
 };

@@ -24,7 +24,7 @@ struct Level
 		bool floor;
 		bool surface;
 	};
-	static const u32 nTiles = 8;
+	static const u32 nTiles = 64;
 
 	v3i	 origin					  = {};
 	Tile tile[nTiles][nTiles]	  = {};
@@ -147,7 +147,7 @@ void drawLevel(Level levels[], s32 bottomLevel, s32 topLevel)
 					else
 						DrawRectangleV(
 							tilePos.toVector2(), {G.tileSize, G.tileSize}, BLUESKY_CLEAR);
-					if (!lAbove.tile[x][y].floor && !tile.surface && !lAbove.tile[x][y].surface)
+					if (z == F.dudePos.z && !lAbove.tile[x][y].floor && !tile.surface)
 						DrawCircleGradient(tilePos.x + 8, tilePos.y + 8, 8, YELLOW, {});
 				}
 				else if (tile.discovered)
@@ -237,7 +237,7 @@ bool loadGame(WorldState& game)
 
 int main(void)
 {
-	InitWindow(800, 600, "SECOND");
+	InitWindow(1320, 720, "SECOND");
 	SetTargetFPS(60.f);
 	InitAudioDevice();
 	C.loadAll();
@@ -252,7 +252,7 @@ int main(void)
 	createLevelDeepUnderground({6, 6, -5}, WORLD.level[-5]);
 
 	G.camera.zoom	= 6.f;
-	G.camera.offset = {400, 300};
+	G.camera.offset = {660, 360};
 	u32		frame	= 0;
 	bool	done	= false;
 	Player& dude	= Player::get(Player::add({10, 10, 0}));
