@@ -8,6 +8,8 @@ void drawPickaxe(void*);
 void updateGoblin(void*, f32);
 void drawGoblin(void*);
 
+bool tryMove(v3i pos);
+
 struct Entity
 {
 	enum class Meta
@@ -447,10 +449,46 @@ void updateGoblin(void* data, f32 dt)
 			ENTITIES.remove(g.pEntity);
 		}
 		v2f toDude = (toV2f(F.dudePos - e.iPos));
-		if (toDude.getLength() > 1.f)
-			e.iPos += toV3i(toDude.norm().round());
+		if (toDude.getLength() > 1.5f)
+		{  // Move
+			v3i targetPos = e.iPos + toV3i(toDude.norm().round());
+			if (tryMove(targetPos))
+				e.iPos = targetPos;
+			else  // cannot move on the shortest path
+			{
+				const u32 nPoints = 6;
+				v3i		  bestPos[nPoints];
+				f32		  bestDist[nPoints];
+				bestPos[0]	= e.iPos;
+				bestDist[0] = (toV2f(F.dudePos) - toV2f(bestPos[0])).getLengthSquared();
+				for (u32 i = 1; i < nPoints; i++)
+				{
+					bestPos[i]	= bestPos[0];
+					bestDist[i] = bestDist[0];
+				}
+				for (s32 x = -1; x <= 1; x++)  // search nearest fields, choose the best and go
+					for (s32 y = -1; y <= 1; y++)
+					{
+						v3i newPos = e.iPos + v3i(x, y, 0);
+						f32 dist   = (toV2f(F.dudePos) - toV2f(newPos)).getLengthSquared();
+						for (s32 i = 0; i < 3; i++)
+							if (dist < bestDist[i])
+							{
+								bestDist[i] = dist;
+								bestPos[i]	= newPos;
+								break;
+							}
+					}
+				for (u32 i = 0; i < nPoints; i++)
+					if (tryMove(bestPos[i]))
+					{
+						e.iPos = bestPos[i];
+						break;
+					}
+			}
+		}
 		else if (g.strikeCooldown-- <= 0)
-		{
+		{  // Strike
 			Strike::add(F.dudePos, g.currentStats.meleeDmg, g.pEntity, G.entDude);
 			g.strikeCooldown = g.currentStats.strikeCooldown;
 		}
@@ -485,4 +523,11 @@ bool tryHit(v3i pos, EntityPtr target, f32 dmg)
 		if (e.meta == Entity::Meta::PLAYER)
 			return Player::tryHit(target, dmg);
 	return false;
+}
+bool tryMove(v3i pos)
+{
+	for (u32 i = 0; i < ENTITIES.nMax; i++)
+		if (ENTITIES.active[i] && ENTITIES.arr[i].iPos == pos)
+			return false;
+	return true;
 }
