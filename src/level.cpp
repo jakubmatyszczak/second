@@ -65,8 +65,7 @@ void createLevelSurface(v3i origin, Level& level)
 			level.posWorld[x][y]		= origin + v3i(x, y, 0);
 		}
 	Pickaxe::add(v3i(30, 30, 0));
-	Pickaxe::add(v3i(32, 30, 0));
-	Pickaxe::add(v3i(34, 30, 0));
+	Goblin::add(v3i(34, 33, 0));
 }
 void createLevelUnderground(v3i origin, Level& level)
 {
@@ -110,7 +109,7 @@ void updateLevels(Level levels[])
 	{
 		Level::Tile& tile = l.getTileAt(F.dudeAimTile);
 		Player&		 dude = Player::get(G.entDude);
-		tile.hitPoints -= dude.current.digPower;
+		tile.hitPoints -= dude.currentStats.digPower;
 		if (tile.hitPoints > 0)
 			return;
 		tile.type		= tile.EMPTY;

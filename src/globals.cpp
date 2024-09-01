@@ -22,6 +22,8 @@ struct FrameData
 	EntityPtr entUsed;
 	ItemPtr	  itemUsed;
 
+    bool progressLogic;
+
 	void clear() { memset(this, 0, sizeof(FrameData)); }
 };
 struct Globals

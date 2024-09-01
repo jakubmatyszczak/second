@@ -89,16 +89,16 @@ int main(void)
 		F.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), G.camera);
 		F.mousePosWindow = GetMousePosition();
 
-		dude.input(IsKeyPressed(KEY_W),
-				   IsKeyPressed(KEY_S),
-				   IsKeyPressed(KEY_A),
-				   IsKeyPressed(KEY_D),
-				   IsKeyPressed(KEY_E),
-				   IsKeyPressed(KEY_G),
-				   IsKeyPressed(KEY_X),
-				   IsKeyPressed(KEY_F),
-				   canClimb(eDude.iPos),
-				   canGoDown(eDude.iPos));
+		F.progressLogic = dude.input(IsKeyPressed(KEY_W),
+									 IsKeyPressed(KEY_S),
+									 IsKeyPressed(KEY_A),
+									 IsKeyPressed(KEY_D),
+									 IsKeyPressed(KEY_E),
+									 IsKeyPressed(KEY_G),
+									 IsKeyPressed(KEY_X),
+									 IsKeyPressed(KEY_F),
+									 canClimb(eDude.iPos),
+									 canGoDown(eDude.iPos));
 
 		dude.update(0.016f);
 		ENTITIES.updateAll(0.016f);

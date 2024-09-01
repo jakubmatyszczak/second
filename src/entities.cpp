@@ -3,6 +3,8 @@
 
 void updatePickaxe(void*, f32);
 void drawPickaxe(void*);
+void updateGoblin(void*, f32);
+void drawGoblin(void*);
 
 struct Entity
 {
@@ -11,12 +13,14 @@ struct Entity
 		UNKNOWN = 0,
 		PLAYER,
 		ITEM,
+		ENEMY,
 	};
 	enum Arch
 	{
 		UNKNOWN = 0,
 		DUDE,
 		PICKAXE,
+		GOBLIN,
 	};
 	Arch arch;
 	Meta meta;
@@ -49,6 +53,7 @@ struct Entities
 		}
 		return -1;
 	}
+	void remove(EntityPtr ePtr) { active[ePtr] = false; }
 	void updateAll(f32 dt)
 	{
 		for (u32 i = 1; i < nMax; i++)
@@ -62,6 +67,9 @@ struct Entities
 						break;
 					case Entity::PICKAXE:
 						updatePickaxe(arr[i].data, dt);
+						break;
+					case Entity::GOBLIN:
+						updateGoblin(arr[i].data, dt);
 						break;
 				}
 			}
@@ -79,6 +87,9 @@ struct Entities
 						break;
 					case Entity::PICKAXE:
 						drawPickaxe(arr[i].data);
+						break;
+					case Entity::GOBLIN:
+						drawGoblin(arr[i].data);
 						break;
 				}
 			}
@@ -126,8 +137,8 @@ struct Player
 	{
 		f32 digPower = 1;
 	};
-	Stats base;
-	Stats current;
+	Stats baseStats;
+	Stats currentStats;
 
 	static s32 add(v3i pos)
 	{
@@ -146,7 +157,7 @@ struct Player
 	static Player& get(EntityPtr pEntity) { return *(Player*)ENTITIES.arr[pEntity].data; };
 	Entity&		   getEntity() { return ENTITIES.arr[pEntity]; }
 
-	void input(bool up,
+	bool input(bool up,
 			   bool down,
 			   bool left,
 			   bool right,
@@ -161,7 +172,7 @@ struct Player
 		e.iMoveTarget	= e.iPos;
 		this->canClimb	= canClimb;
 		this->canGoDown = canGoDown;
-		current			= base;
+		currentStats	= baseStats;
 
 		if (up | down | left | right)
 		{
@@ -187,8 +198,11 @@ struct Player
 		{
 			if (!inventory[i])
 				continue;
-			current.digPower += ITEMS.arr[inventory[i]].digPower;
+			currentStats.digPower += ITEMS.arr[inventory[i]].digPower;
 		}
+		if (use || hit || go)
+			return true;
+		return false;
 	}
 	void update(f32 dt)
 	{
@@ -268,7 +282,7 @@ struct Player
 	}
 	void drawOverlay()
 	{
-		DrawText(TextFormat("Stats:\ndigPower: %.f", current.digPower), 10, 40, 20, RED);
+		DrawText(TextFormat("Stats:\ndigPower: %.f", currentStats.digPower), 10, 40, 20, RED);
 		for (u32 i = 0; i < 6; i++)
 		{
 			Vector2 itemPos = {10.f + 74 * i, 720 - 64 - 10};
@@ -334,8 +348,8 @@ void drawPickaxe(void* data)
 	Pickaxe&  pick	   = *(Pickaxe*)data;
 	Entity&	  e		   = ENTITIES.arr[pick.pEntity];
 	ItemData& itemData = ITEMS.arr[pick.item.pItem];
-    if(F.dudePos.z != e.iPos.z)
-        return;
+	if (F.dudePos.z != e.iPos.z)
+		return;
 
 	Texture&   tex	   = C.textures[ITEMS.tileset];
 	v2f		   origin  = {4, 4};
@@ -354,3 +368,51 @@ void drawPickaxe(void* data)
 					   WHITE);
 	}
 }
+
+struct Goblin
+{
+	EntityPtr pEntity;
+	Rectangle tilesetOffset;
+
+	s32 hitPoints = 10;
+
+	static s32 add(v3i pos)
+	{
+		EntityPtr pEntity = ENTITIES.add(Entity::Meta::ENEMY, Entity::Arch::GOBLIN, pos);
+		Entity&	  e		  = ENTITIES.arr[pEntity];
+		Goblin&	  g		  = *new (e.data) Goblin;
+		g.pEntity		  = pEntity;
+		g.tilesetOffset	  = {32, 16, G.tileSize, G.tileSize};
+		return pEntity;
+	}
+};
+void updateGoblin(void* data, f32 dt)
+{
+	Goblin& g = *(Goblin*)data;
+	Entity& e = ENTITIES.arr[g.pEntity];
+
+	if (F.progressLogic)
+    {
+        v2f toDude = (toV2f(F.dudePos - e.iPos));
+        if(toDude.getLength() > 1.f)
+        e.iPos += toV3i(toDude.norm().round());
+    }
+	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * 0.1f;
+	e.fPos += e.fVel;
+	v3i realPos = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
+};
+void drawGoblin(void* data)
+{
+	Goblin& g = *(Goblin*)data;
+	Entity& e = ENTITIES.arr[g.pEntity];
+
+	if (F.dudePos.z != e.iPos.z)
+		return;
+	v2f drawPos = e.fPos;
+	DrawTexturePro(C.textures[C.TEX_TILESET],
+				   g.tilesetOffset,
+				   {drawPos.x + 2.5f, drawPos.y + 2.5f, 10, 10},
+				   {},
+				   0.f,
+				   WHITE);
+};
