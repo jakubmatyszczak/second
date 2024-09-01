@@ -66,6 +66,10 @@ void createLevelSurface(v3i origin, Level& level)
 		}
 	Pickaxe::add(v3i(30, 30, 0));
 	Goblin::add(v3i(34, 33, 0));
+	Goblin::add(v3i(36, 31, 0));
+	Goblin::add(v3i(30, 32, 0));
+	Goblin::add(v3i(39, 39, 0));
+	Goblin::add(v3i(31, 20, 0));
 }
 void createLevelUnderground(v3i origin, Level& level)
 {

@@ -1,6 +1,7 @@
 #pragma once
 #include "globals.cpp"
 #include "effects.cpp"
+#include "animation.cpp"
 
 void updatePickaxe(void*, f32);
 void drawPickaxe(void*);
@@ -137,10 +138,11 @@ struct Player
 	static constexpr u32 nItemsMax = 6;
 	ItemPtr				 inventory[nItemsMax];
 
-	v2f	 direction;
-	bool canClimb;
-	bool canGoDown;
-    f32 gotHit = 0;
+	v2f		 direction;
+	bool	 canClimb;
+	bool	 canGoDown;
+	f32		 gotHit = 0;
+	AnimBonk aBonk;
 
 	CreatueStats baseStats = {.maxHp = 10, .strikeCooldown = 1, .meleeDmg = 1, .digPower = 1};
 	CreatueStats currentStats;
@@ -213,14 +215,15 @@ struct Player
 	void update(f32 dt)
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-        gotHit -= dt;
-		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
+		gotHit -= dt;
+		e.fVel = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
 		e.fPos += e.fVel;
 		v3i realPos	  = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
 		F.dudePos	  = e.iPos;
 		F.dudeAimTile = realPos + toV3i(direction);
 		if (F.dudeAimTile == F.dudePos)
 			F.dudeAimTile.z--;
+		aBonk.update(dt);
 	}
 	void move()
 	{
@@ -251,7 +254,8 @@ struct Player
 	{
 		Player& p = Player::get(playerEntity);
 		p.hitpoints -= dmg;
-        p.gotHit = 0.6f;
+		p.gotHit = 0.3f;
+		p.aBonk.activate(0.3f);
 		if (p.hitpoints <= 0)
 		{
 			exitWithMessage("XD zdech XD");
@@ -262,17 +266,19 @@ struct Player
 	}
 	void draw()
 	{
-		Entity& e = ENTITIES.arr[pEntity];
+		Entity& e		= ENTITIES.arr[pEntity];
+		f32		scale	= 0.8f;
+		f32		size	= scale * G.tileSize;
+		v2f		drawPos = e.fPos + v2f(G.tileSize / 2.f) + aBonk.getPos();
 		DrawTexturePro(C.textures[pTexture],
-					   {0, 16, 16, 16},
-					   {e.fPos.x + 2, e.fPos.y + 2, 12.f, 12.f},
-					   {0, 0},
-					   0.f,
+					   {0, 16, G.tileSize, G.tileSize},
+					   {drawPos.x, drawPos.y, size, size},
+					   {size / 2, size / 2},
+					   math::radToDeg(aBonk.getRot()),
 					   gotHit > 0 ? RED : WHITE);
 		static f32 t = 0.f;
 		t += 0.128f;
 		f32 scaling = 8.f + ((sinf(t) * 0.5f + 0.5f) * 2.f);
-
 		if (!direction.isZero())
 			DrawTexturePro(C.textures[pTexture],
 						   {16, 16, 16, 16},
@@ -402,6 +408,8 @@ struct Goblin
 	CreatueStats currentStats;
 	f32			 hitpoints		= baseStats.maxHp;
 	s32			 strikeCooldown = baseStats.strikeCooldown;
+	AnimBonk	 aBonk;
+	f32			 gotHit = 0;
 
 	static s32 add(v3i pos)
 	{
@@ -426,6 +434,8 @@ void updateGoblin(void* data, f32 dt)
 		{
 			g.hitpoints -= 1;
 			F.dudeHit = false;
+			g.aBonk.activate(0.3f);
+			g.gotHit = 0.3f;
 			SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(1.2f, 1.8f));
 			SetSoundVolume(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
 			PlaySound(C.sounds[g.pGrawlShort]);
@@ -447,7 +457,8 @@ void updateGoblin(void* data, f32 dt)
 	}
 	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * 0.1f;
 	e.fPos += e.fVel;
-	v3i realPos = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
+	g.gotHit -= dt;
+	g.aBonk.update(dt);
 };
 void drawGoblin(void* data)
 {
@@ -456,13 +467,15 @@ void drawGoblin(void* data)
 
 	if (F.dudePos.z != e.iPos.z)
 		return;
-	v2f drawPos = e.fPos;
+	f32 scale	= 0.6f;
+	f32 size	= G.tileSize * scale;
+	v2f drawPos = e.fPos + g.aBonk.getPos() + v2f(G.tileSize / 2.f);
 	DrawTexturePro(C.textures[C.TEX_TILESET],
 				   g.tilesetOffset,
-				   {drawPos.x + 2.5f, drawPos.y + 2.5f, 10, 10},
-				   {},
-				   0.f,
-				   WHITE);
+				   {drawPos.x, drawPos.y, size, size},
+				   v2f(size / 2).toVector2(),
+				   math::radToDeg(g.aBonk.getRot()),
+				   g.gotHit > 0 ? RED : WHITE);
 };
 
 bool tryHit(v3i pos, EntityPtr target, f32 dmg)
