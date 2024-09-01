@@ -6,13 +6,20 @@ void drawPickaxe(void*);
 
 struct Entity
 {
+	enum class Meta
+	{
+		UNKNOWN = 0,
+		PLAYER,
+		ITEM,
+	};
 	enum Arch
 	{
-		UNKNOWN,
+		UNKNOWN = 0,
 		DUDE,
 		PICKAXE,
 	};
 	Arch arch;
+	Meta meta;
 	v3i	 iPos;
 	v3i	 iMoveTarget;
 	v2f	 fPos;
@@ -25,7 +32,7 @@ struct Entities
 	Entity				 arr[nMax]	  = {};
 	bool				 active[nMax] = {};
 
-	s32 add(Entity::Arch archetype, v3i pos)
+	s32 add(Entity::Meta meta, Entity::Arch archetype, v3i pos)
 	{
 		for (u32 i = 1; i < nMax; i++)
 		{
@@ -33,6 +40,7 @@ struct Entities
 				continue;
 			memset(&arr[i], 0, sizeof(arr[i]));
 			arr[i].arch = archetype;
+			arr[i].meta = meta;
 			arr[i].iPos = pos;
 			arr[i].fPos = {(f32)pos.x * G.tileSize, (f32)pos.y * G.tileSize};
 			arr[i].fVel = {};
@@ -81,6 +89,24 @@ extern Entities	 ENTITIES;
 extern Content	 C;
 extern FrameData F;
 
+struct ItemData
+{
+	char	  name[16];
+	f32		  digPower;
+	Rectangle tilesetOffset;
+};
+struct Items
+{
+	TexturePtr tileset = C.TEX_TILESET;
+	ItemData   arr[32] = {};
+};
+Items ITEMS;
+struct Item
+{
+	ItemPtr pItem;
+	bool	picked;
+};
+
 struct Player
 {
 	EntityPtr  pEntity;
@@ -90,18 +116,22 @@ struct Player
 	SoundPtr   pSfxStepRock;
 
 	static constexpr u32 nItemsMax = 6;
-	EntityPtr			 inventory[nItemsMax];
-	TexturePtr			 inventoryThumbnail[nItemsMax];
-	Vector2				 inventoryTexOffset[nItemsMax];
+	ItemPtr				 inventory[nItemsMax];
 
 	v2f	 direction;
 	bool canClimb;
 	bool canGoDown;
-	f32	 digPower;
+
+	struct Stats
+	{
+		f32 digPower = 1;
+	};
+	Stats base;
+	Stats current;
 
 	static s32 add(v3i pos)
 	{
-		s32		pEntity	   = ENTITIES.add(Entity::DUDE, pos);
+		s32		pEntity	   = ENTITIES.add(Entity::Meta::PLAYER, Entity::DUDE, pos);
 		Entity& e		   = ENTITIES.arr[pEntity];
 		Player& dude	   = *new (e.data) Player();
 		dude.pEntity	   = pEntity;
@@ -131,6 +161,7 @@ struct Player
 		e.iMoveTarget	= e.iPos;
 		this->canClimb	= canClimb;
 		this->canGoDown = canGoDown;
+		current			= base;
 
 		if (up | down | left | right)
 		{
@@ -151,6 +182,13 @@ struct Player
 		}
 		if (use)
 			F.dudeUse = true;
+
+		for (u32 i = 0; i < nItemsMax; i++)
+		{
+			if (!inventory[i])
+				continue;
+			current.digPower += ITEMS.arr[inventory[i]].digPower;
+		}
 	}
 	void update(f32 dt)
 	{
@@ -174,18 +212,16 @@ struct Player
 	void interact()
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-		if (F.eUsed)
+		if (F.entUsed)
 		{
-			if (ENTITIES.arr[F.eUsed].arch == Entity::PICKAXE)
+			if (ENTITIES.arr[F.entUsed].arch == Entity::PICKAXE)
 			{
 				for (u32 i = 0; i < nItemsMax; i++)
 				{
 					if (inventory[i])
 						continue;
-					inventory[i]		  = F.eUsed;
-					inventoryThumbnail[i] = F.eUsedThum;
-					inventoryTexOffset[i] = F.eTexOffset;
-                    break;
+					inventory[i] = F.itemUsed;
+					break;
 				}
 			}
 		}
@@ -232,76 +268,86 @@ struct Player
 	}
 	void drawOverlay()
 	{
-		DrawText(TextFormat("%d, %d", canClimb, canGoDown), 10, 30, 10, RED);
+		DrawText(TextFormat("Stats:\ndigPower: %.f", current.digPower), 10, 40, 20, RED);
 		for (u32 i = 0; i < 6; i++)
 		{
 			Vector2 itemPos = {10.f + 74 * i, 720 - 64 - 10};
 			DrawRectangle(itemPos.x, itemPos.y, 64, 64, GRAY_CLEAR);
 			if (!inventory[i])
 				continue;
-			DrawTexturePro(
-				C.textures[inventoryThumbnail[i]],
-				{inventoryTexOffset[i].x, inventoryTexOffset[i].y, G.tileSize, G.tileSize},
-				{itemPos.x, itemPos.y, 64, 64},
-				{0, 0},
-				0.f,
-				WHITE);
+			DrawTexturePro(C.textures[ITEMS.tileset],
+						   ITEMS.arr[inventory[i]].tilesetOffset,
+						   {itemPos.x, itemPos.y, 64, 64},
+						   {0, 0},
+						   0.f,
+						   WHITE);
 		}
 	}
 };
-
+void itemInit()
+{
+	static bool init = false;
+	if (init)
+		return;
+	{
+		strncpy(ITEMS.arr[1].name, "Basic Pickaxe", 15);
+		ITEMS.arr[1].digPower	   = 1;
+		ITEMS.arr[1].tilesetOffset = {0, 32, G.tileSize, G.tileSize};
+	}
+	init = true;
+};
 struct Pickaxe
 {
-	EntityPtr  pEntity;
-	TexturePtr pTexture;
-	SoundPtr   pSfxHit;
-
-	bool picked;
-	f32	 digPower = 1;
+	EntityPtr pEntity;
+	Item	  item;
 
 	static s32 add(v3i pos)
 	{
-		s32		 pEntity = ENTITIES.add(Entity::PICKAXE, pos);
+		itemInit();
+		s32		 pEntity = ENTITIES.add(Entity::Meta::ITEM, Entity::PICKAXE, pos);
 		Entity&	 e		 = ENTITIES.arr[pEntity];
 		Pickaxe& item	 = *new (e.data) Pickaxe();
 		item.pEntity	 = pEntity;
-		item.pTexture	 = C.TEX_TILESET;
-		item.pSfxHit	 = C.SFX_HIT;
+		item.item.pItem	 = 1;
 		return pEntity;
 	}
 };
 void updatePickaxe(void* data, f32 dt)
 {
-	Pickaxe& item = *(Pickaxe*)data;
-	Entity&	 e	  = ENTITIES.arr[item.pEntity];
+	Pickaxe& pick = *(Pickaxe*)data;
+	Entity&	 e	  = ENTITIES.arr[pick.pEntity];
 
-	if (F.dudeUse && F.dudePos == e.iPos)
+	if (F.dudeUse && F.dudePos == e.iPos && !pick.item.picked)
 	{
-		item.picked	 = true;
-		F.eUsed		 = item.pEntity;
-		F.eUsedThum	 = item.pTexture;
-		F.eTexOffset = {0, 32};
+		pick.item.picked = true;
+		F.entUsed		 = pick.pEntity;
+		F.itemUsed		 = pick.item.pItem;
 	}
 
-	if (!item.picked)
+	if (!pick.item.picked)
 		e.fPos = toV2f(e.iPos) * G.tileSize;
+	else
+		e.iPos = F.dudePos;
 }
 void drawPickaxe(void* data)
 {
-	Pickaxe& item = *(Pickaxe*)data;
-	Entity&	 e	  = ENTITIES.arr[item.pEntity];
+	Pickaxe&  pick	   = *(Pickaxe*)data;
+	Entity&	  e		   = ENTITIES.arr[pick.pEntity];
+	ItemData& itemData = ITEMS.arr[pick.item.pItem];
+    if(F.dudePos.z != e.iPos.z)
+        return;
 
-	Texture&   tex	   = C.textures[item.pTexture];
+	Texture&   tex	   = C.textures[ITEMS.tileset];
 	v2f		   origin  = {4, 4};
 	v2f		   drawPos = e.fPos + origin * 2;
 	static f32 t	   = 0;
 	t += 0.064f;
 	f32 breath = ((sinf(t) + 1) * 0.5f) * 0.25f + 0.75f;
-	if (!item.picked)
+	if (!pick.item.picked)
 	{
 		DrawEllipse(drawPos.x, drawPos.y + 6, 4 * breath, 2 * breath, GRAY_CLEAR);
 		DrawTexturePro(tex,
-					   {0, 32, G.tileSize, G.tileSize},
+					   itemData.tilesetOffset,
 					   {drawPos.x, drawPos.y - 4 * breath, 8.f, 8.f},
 					   origin.toVector2(),
 					   45.f,

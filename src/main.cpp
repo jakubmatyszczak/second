@@ -71,9 +71,10 @@ int main(void)
 
 	G.camera.zoom	= 6.f;
 	G.camera.offset = {660, 360};
-	u32		frame	= 0;
-	bool	done	= false;
-	Player& dude	= Player::get(Player::add({32, 32, 0}));
+	u32	 frame		= 0;
+	bool done		= false;
+	G.entDude		= Player::add({32, 32, 0});
+	Player& dude	= Player::get(G.entDude);
 	Entity& eDude	= dude.getEntity();
 
 	while (!done)
@@ -100,8 +101,8 @@ int main(void)
 				   canGoDown(eDude.iPos));
 
 		dude.update(0.016f);
-        ENTITIES.updateAll(0.016f);
-        dude.interact();
+		ENTITIES.updateAll(0.016f);
+		dude.interact();
 		G.camera.target =
 			(v2f(G.camera.target) + (dude.getEntity().fPos - v2f(G.camera.target)) * 0.1f)
 				.toVector2();
@@ -117,7 +118,7 @@ int main(void)
 			BeginMode2D(G.camera);
 			{
 				drawLevel(WORLD.level, eDude.iPos.z - 2, eDude.iPos.z);
-                ENTITIES.drawAll();
+				ENTITIES.drawAll();
 				dude.draw();
 			}
 			EndMode2D();

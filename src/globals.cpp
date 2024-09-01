@@ -11,21 +11,24 @@ constexpr Color RED_CLEAR	  = {200, 0, 0, 100};
 
 struct FrameData
 {
-	v2f	 mousePosWorld;
-	v2f	 mousePosWindow;
+	v2f mousePosWorld;
+	v2f mousePosWindow;
+
 	v3i	 dudePos;
 	v3i	 dudeAimTile;
 	bool dudeHit;
-    bool dudeUse;
-    EntityPtr eUsed;
-    TexturePtr eUsedThum;
-    Vector2 eTexOffset;
+
+	bool	  dudeUse;
+	EntityPtr entUsed;
+	ItemPtr	  itemUsed;
+
 	void clear() { memset(this, 0, sizeof(FrameData)); }
 };
 struct Globals
 {
 	static constexpr u32 tileSize = 16;
 	Camera2D			 camera;
+	EntityPtr			 entDude;
 };
 
 FrameData F;
