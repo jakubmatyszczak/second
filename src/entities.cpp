@@ -128,6 +128,42 @@ struct CreatueStats
 	f32 meleeDmg;
 	f32 digPower;
 };
+struct Unit
+{
+	f32 hitpoints;
+	f32 gotHit;
+	s32 strikeCooldown;
+
+	AnimBonk aBonk;
+	AnimBonk aDead;
+};
+// returns true if entity should be removed cuz dead
+bool unitUpdate(Unit& u, f32 dt, bool progressLogic)
+{
+	if (progressLogic)
+		u.strikeCooldown--;
+	u.gotHit -= dt;
+	u.aBonk.update(dt);
+	if (u.aDead.update(dt))
+		return true;
+	return false;
+}
+// returns true if died
+bool unitHit(Unit& u, f32 animDuration, f32 dmg)
+{
+	u.hitpoints -= dmg;
+	if (u.hitpoints <= 0)
+	{
+		u.gotHit = animDuration;
+		u.aDead.activate(animDuration);
+		return true;
+	}
+	u.gotHit = animDuration;
+	u.aBonk.activate(animDuration);
+	return false;
+}
+v2f unitGetAnimPos(Unit& u) { return u.aDead.getPos() + u.aBonk.getPos(); }
+f32 unitGetAnimRot(Unit& u) { return u.aDead.getRot() + u.aBonk.getRot(); }
 
 struct Player
 {
@@ -140,26 +176,25 @@ struct Player
 	static constexpr u32 nItemsMax = 6;
 	ItemPtr				 inventory[nItemsMax];
 
-	v2f		 direction;
-	bool	 canClimb;
-	bool	 canGoDown;
-	f32		 gotHit = 0;
-	AnimBonk aBonk;
+	v2f	 direction;
+	bool canClimb;
+	bool canGoDown;
+	Unit unit;
 
 	CreatueStats baseStats = {.maxHp = 10, .strikeCooldown = 1, .meleeDmg = 1, .digPower = 1};
 	CreatueStats currentStats;
-	f32			 hitpoints = baseStats.maxHp;
 
 	static s32 add(v3i pos)
 	{
-		s32		pEntity	   = ENTITIES.add(Entity::Meta::PLAYER, Entity::DUDE, pos);
-		Entity& e		   = ENTITIES.arr[pEntity];
-		Player& dude	   = *new (e.data) Player();
-		dude.pEntity	   = pEntity;
-		dude.pTexture	   = C.TEX_TILESET;
-		dude.pSfxHit	   = C.SFX_HIT;
-		dude.pSfxStepGrass = C.SFX_STEP_GRASS;
-		dude.pSfxStepRock  = C.SFX_STEP_ROCK;
+		s32		pEntity		= ENTITIES.add(Entity::Meta::PLAYER, Entity::DUDE, pos);
+		Entity& e			= ENTITIES.arr[pEntity];
+		Player& dude		= *new (e.data) Player();
+		dude.pEntity		= pEntity;
+		dude.pTexture		= C.TEX_TILESET;
+		dude.pSfxHit		= C.SFX_HIT;
+		dude.pSfxStepGrass	= C.SFX_STEP_GRASS;
+		dude.pSfxStepRock	= C.SFX_STEP_ROCK;
+		dude.unit.hitpoints = dude.baseStats.maxHp;
 
 		F.dudePos = pos;
 		return pEntity;
@@ -217,15 +252,18 @@ struct Player
 	void update(f32 dt)
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-		gotHit -= dt;
-		e.fVel = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
+		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
 		e.fPos += e.fVel;
 		v3i realPos	  = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
 		F.dudePos	  = e.iPos;
 		F.dudeAimTile = realPos + toV3i(direction);
 		if (F.dudeAimTile == F.dudePos)
 			F.dudeAimTile.z--;
-		aBonk.update(dt);
+		if (unitUpdate(unit, dt, F.progressLogic))
+		{
+			exitWithMessage("XD zdech XD");
+			ENTITIES.remove(pEntity);
+		}
 	}
 	void move()
 	{
@@ -255,14 +293,7 @@ struct Player
 	static bool tryHit(EntityPtr playerEntity, f32 dmg)
 	{
 		Player& p = Player::get(playerEntity);
-		p.hitpoints -= dmg;
-		p.gotHit = 0.3f;
-		p.aBonk.activate(0.3f);
-		if (p.hitpoints <= 0)
-		{
-			exitWithMessage("XD zdech XD");
-			ENTITIES.remove(playerEntity);
-		}
+		unitHit(p.unit, 0.3f, dmg);
 		PlaySound(C.sounds[C.SFX_OOF]);
 		return true;
 	}
@@ -271,13 +302,13 @@ struct Player
 		Entity& e		= ENTITIES.arr[pEntity];
 		f32		scale	= 0.8f;
 		f32		size	= scale * G.tileSize;
-		v2f		drawPos = e.fPos + v2f(G.tileSize / 2.f) + aBonk.getPos();
+		v2f		drawPos = e.fPos + v2f(G.tileSize / 2.f) + unitGetAnimPos(unit);
 		DrawTexturePro(C.textures[pTexture],
 					   {0, 16, G.tileSize, G.tileSize},
 					   {drawPos.x, drawPos.y, size, size},
 					   {size / 2, size / 2},
-					   math::radToDeg(aBonk.getRot()),
-					   gotHit > 0 ? RED : WHITE);
+					   math::radToDeg(unitGetAnimRot(unit)),
+					   unit.gotHit > 0 ? RED : WHITE);
 		static f32 t = 0.f;
 		t += 0.128f;
 		f32 scaling = 8.f + ((sinf(t) * 0.5f + 0.5f) * 2.f);
@@ -325,7 +356,7 @@ struct Player
 						   WHITE);
 		}
 		DrawRectangle(50, 10, 110, 20, BLACK);
-		DrawRectangle(55, 15, (s32)(100.f * (hitpoints / baseStats.maxHp)), 10, RED);
+		DrawRectangle(55, 15, (s32)(100.f * (unit.hitpoints / baseStats.maxHp)), 10, RED);
 	}
 };
 void itemInit()
@@ -408,10 +439,7 @@ struct Goblin
 
 	CreatueStats baseStats = {.maxHp = 3, .strikeCooldown = 2, .meleeDmg = 1, .digPower = 0};
 	CreatueStats currentStats;
-	f32			 hitpoints		= baseStats.maxHp;
-	s32			 strikeCooldown = baseStats.strikeCooldown;
-	AnimBonk	 aBonk;
-	f32			 gotHit = 0;
+	Unit		 unit;
 
 	static s32 add(v3i pos)
 	{
@@ -421,7 +449,8 @@ struct Goblin
 		g.pEntity		  = pEntity;
 		g.tilesetOffset	  = {32, 16, G.tileSize, G.tileSize};
 		g.pGrawlShort	  = C.SFX_GOBLIN_SHORT;
-		return pEntity;
+		g.unit.hitpoints  = g.baseStats.maxHp;
+            return pEntity;
 	}
 };
 void updateGoblin(void* data, f32 dt)
@@ -434,19 +463,11 @@ void updateGoblin(void* data, f32 dt)
 	{
 		if (F.dudeHit && F.dudeAimTile == e.iPos)
 		{
-			g.hitpoints -= 1;
+			unitHit(g.unit, 0.2f, 1);
 			F.dudeHit = false;
-			g.aBonk.activate(0.3f);
-			g.gotHit = 0.3f;
 			SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(1.2f, 1.8f));
 			SetSoundVolume(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
 			PlaySound(C.sounds[g.pGrawlShort]);
-		}
-		if (g.hitpoints <= 0)
-		{
-			SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
-			PlaySound(C.sounds[g.pGrawlShort]);
-			ENTITIES.remove(g.pEntity);
 		}
 		v2f toDude = (toV2f(F.dudePos - e.iPos));
 		if (toDude.getLength() > 1.5f)
@@ -487,16 +508,20 @@ void updateGoblin(void* data, f32 dt)
 					}
 			}
 		}
-		else if (g.strikeCooldown-- <= 0)
+		else if (g.unit.strikeCooldown <= 0)
 		{  // Strike
 			Strike::add(F.dudePos, g.currentStats.meleeDmg, g.pEntity, G.entDude);
-			g.strikeCooldown = g.currentStats.strikeCooldown;
+			g.unit.strikeCooldown = g.currentStats.strikeCooldown;
 		}
 	}
 	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * 0.1f;
 	e.fPos += e.fVel;
-	g.gotHit -= dt;
-	g.aBonk.update(dt);
+	if (unitUpdate(g.unit, dt, F.progressLogic))
+	{
+		SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
+		PlaySound(C.sounds[g.pGrawlShort]);
+		ENTITIES.remove(g.pEntity);
+	}
 };
 void drawGoblin(void* data)
 {
@@ -507,13 +532,13 @@ void drawGoblin(void* data)
 		return;
 	f32 scale	= 0.6f;
 	f32 size	= G.tileSize * scale;
-	v2f drawPos = e.fPos + g.aBonk.getPos() + v2f(G.tileSize / 2.f);
+	v2f drawPos = e.fPos + v2f(G.tileSize / 2.f) + unitGetAnimPos(g.unit);
 	DrawTexturePro(C.textures[C.TEX_TILESET],
 				   g.tilesetOffset,
 				   {drawPos.x, drawPos.y, size, size},
 				   v2f(size / 2).toVector2(),
-				   math::radToDeg(g.aBonk.getRot()),
-				   g.gotHit > 0 ? RED : WHITE);
+				   math::radToDeg(unitGetAnimRot(g.unit)),
+				   g.unit.gotHit > 0 ? RED : WHITE);
 };
 
 bool tryHit(v3i pos, EntityPtr target, f32 dmg)
@@ -531,3 +556,4 @@ bool tryMove(v3i pos)
 			return false;
 	return true;
 }
+
