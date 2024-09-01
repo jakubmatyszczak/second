@@ -34,6 +34,8 @@ struct Content
 		SFX_HIT,
 		SFX_STEP_GRASS,
 		SFX_STEP_ROCK,
+		SFX_GOBLIN_SHORT,
+        SFX_OOF,
 		SFX_ID_MAX
 	};
 	Texture2D textures[32];
@@ -46,6 +48,8 @@ struct Content
 		loadSfx("res/sound/playerSfx/hit.wav", SFX_HIT);
 		loadSfx("res/sound/playerSfx/step_grass.wav", SFX_STEP_GRASS);
 		loadSfx("res/sound/playerSfx/step_rock.wav", SFX_STEP_ROCK);
+		loadSfx("res/sound/goblin.wav", SFX_GOBLIN_SHORT);
+		loadSfx("res/sound/oof.wav", SFX_OOF);
 	}
 };
 

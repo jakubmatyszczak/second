@@ -117,6 +117,12 @@ struct Item
 	ItemPtr pItem;
 	bool	picked;
 };
+struct CreatueStats
+{
+	f32 maxHp;
+	f32 meleeDmg;
+	f32 digPower;
+};
 
 struct Player
 {
@@ -133,12 +139,9 @@ struct Player
 	bool canClimb;
 	bool canGoDown;
 
-	struct Stats
-	{
-		f32 digPower = 1;
-	};
-	Stats baseStats;
-	Stats currentStats;
+	CreatueStats baseStats = {.maxHp = 10, .meleeDmg = 1, .digPower = 1};
+	CreatueStats currentStats;
+	f32			 hitpoints = baseStats.maxHp;
 
 	static s32 add(v3i pos)
 	{
@@ -240,6 +243,18 @@ struct Player
 			}
 		}
 	}
+	static bool tryHit(EntityPtr playerEntity, f32 dmg)
+	{
+		Player& p = Player::get(playerEntity);
+		p.hitpoints -= dmg;
+		if (p.hitpoints <= 0)
+		{
+			exitWithMessage("XD zdech XD");
+			ENTITIES.remove(playerEntity);
+		}
+		PlaySound(C.sounds[C.SFX_OOF]);
+		return true;
+	}
 	void draw()
 	{
 		Entity& e = ENTITIES.arr[pEntity];
@@ -296,6 +311,9 @@ struct Player
 						   0.f,
 						   WHITE);
 		}
+        std::cout << hitpoints << "/" << baseStats.maxHp << std::endl;
+		DrawRectangle(50, 10, 110, 20, BLACK);
+		DrawRectangle(55, 15, (s32)(100.f * (hitpoints / baseStats.maxHp)), 10, RED);
 	}
 };
 void itemInit()
@@ -374,7 +392,11 @@ struct Goblin
 	EntityPtr pEntity;
 	Rectangle tilesetOffset;
 
-	s32 hitPoints = 3;
+	SoundPtr pGrawlShort;
+
+	CreatueStats baseStats = {.maxHp = 3, .meleeDmg = 1, .digPower = 0};
+	CreatueStats currentStats;
+	f32			 hitpoints = baseStats.maxHp;
 
 	static s32 add(v3i pos)
 	{
@@ -383,6 +405,7 @@ struct Goblin
 		Goblin&	  g		  = *new (e.data) Goblin;
 		g.pEntity		  = pEntity;
 		g.tilesetOffset	  = {32, 16, G.tileSize, G.tileSize};
+		g.pGrawlShort	  = C.SFX_GOBLIN_SHORT;
 		return pEntity;
 	}
 };
@@ -391,18 +414,28 @@ void updateGoblin(void* data, f32 dt)
 	Goblin& g = *(Goblin*)data;
 	Entity& e = ENTITIES.arr[g.pEntity];
 
+    g.currentStats = g.baseStats;
 	if (F.progressLogic)
 	{
-        if(F.dudeHit && F.dudeAimTile == e.iPos)
-        {
-            g.hitPoints -= 1;
-            F.dudeHit = false;
-        }
-        if(g.hitPoints <= 0)
-            ENTITIES.remove(g.pEntity);
+		if (F.dudeHit && F.dudeAimTile == e.iPos)
+		{
+			g.hitpoints -= 1;
+			F.dudeHit = false;
+			SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(1.2f, 1.8f));
+			SetSoundVolume(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
+			PlaySound(C.sounds[g.pGrawlShort]);
+		}
+		if (g.hitpoints <= 0)
+		{
+			SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
+			PlaySound(C.sounds[g.pGrawlShort]);
+			ENTITIES.remove(g.pEntity);
+		}
 		v2f toDude = (toV2f(F.dudePos - e.iPos));
 		if (toDude.getLength() > 1.f)
 			e.iPos += toV3i(toDude.norm().round());
+		else
+			Player::tryHit(G.entDude, g.currentStats.meleeDmg);
 	}
 	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * 0.1f;
 	e.fPos += e.fVel;
