@@ -9,6 +9,7 @@ void updateGoblin(void*, f32);
 void drawGoblin(void*);
 
 bool tryMove(v3i pos);
+v3i	 computeMoveToTarget(v3i start, v3i target, s32 speed);
 
 struct Entity
 {
@@ -127,6 +128,7 @@ struct CreatueStats
 	s32 strikeCooldown;
 	f32 meleeDmg;
 	f32 digPower;
+	s32 speed;
 };
 struct Unit
 {
@@ -181,7 +183,8 @@ struct Player
 	bool canGoDown;
 	Unit unit;
 
-	CreatueStats baseStats = {.maxHp = 10, .strikeCooldown = 1, .meleeDmg = 1, .digPower = 1};
+	CreatueStats baseStats = {
+		.maxHp = 10, .strikeCooldown = 1, .meleeDmg = 1, .digPower = 1, .speed = 1};
 	CreatueStats currentStats;
 
 	static s32 add(v3i pos)
@@ -437,7 +440,8 @@ struct Goblin
 
 	SoundPtr pGrawlShort;
 
-	CreatueStats baseStats = {.maxHp = 3, .strikeCooldown = 2, .meleeDmg = 1, .digPower = 0};
+	CreatueStats baseStats = {
+		.maxHp = 3, .strikeCooldown = 2, .meleeDmg = 1, .digPower = 0, .speed = 2};
 	CreatueStats currentStats;
 	Unit		 unit;
 
@@ -450,7 +454,7 @@ struct Goblin
 		g.tilesetOffset	  = {32, 16, G.tileSize, G.tileSize};
 		g.pGrawlShort	  = C.SFX_GOBLIN_SHORT;
 		g.unit.hitpoints  = g.baseStats.maxHp;
-            return pEntity;
+		return pEntity;
 	}
 };
 void updateGoblin(void* data, f32 dt)
@@ -472,41 +476,11 @@ void updateGoblin(void* data, f32 dt)
 		v2f toDude = (toV2f(F.dudePos - e.iPos));
 		if (toDude.getLength() > 1.5f)
 		{  // Move
-			v3i targetPos = e.iPos + toV3i(toDude.norm().round());
+			v3i targetPos = e.iPos + toV3i((toDude.norm() * g.currentStats.speed).round());
 			if (tryMove(targetPos))
 				e.iPos = targetPos;
 			else  // cannot move on the shortest path
-			{
-				const u32 nPoints = 6;
-				v3i		  bestPos[nPoints];
-				f32		  bestDist[nPoints];
-				bestPos[0]	= e.iPos;
-				bestDist[0] = (toV2f(F.dudePos) - toV2f(bestPos[0])).getLengthSquared();
-				for (u32 i = 1; i < nPoints; i++)
-				{
-					bestPos[i]	= bestPos[0];
-					bestDist[i] = bestDist[0];
-				}
-				for (s32 x = -1; x <= 1; x++)  // search nearest fields, choose the best and go
-					for (s32 y = -1; y <= 1; y++)
-					{
-						v3i newPos = e.iPos + v3i(x, y, 0);
-						f32 dist   = (toV2f(F.dudePos) - toV2f(newPos)).getLengthSquared();
-						for (s32 i = 0; i < 3; i++)
-							if (dist < bestDist[i])
-							{
-								bestDist[i] = dist;
-								bestPos[i]	= newPos;
-								break;
-							}
-					}
-				for (u32 i = 0; i < nPoints; i++)
-					if (tryMove(bestPos[i]))
-					{
-						e.iPos = bestPos[i];
-						break;
-					}
-			}
+				e.iPos = computeMoveToTarget(e.iPos, F.dudePos, g.currentStats.speed);
 		}
 		else if (g.unit.strikeCooldown <= 0)
 		{  // Strike
@@ -557,3 +531,33 @@ bool tryMove(v3i pos)
 	return true;
 }
 
+v3i computeMoveToTarget(v3i start, v3i target, s32 speed)
+{
+	const u32 nPoints = 6;
+	v3i		  bestPos[nPoints];
+	f32		  bestDist[nPoints];
+	bestPos[0]	= start;
+	bestDist[0] = (toV2f(target) - toV2f(bestPos[0])).getLengthSquared();
+	for (u32 i = 1; i < nPoints; i++)
+	{
+		bestPos[i]	= bestPos[0];
+		bestDist[i] = bestDist[0];
+	}
+	for (s32 x = -speed; x <= speed; x++)  // search nearest fields, choose the best and go
+		for (s32 y = -speed; y <= speed; y++)
+		{
+			v3i newPos = start + v3i(x, y, 0);
+			f32 dist   = (toV2f(F.dudePos) - toV2f(newPos)).getLengthSquared();
+			for (s32 i = 0; i < nPoints; i++)
+				if (dist < bestDist[i])
+				{
+					bestDist[i] = dist;
+					bestPos[i]	= newPos;
+					break;
+				}
+		}
+	for (u32 i = 0; i < nPoints; i++)
+		if (tryMove(bestPos[i]))
+			return bestPos[i];
+	return start;
+}
