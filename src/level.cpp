@@ -65,11 +65,11 @@ void createLevelSurface(v3i origin, Level& level)
 			level.posWorld[x][y]		= origin + v3i(x, y, 0);
 		}
 	Pickaxe::add(v3i(30, 30, 0));
-	Goblin::add(v3i(34, 33, 0));
-	Goblin::add(v3i(36, 31, 0));
-	Goblin::add(v3i(30, 32, 0));
-	Goblin::add(v3i(39, 39, 0));
-	Goblin::add(v3i(31, 20, 0));
+	Goblin::add(v3i(34, 33, 0), Unit::Role::ARCHER);
+	Goblin::add(v3i(36, 31, 0), Unit::Role::FIGHTER);
+	Goblin::add(v3i(30, 32, 0), Unit::Role::FIGHTER);
+	Goblin::add(v3i(39, 39, 0), Unit::Role::FIGHTER);
+	Goblin::add(v3i(31, 20, 0), Unit::Role::FIGHTER);
 }
 void createLevelUnderground(v3i origin, Level& level)
 {

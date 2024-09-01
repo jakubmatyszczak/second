@@ -7,6 +7,8 @@ void updatePickaxe(void*, f32);
 void drawPickaxe(void*);
 void updateGoblin(void*, f32);
 void drawGoblin(void*);
+void updateArrow(void*, f32);
+void drawArrow(void*);
 
 bool tryMove(v3i pos);
 v3i	 computeMoveToTarget(v3i start, v3i target, s32 speed);
@@ -19,6 +21,7 @@ struct Entity
 		PLAYER,
 		ITEM,
 		ENEMY,
+		PROJECTILE,
 	};
 	enum Arch
 	{
@@ -26,6 +29,7 @@ struct Entity
 		DUDE,
 		PICKAXE,
 		GOBLIN,
+		ARROW,
 	};
 	Arch arch;
 	Meta meta;
@@ -76,6 +80,9 @@ struct Entities
 					case Entity::GOBLIN:
 						updateGoblin(arr[i].data, dt);
 						break;
+					case Entity::ARROW:
+						updateArrow(arr[i].data, dt);
+						break;
 				}
 			}
 	}
@@ -95,6 +102,9 @@ struct Entities
 						break;
 					case Entity::GOBLIN:
 						drawGoblin(arr[i].data);
+						break;
+					case Entity::ARROW:
+						drawArrow(arr[i].data);
 						break;
 				}
 			}
@@ -126,18 +136,45 @@ struct CreatueStats
 {
 	f32 maxHp;
 	s32 strikeCooldown;
-	f32 meleeDmg;
+	f32 dmg;
+	f32 range;
 	f32 digPower;
 	s32 speed;
 };
 struct Unit
 {
-	f32 hitpoints;
-	f32 gotHit;
-	s32 strikeCooldown;
+	enum Role
+	{
+		UNKNOWN,
+		FIGHTER,
+		ARCHER,
+	};
+	Role role;
+	f32	 hitpoints;
+	f32	 gotHit;
+	s32	 strikeCooldown;
 
 	AnimBonk aBonk;
 	AnimBonk aDead;
+};
+struct Arrow
+{
+	EntityPtr pEntity;
+	Rectangle tilesetOffset;
+
+	f32 dmg;
+	f32 range;
+
+	static s32 add(v3i pos, v2f dir, f32 dmg, f32 speed, f32 range)
+	{
+		EntityPtr pEntity = ENTITIES.add(Entity::Meta::PROJECTILE, Entity::Arch::ARROW, pos);
+		Entity&	  e		  = ENTITIES.arr[pEntity];
+		Arrow&	  a		  = *new (e.data) Arrow;
+		a = {.pEntity = pEntity, .tilesetOffset = {}, .dmg = dmg, .range = range * G.tileSize};
+		a.tilesetOffset = {16, 32, G.tileSize, G.tileSize};
+		e.fVel			= speed * dir.norm();
+		return pEntity;
+	}
 };
 // returns true if entity should be removed cuz dead
 bool unitUpdate(Unit& u, f32 dt, bool progressLogic)
@@ -184,7 +221,7 @@ struct Player
 	Unit unit;
 
 	CreatueStats baseStats = {
-		.maxHp = 10, .strikeCooldown = 1, .meleeDmg = 1, .digPower = 1, .speed = 1};
+		.maxHp = 10, .strikeCooldown = 1, .dmg = 1, .range = 0, .digPower = 1, .speed = 1};
 	CreatueStats currentStats;
 
 	static s32 add(v3i pos)
@@ -441,11 +478,11 @@ struct Goblin
 	SoundPtr pGrawlShort;
 
 	CreatueStats baseStats = {
-		.maxHp = 3, .strikeCooldown = 2, .meleeDmg = 1, .digPower = 0, .speed = 2};
+		.maxHp = 3, .strikeCooldown = 2, .dmg = 1, .range = 1.5f, .digPower = 0, .speed = 2};
 	CreatueStats currentStats;
 	Unit		 unit;
 
-	static s32 add(v3i pos)
+	static s32 add(v3i pos, Unit::Role role)
 	{
 		EntityPtr pEntity = ENTITIES.add(Entity::Meta::ENEMY, Entity::Arch::GOBLIN, pos);
 		Entity&	  e		  = ENTITIES.arr[pEntity];
@@ -454,6 +491,14 @@ struct Goblin
 		g.tilesetOffset	  = {32, 16, G.tileSize, G.tileSize};
 		g.pGrawlShort	  = C.SFX_GOBLIN_SHORT;
 		g.unit.hitpoints  = g.baseStats.maxHp;
+		g.unit.role		  = role;
+		if (role == Unit::Role::ARCHER)
+		{
+			g.baseStats.maxHp -= 1;
+			g.baseStats.range		   = 5;
+			g.baseStats.strikeCooldown = 5;
+		}
+
 		return pEntity;
 	}
 };
@@ -474,7 +519,7 @@ void updateGoblin(void* data, f32 dt)
 			PlaySound(C.sounds[g.pGrawlShort]);
 		}
 		v2f toDude = (toV2f(F.dudePos - e.iPos));
-		if (toDude.getLength() > 1.5f)
+		if (toDude.getLength() > g.currentStats.range)
 		{  // Move
 			v3i targetPos = e.iPos + toV3i((toDude.norm() * g.currentStats.speed).round());
 			if (tryMove(targetPos))
@@ -483,8 +528,11 @@ void updateGoblin(void* data, f32 dt)
 				e.iPos = computeMoveToTarget(e.iPos, F.dudePos, g.currentStats.speed);
 		}
 		else if (g.unit.strikeCooldown <= 0)
-		{  // Strike
-			Strike::add(F.dudePos, g.currentStats.meleeDmg, g.pEntity, G.entDude);
+		{  // Attack!
+			if (g.unit.role == Unit::FIGHTER)
+				Strike::add(F.dudePos, g.currentStats.dmg, g.pEntity, G.entDude);
+			if (g.unit.role == Unit::ARCHER)
+				Arrow::add(e.iPos, toV2f(F.dudePos - e.iPos), g.currentStats.dmg, 1, 7);
 			g.unit.strikeCooldown = g.currentStats.strikeCooldown;
 		}
 	}
@@ -514,6 +562,39 @@ void drawGoblin(void* data)
 				   math::radToDeg(unitGetAnimRot(g.unit)),
 				   g.unit.gotHit > 0 ? RED : WHITE);
 };
+void updateArrow(void* data, f32 dt)
+{
+	Arrow&	a = *(Arrow*)data;
+	Entity& e = ENTITIES.arr[a.pEntity];
+	e.fPos += e.fVel;
+	a.range -= e.fVel.getLength();
+	if (a.range < 0)
+		e.fVel *= 0.95f;
+	if (e.fVel.getLength() < 0.2f)
+		ENTITIES.remove(a.pEntity);
+
+    Entity& eDude = Player::get(G.entDude).getEntity();
+    if(e.fPos.distTo(eDude.fPos) < 5.f)
+    {
+        Player::tryHit(G.entDude, a.dmg);
+        e.fVel = 0.f;
+    }
+}
+void drawArrow(void* data)
+{
+	Arrow&	a	  = *(Arrow*)data;
+	Entity& e	  = ENTITIES.arr[a.pEntity];
+	f32		rot	  = atan2f(e.fVel.y, e.fVel.x);
+	f32		scale = 0.6f;
+	f32		size  = G.tileSize * scale;
+	v2f		pos	  = e.fPos + v2f(G.tileSize / 2.f);
+	DrawTexturePro(C.textures[C.TEX_TILESET],
+				   a.tilesetOffset,
+				   {pos.x, pos.y, size, size},
+				   {size / 2.f, size / 2.f},
+				   math::radToDeg(rot) + 90.f,
+				   WHITE);
+}
 
 bool tryHit(v3i pos, EntityPtr target, f32 dmg)
 {
