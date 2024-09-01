@@ -374,7 +374,7 @@ struct Goblin
 	EntityPtr pEntity;
 	Rectangle tilesetOffset;
 
-	s32 hitPoints = 10;
+	s32 hitPoints = 3;
 
 	static s32 add(v3i pos)
 	{
@@ -392,11 +392,18 @@ void updateGoblin(void* data, f32 dt)
 	Entity& e = ENTITIES.arr[g.pEntity];
 
 	if (F.progressLogic)
-    {
-        v2f toDude = (toV2f(F.dudePos - e.iPos));
-        if(toDude.getLength() > 1.f)
-        e.iPos += toV3i(toDude.norm().round());
-    }
+	{
+        if(F.dudeHit && F.dudeAimTile == e.iPos)
+        {
+            g.hitPoints -= 1;
+            F.dudeHit = false;
+        }
+        if(g.hitPoints <= 0)
+            ENTITIES.remove(g.pEntity);
+		v2f toDude = (toV2f(F.dudePos - e.iPos));
+		if (toDude.getLength() > 1.f)
+			e.iPos += toV3i(toDude.norm().round());
+	}
 	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * 0.1f;
 	e.fPos += e.fVel;
 	v3i realPos = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
