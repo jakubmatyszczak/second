@@ -111,6 +111,7 @@ int main(void)
 
 		collideLevel(WORLD.level[eDude.iPos.z], dude.pEntity);
 		dude.move();
+        EFFECTS.updateAll(0.016f);
 
 		BeginDrawing();
 		{
@@ -120,6 +121,7 @@ int main(void)
 				drawLevel(WORLD.level, eDude.iPos.z - 2, eDude.iPos.z);
 				ENTITIES.drawAll();
 				dude.draw();
+                EFFECTS.drawAll();
 			}
 			EndMode2D();
 		}

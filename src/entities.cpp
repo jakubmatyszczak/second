@@ -1,5 +1,6 @@
 #pragma once
 #include "globals.cpp"
+#include "effects.cpp"
 
 void updatePickaxe(void*, f32);
 void drawPickaxe(void*);
@@ -120,6 +121,7 @@ struct Item
 struct CreatueStats
 {
 	f32 maxHp;
+	s32 strikeCooldown;
 	f32 meleeDmg;
 	f32 digPower;
 };
@@ -138,8 +140,9 @@ struct Player
 	v2f	 direction;
 	bool canClimb;
 	bool canGoDown;
+    f32 gotHit = 0;
 
-	CreatueStats baseStats = {.maxHp = 10, .meleeDmg = 1, .digPower = 1};
+	CreatueStats baseStats = {.maxHp = 10, .strikeCooldown = 1, .meleeDmg = 1, .digPower = 1};
 	CreatueStats currentStats;
 	f32			 hitpoints = baseStats.maxHp;
 
@@ -210,6 +213,7 @@ struct Player
 	void update(f32 dt)
 	{
 		Entity& e = ENTITIES.arr[pEntity];
+        gotHit -= dt;
 		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
 		e.fPos += e.fVel;
 		v3i realPos	  = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
@@ -247,6 +251,7 @@ struct Player
 	{
 		Player& p = Player::get(playerEntity);
 		p.hitpoints -= dmg;
+        p.gotHit = 0.6f;
 		if (p.hitpoints <= 0)
 		{
 			exitWithMessage("XD zdech XD");
@@ -263,7 +268,7 @@ struct Player
 					   {e.fPos.x + 2, e.fPos.y + 2, 12.f, 12.f},
 					   {0, 0},
 					   0.f,
-					   WHITE);
+					   gotHit > 0 ? RED : WHITE);
 		static f32 t = 0.f;
 		t += 0.128f;
 		f32 scaling = 8.f + ((sinf(t) * 0.5f + 0.5f) * 2.f);
@@ -311,7 +316,6 @@ struct Player
 						   0.f,
 						   WHITE);
 		}
-        std::cout << hitpoints << "/" << baseStats.maxHp << std::endl;
 		DrawRectangle(50, 10, 110, 20, BLACK);
 		DrawRectangle(55, 15, (s32)(100.f * (hitpoints / baseStats.maxHp)), 10, RED);
 	}
@@ -394,9 +398,10 @@ struct Goblin
 
 	SoundPtr pGrawlShort;
 
-	CreatueStats baseStats = {.maxHp = 3, .meleeDmg = 1, .digPower = 0};
+	CreatueStats baseStats = {.maxHp = 3, .strikeCooldown = 2, .meleeDmg = 1, .digPower = 0};
 	CreatueStats currentStats;
-	f32			 hitpoints = baseStats.maxHp;
+	f32			 hitpoints		= baseStats.maxHp;
+	s32			 strikeCooldown = baseStats.strikeCooldown;
 
 	static s32 add(v3i pos)
 	{
@@ -414,7 +419,7 @@ void updateGoblin(void* data, f32 dt)
 	Goblin& g = *(Goblin*)data;
 	Entity& e = ENTITIES.arr[g.pEntity];
 
-    g.currentStats = g.baseStats;
+	g.currentStats = g.baseStats;
 	if (F.progressLogic)
 	{
 		if (F.dudeHit && F.dudeAimTile == e.iPos)
@@ -434,8 +439,11 @@ void updateGoblin(void* data, f32 dt)
 		v2f toDude = (toV2f(F.dudePos - e.iPos));
 		if (toDude.getLength() > 1.f)
 			e.iPos += toV3i(toDude.norm().round());
-		else
-			Player::tryHit(G.entDude, g.currentStats.meleeDmg);
+		else if (g.strikeCooldown-- <= 0)
+		{
+			Strike::add(F.dudePos, g.currentStats.meleeDmg, g.pEntity, G.entDude);
+			g.strikeCooldown = g.currentStats.strikeCooldown;
+		}
 	}
 	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * 0.1f;
 	e.fPos += e.fVel;
@@ -456,3 +464,12 @@ void drawGoblin(void* data)
 				   0.f,
 				   WHITE);
 };
+
+bool tryHit(v3i pos, EntityPtr target, f32 dmg)
+{
+	Entity& e = ENTITIES.arr[target];
+	if (e.iPos == pos)
+		if (e.meta == Entity::Meta::PLAYER)
+			return Player::tryHit(target, dmg);
+	return false;
+}

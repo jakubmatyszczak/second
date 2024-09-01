@@ -85,6 +85,7 @@ namespace math
 	constexpr f32 tau = 2.f * M_PIf;
 
 	inline f32 radToDeg(f32 value) { return value * 180.f / pi; };
+	inline f32 degToRad(f32 value) { return value / 180.f * pi; };
 	inline f32 sq(f32 value) { return value * value; }
 
 	s32 limit(s32 value, s32 min, s32 max)
