@@ -65,6 +65,7 @@ void createLevelSurface(v3i origin, Level& level)
 			level.posWorld[x][y]		= origin + v3i(x, y, 0);
 		}
 	Pickaxe::add(v3i(30, 30, 0));
+    Sword::add(v3i(32,30,0));
 	Goblin::add(v3i(34, 33, 0), Unit::Role::ARCHER);
 	Goblin::add(v3i(36, 31, 0), Unit::Role::FIGHTER);
 	Goblin::add(v3i(30, 32, 0), Unit::Role::FIGHTER);

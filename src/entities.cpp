@@ -9,6 +9,8 @@ void updateGoblin(void*, f32);
 void drawGoblin(void*);
 void updateArrow(void*, f32);
 void drawArrow(void*);
+void updateSword(void*, f32);
+void drawSword(void*);
 
 bool tryMove(v3i pos);
 v3i	 computeMoveToTarget(v3i start, v3i target, s32 speed);
@@ -30,6 +32,7 @@ struct Entity
 		PICKAXE,
 		GOBLIN,
 		ARROW,
+		SWORD,
 	};
 	Arch arch;
 	Meta meta;
@@ -83,6 +86,9 @@ struct Entities
 					case Entity::ARROW:
 						updateArrow(arr[i].data, dt);
 						break;
+					case Entity::SWORD:
+						updateSword(arr[i].data, dt);
+						break;
 				}
 			}
 	}
@@ -106,6 +112,9 @@ struct Entities
 					case Entity::ARROW:
 						drawArrow(arr[i].data);
 						break;
+					case Entity::SWORD:
+						drawSword(arr[i].data);
+						break;
 				}
 			}
 	}
@@ -118,8 +127,9 @@ extern FrameData F;
 struct ItemData
 {
 	char	  name[16];
-	f32		  digPower;
 	Rectangle tilesetOffset;
+	f32		  digPower;
+	f32		  dmg;
 };
 struct Items
 {
@@ -284,6 +294,7 @@ struct Player
 			if (!inventory[i])
 				continue;
 			currentStats.digPower += ITEMS.arr[inventory[i]].digPower;
+			currentStats.dmg += ITEMS.arr[inventory[i]].dmg;
 		}
 		if (use || hit || go)
 			return true;
@@ -316,17 +327,14 @@ struct Player
 	void interact()
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-		if (F.entUsed)
+		if (F.itemUsed)
 		{
-			if (ENTITIES.arr[F.entUsed].arch == Entity::PICKAXE)
+			for (u32 i = 0; i < nItemsMax; i++)
 			{
-				for (u32 i = 0; i < nItemsMax; i++)
-				{
-					if (inventory[i])
-						continue;
-					inventory[i] = F.itemUsed;
-					break;
-				}
+				if (inventory[i])
+					continue;
+				inventory[i] = F.itemUsed;
+				break;
 			}
 		}
 	}
@@ -381,7 +389,12 @@ struct Player
 	}
 	void drawOverlay()
 	{
-		DrawText(TextFormat("Stats:\ndigPower: %.f", currentStats.digPower), 10, 40, 20, RED);
+		DrawText(TextFormat(
+					 "Stats:\ndigPower: %.f\nDamage: %.f", currentStats.digPower, currentStats.dmg),
+				 10,
+				 40,
+				 20,
+				 RED);
 		for (u32 i = 0; i < 6; i++)
 		{
 			Vector2 itemPos = {10.f + 74 * i, 720 - 64 - 10};
@@ -405,12 +418,50 @@ void itemInit()
 	if (init)
 		return;
 	{
-		strncpy(ITEMS.arr[1].name, "Basic Pickaxe", 15);
-		ITEMS.arr[1].digPower	   = 1;
-		ITEMS.arr[1].tilesetOffset = {0, 32, G.tileSize, G.tileSize};
+		ItemData& item = ITEMS.arr[1];
+		strncpy(item.name, "Basic Pickaxe", 15);
+		item.digPower	   = 1;
+		item.tilesetOffset = {0, 32, G.tileSize, G.tileSize};
+	}
+	{
+		ItemData& item = ITEMS.arr[2];
+		strncpy(item.name, "Basic Sword", 15);
+		item.tilesetOffset = {32, 32, G.tileSize, G.tileSize};
+		item.dmg		   = 1;
 	}
 	init = true;
 };
+void updateItem(Item& item, Entity& eItem)
+{
+	if (F.dudeUse && F.dudePos == eItem.iPos && !item.picked)
+	{
+		item.picked = true;
+		F.itemUsed	= item.pItem;
+	}
+	if (!item.picked)
+		eItem.fPos = toV2f(eItem.iPos) * G.tileSize;
+	else
+		eItem.iPos = F.dudePos;
+}
+void drawItem(Item& item, Entity& eItem, ItemData& data)
+{
+	Texture&   tex	   = C.textures[ITEMS.tileset];
+	v2f		   origin  = {4, 4};
+	v2f		   drawPos = eItem.fPos + origin * 2;
+	static f32 t	   = 0;
+	t += 0.064f;
+	f32 breath = ((sinf(t) + 1) * 0.5f) * 0.25f + 0.75f;
+	if (!item.picked)
+	{
+		DrawEllipse(drawPos.x, drawPos.y + 6, 4 * breath, 2 * breath, GRAY_CLEAR);
+		DrawTexturePro(tex,
+					   data.tilesetOffset,
+					   {drawPos.x, drawPos.y - 4 * breath, 8.f, 8.f},
+					   origin.toVector2(),
+					   45.f,
+					   WHITE);
+	}
+}
 struct Pickaxe
 {
 	EntityPtr pEntity;
@@ -431,18 +482,7 @@ void updatePickaxe(void* data, f32 dt)
 {
 	Pickaxe& pick = *(Pickaxe*)data;
 	Entity&	 e	  = ENTITIES.arr[pick.pEntity];
-
-	if (F.dudeUse && F.dudePos == e.iPos && !pick.item.picked)
-	{
-		pick.item.picked = true;
-		F.entUsed		 = pick.pEntity;
-		F.itemUsed		 = pick.item.pItem;
-	}
-
-	if (!pick.item.picked)
-		e.fPos = toV2f(e.iPos) * G.tileSize;
-	else
-		e.iPos = F.dudePos;
+	updateItem(pick.item, e);
 }
 void drawPickaxe(void* data)
 {
@@ -451,23 +491,38 @@ void drawPickaxe(void* data)
 	ItemData& itemData = ITEMS.arr[pick.item.pItem];
 	if (F.dudePos.z != e.iPos.z)
 		return;
+	drawItem(pick.item, e, itemData);
+}
+struct Sword
+{
+	EntityPtr pEntity;
+	Item	  item;
 
-	Texture&   tex	   = C.textures[ITEMS.tileset];
-	v2f		   origin  = {4, 4};
-	v2f		   drawPos = e.fPos + origin * 2;
-	static f32 t	   = 0;
-	t += 0.064f;
-	f32 breath = ((sinf(t) + 1) * 0.5f) * 0.25f + 0.75f;
-	if (!pick.item.picked)
+	static s32 add(v3i pos)
 	{
-		DrawEllipse(drawPos.x, drawPos.y + 6, 4 * breath, 2 * breath, GRAY_CLEAR);
-		DrawTexturePro(tex,
-					   itemData.tilesetOffset,
-					   {drawPos.x, drawPos.y - 4 * breath, 8.f, 8.f},
-					   origin.toVector2(),
-					   45.f,
-					   WHITE);
+		itemInit();
+		s32		pEntity = ENTITIES.add(Entity::Meta::ITEM, Entity::SWORD, pos);
+		Entity& e		= ENTITIES.arr[pEntity];
+		Sword&	item	= *new (e.data) Sword();
+		item.pEntity	= pEntity;
+		item.item.pItem = 2;
+		return pEntity;
 	}
+};
+void updateSword(void* data, f32 dt)
+{
+	Sword&	item = *(Sword*)data;
+	Entity& e	 = ENTITIES.arr[item.pEntity];
+	updateItem(item.item, e);
+}
+void drawSword(void* data)
+{
+	Sword&	  item	   = *(Sword*)data;
+	Entity&	  e		   = ENTITIES.arr[item.pEntity];
+	ItemData& itemData = ITEMS.arr[item.item.pItem];
+	if (F.dudePos.z != e.iPos.z)
+		return;
+	drawItem(item.item, e, itemData);
 }
 
 struct Goblin
@@ -512,7 +567,7 @@ void updateGoblin(void* data, f32 dt)
 	{
 		if (F.dudeHit && F.dudeAimTile == e.iPos)
 		{
-			unitHit(g.unit, 0.2f, 1);
+			unitHit(g.unit, 0.2f, Player::get(G.entDude).currentStats.dmg);
 			F.dudeHit = false;
 			SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(1.2f, 1.8f));
 			SetSoundVolume(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
@@ -573,12 +628,12 @@ void updateArrow(void* data, f32 dt)
 	if (e.fVel.getLength() < 0.2f)
 		ENTITIES.remove(a.pEntity);
 
-    Entity& eDude = Player::get(G.entDude).getEntity();
-    if(e.fPos.distTo(eDude.fPos) < 5.f)
-    {
-        Player::tryHit(G.entDude, a.dmg);
-        e.fVel = 0.f;
-    }
+	Entity& eDude = Player::get(G.entDude).getEntity();
+	if (e.fPos.distTo(eDude.fPos) < 5.f)
+	{
+		Player::tryHit(G.entDude, a.dmg);
+		e.fVel = 0.f;
+	}
 }
 void drawArrow(void* data)
 {
