@@ -5,7 +5,7 @@
 struct Dialog
 {
 	static const u32 nLines		  = 3;
-	static const u32 nCharsInLine = 32;
+	static const u32 nCharsInLine = 56;
 	static const u32 nMaxChars	  = nCharsInLine * nLines + 1;
 
 	u32		linesToShow					   = 0;
@@ -17,6 +17,7 @@ struct Dialog
 	// returns true if busy
 	bool input(bool progressToNext)
 	{
+        F.progressDialog = progressToNext;
 		if (busy && progressToNext)
 			busy = !busy;
 		return busy;
@@ -28,10 +29,10 @@ struct Dialog
 
 		u32 len		= strlen(text);
 		linesToShow = math::divCeil(len, nCharsInLine);
-        if(linesToShow > nLines)
-            linesToShow = nLines;
+		if (linesToShow > nLines)
+			linesToShow = nLines;
 		for (s32 i = 0; i < linesToShow; i++)
-			strncpy(this->line[i], &text[32*i], nCharsInLine - 1);
+			strncpy(this->line[i], &text[32 * i], nCharsInLine - 1);
 		busy = true;
 	}
 	void draw()
@@ -39,8 +40,8 @@ struct Dialog
 		if (!busy)
 			return;
 		Font& font		  = C.fonts[C.FONT_ID_PIXEL];
-		s32	  fontSize	  = G.screenY/18;
-		s32	  fontSpacing = fontSize/10;
+		s32	  fontSize	  = G.screenY / 18;
+		s32	  fontSpacing = fontSize / 10;
 		v2f	  windowSize(G.screenX * 0.8f, G.screenY * 0.3f);
 		v2f	  windowOrigin = {(G.screenX - windowSize.x) / 2.f, G.screenY - windowSize.y * 1.1f};
 		v2f	  textOrigin   = windowOrigin + v2f(windowSize.x * 0.15f, windowSize.y * 0.35f);
@@ -70,3 +71,5 @@ struct Dialog
 					   WHITE);
 	}
 };
+extern Dialog DIALOG;
+

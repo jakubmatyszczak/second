@@ -99,7 +99,7 @@ int main(void)
 				"asdfasdfasdfljlkjlkjlkjlkjlkjlkjasdfasdf",
 				"RUMCAJS",
 				{256, 256});
-		if (!DIALOG.input(IsKeyPressed(KEY_E)))
+		if (!DIALOG.input(IsKeyPressed(KEY_F)))
 		{
 			F.progressLogic = dude.input(IsKeyPressed(KEY_W),
 										 IsKeyPressed(KEY_S),

@@ -23,6 +23,7 @@ struct FrameData
 	ItemPtr	  itemUsed;
 
 	bool progressLogic;
+    bool progressDialog;
 
 	void clear() { memset(this, 0, sizeof(FrameData)); }
 };

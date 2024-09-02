@@ -1,4 +1,5 @@
 #pragma once
+#include "dialogs.cpp"
 #include "globals.cpp"
 #include "effects.cpp"
 #include "animation.cpp"
@@ -11,10 +12,69 @@ void updateArrow(void*, f32);
 void drawArrow(void*);
 void updateSword(void*, f32);
 void drawSword(void*);
+void updateOldMan(void*, f32);
+void drawOldMan(void*);
 
 bool tryMove(v3i pos);
 v3i	 computeMoveToTarget(v3i start, v3i target, s32 speed);
 
+struct Speaker
+{
+	static const u32 nMaxLines = 10;
+	static const u32 nMaxChars = 64;
+
+	enum class Trigger
+	{
+		START,
+		CONTINUE,
+	};
+	struct Transition
+	{
+		Trigger trigger;
+		s32		nextLine;
+	};
+
+	s32		   nLines					  = 0;
+	char	   line[nMaxLines][nMaxChars] = {};
+	Transition transition[nMaxLines]	  = {};
+	s32		   currentLine				  = 0;
+	s32		   lastLine					  = 0;
+	Vector2	   portraitOffset;
+	char	   name[64] = {};
+
+	s32 addLine(Transition trans, const char* newLine, bool isLast = false)
+	{
+		transition[nLines] = trans;
+		strcpy(line[nLines], newLine);
+		if (isLast)
+		{
+			lastLine					= nLines;
+			transition[nLines].nextLine = lastLine;
+		}
+		return nLines++;
+	};
+	bool update(Trigger trigger)
+	{
+		Transition& t = transition[currentLine];
+		if (t.trigger == trigger)
+		{
+			if (currentLine == lastLine)
+				return false;
+			DIALOG.pushText(line[currentLine], name, portraitOffset);
+			currentLine = t.nextLine;
+			return true;
+		}
+		return false;
+	}
+
+	const char* getNextLine()
+	{
+		if (currentLine < nLines)
+			return line[currentLine++];
+		currentLine = 0;
+		return line[currentLine];
+	}
+};
 struct Entity
 {
 	enum class Meta
@@ -24,6 +84,7 @@ struct Entity
 		ITEM,
 		ENEMY,
 		PROJECTILE,
+		NPC,
 	};
 	enum Arch
 	{
@@ -33,6 +94,7 @@ struct Entity
 		GOBLIN,
 		ARROW,
 		SWORD,
+		OLD_MAN,
 	};
 	Arch arch;
 	Meta meta;
@@ -89,6 +151,9 @@ struct Entities
 					case Entity::SWORD:
 						updateSword(arr[i].data, dt);
 						break;
+					case Entity::OLD_MAN:
+						updateOldMan(arr[i].data, dt);
+						break;
 				}
 			}
 	}
@@ -114,6 +179,9 @@ struct Entities
 						break;
 					case Entity::SWORD:
 						drawSword(arr[i].data);
+						break;
+					case Entity::OLD_MAN:
+						drawOldMan(arr[i].data);
 						break;
 				}
 			}
@@ -617,6 +685,65 @@ void drawGoblin(void* data)
 				   math::radToDeg(unitGetAnimRot(g.unit)),
 				   g.unit.gotHit > 0 ? RED : WHITE);
 };
+struct OldMan
+{
+	EntityPtr pEntity;
+	Rectangle tilesetOffset;
+
+	Speaker speaker;
+
+	static s32 add(v3i pos)
+	{
+		EntityPtr pEntity		  = ENTITIES.add(Entity::Meta::NPC, Entity::Arch::OLD_MAN, pos);
+		Entity&	  e				  = ENTITIES.arr[pEntity];
+		OldMan&	  om			  = *new (e.data) OldMan;
+		om.pEntity				  = pEntity;
+		om.tilesetOffset		  = {0, 16, G.tileSize, G.tileSize};
+		om.speaker.portraitOffset = {256, 0};
+		strcpy(om.speaker.name, "Old Man");
+		om.speaker.addLine({.trigger = Speaker::Trigger::START, .nextLine = 1}, "HEY!");
+		om.speaker.addLine({.trigger = Speaker::Trigger::CONTINUE, .nextLine = 2}, "You wetwipe!");
+		om.speaker.addLine({.trigger = Speaker::Trigger::CONTINUE, .nextLine = 3},
+						   "Axes will never go obsolete.");
+		om.speaker.addLine({.trigger = Speaker::Trigger::CONTINUE, .nextLine = 4}, "...");
+		om.speaker.addLine({.trigger = Speaker::Trigger::CONTINUE, .nextLine = 5}, "They're cutting edge technology!");
+		om.speaker.addLine({.trigger = Speaker::Trigger::CONTINUE, .nextLine = 6}, "HaHaHa");
+		om.speaker.addLine({.trigger = Speaker::Trigger::CONTINUE, .nextLine = 7}, "...");
+		om.speaker.addLine({.trigger = Speaker::Trigger::CONTINUE, .nextLine = 8}, "...", true);
+
+		return pEntity;
+	}
+};
+void updateOldMan(void* data, f32 dt)
+{
+	OldMan& om = *(OldMan*)data;
+	Entity& e  = ENTITIES.arr[om.pEntity];
+
+	if (F.progressDialog)
+		om.speaker.update(Speaker::Trigger::CONTINUE);
+	if (F.progressLogic)
+	{
+		if (F.dudeUse && F.dudeAimTile == e.iPos)
+			om.speaker.update(Speaker::Trigger::START);
+	}
+}
+void drawOldMan(void* data)
+{
+	OldMan& om = *(OldMan*)data;
+	Entity& e  = ENTITIES.arr[om.pEntity];
+	if (F.dudePos.z != e.iPos.z)
+		return;
+	f32 scale	= 0.6f;
+	f32 size	= G.tileSize * scale;
+	v2f drawPos = e.fPos + v2f(G.tileSize / 2.f);
+	DrawTexturePro(C.textures[C.TEX_TILESET],
+				   om.tilesetOffset,
+				   {drawPos.x, drawPos.y, size, size},
+				   v2f(size / 2).toVector2(),
+				   0,
+				   GRAY);
+}
+
 void updateArrow(void* data, f32 dt)
 {
 	Arrow&	a = *(Arrow*)data;
