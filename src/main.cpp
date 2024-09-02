@@ -1,9 +1,11 @@
 #include "engine/fileio.cpp"
 #include "entities.cpp"
 #include "level.cpp"
+#include "dialogs.cpp"
 
 Entities   ENTITIES;
 WorldState WORLD;
+Dialog	   DIALOG;
 
 bool canClimb(v3i& pos)
 {
@@ -57,7 +59,9 @@ bool loadGame()
 
 int main(void)
 {
-	InitWindow(1320, 720, "SECOND");
+	G.screenX = 1320;
+	G.screenY = 720;
+	InitWindow(G.screenX, G.screenY, "SECOND");
 	SetTargetFPS(60.f);
 	InitAudioDevice();
 	C.loadAll();
@@ -89,29 +93,36 @@ int main(void)
 		F.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), G.camera);
 		F.mousePosWindow = GetMousePosition();
 
-		F.progressLogic = dude.input(IsKeyPressed(KEY_W),
-									 IsKeyPressed(KEY_S),
-									 IsKeyPressed(KEY_A),
-									 IsKeyPressed(KEY_D),
-									 IsKeyPressed(KEY_E),
-									 IsKeyPressed(KEY_G),
-									 IsKeyPressed(KEY_X),
-									 IsKeyPressed(KEY_F),
-									 canClimb(eDude.iPos),
-									 canGoDown(eDude.iPos));
+		if (IsKeyPressed(KEY_T))
+			DIALOG.pushText(
+				"SRAKA, SRAKA, abcdefghijklmnoprstuwxz0123456789 9876543210 "
+				"asdfasdfasdfljlkjlkjlkjlkjlkjlkjasdfasdf",
+				"RUMCAJS",
+				{256, 256});
+		if (!DIALOG.input(IsKeyPressed(KEY_E)))
+		{
+			F.progressLogic = dude.input(IsKeyPressed(KEY_W),
+										 IsKeyPressed(KEY_S),
+										 IsKeyPressed(KEY_A),
+										 IsKeyPressed(KEY_D),
+										 IsKeyPressed(KEY_E),
+										 IsKeyPressed(KEY_G),
+										 IsKeyPressed(KEY_X),
+										 IsKeyPressed(KEY_F),
+										 canClimb(eDude.iPos),
+										 canGoDown(eDude.iPos));
+			dude.update(0.016f);
+			ENTITIES.updateAll(0.016f);
+			dude.interact();
+			updateLevels(WORLD.level);
+			collideLevel(WORLD.level[eDude.iPos.z], dude.pEntity);
+			dude.move();
+			EFFECTS.updateAll(0.016f);
+		}
 
-		dude.update(0.016f);
-		ENTITIES.updateAll(0.016f);
-		dude.interact();
 		G.camera.target =
 			(v2f(G.camera.target) + (dude.getEntity().fPos - v2f(G.camera.target)) * 0.1f)
 				.toVector2();
-
-		updateLevels(WORLD.level);
-
-		collideLevel(WORLD.level[eDude.iPos.z], dude.pEntity);
-		dude.move();
-        EFFECTS.updateAll(0.016f);
 
 		BeginDrawing();
 		{
@@ -121,7 +132,7 @@ int main(void)
 				drawLevel(WORLD.level, eDude.iPos.z - 2, eDude.iPos.z);
 				ENTITIES.drawAll();
 				dude.draw();
-                EFFECTS.drawAll();
+				EFFECTS.drawAll();
 			}
 			EndMode2D();
 		}
@@ -133,6 +144,8 @@ int main(void)
 				 20,
 				 YELLOW);
 		dude.drawOverlay();
+		DIALOG.draw();
+
 		EndDrawing();
 		if (IsKeyPressed(KEY_Q))
 			done = true;

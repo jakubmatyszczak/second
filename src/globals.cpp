@@ -22,15 +22,18 @@ struct FrameData
 	EntityPtr entUsed;
 	ItemPtr	  itemUsed;
 
-    bool progressLogic;
+	bool progressLogic;
 
 	void clear() { memset(this, 0, sizeof(FrameData)); }
 };
 struct Globals
 {
 	static constexpr u32 tileSize = 16;
-	Camera2D			 camera;
-	EntityPtr			 entDude;
+
+	Camera2D  camera;
+	EntityPtr entDude;
+	u32		  screenX;
+	u32		  screenY;
 };
 
 FrameData F;

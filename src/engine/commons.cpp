@@ -27,6 +27,7 @@ struct Content
 	enum TEX_ID
 	{
 		TEX_TILESET,
+        TEX_PORTRAITS,
 		TEX_ID_MAX
 	};
 	enum SFX_ID
@@ -35,21 +36,29 @@ struct Content
 		SFX_STEP_GRASS,
 		SFX_STEP_ROCK,
 		SFX_GOBLIN_SHORT,
-        SFX_OOF,
+		SFX_OOF,
 		SFX_ID_MAX
+	};
+	enum FONT_ID
+	{
+		FONT_ID_PIXEL,
 	};
 	Texture2D textures[32];
 	Sound	  sounds[32];
+	Font	  fonts[8];
 	void	  loadTexture(const char* filepath, TEX_ID id) { textures[id] = LoadTexture(filepath); }
 	void	  loadSfx(const char* filepath, SFX_ID id) { sounds[id] = LoadSound(filepath); }
+	void	  loadFont(const char* filepath, FONT_ID id) { fonts[id] = LoadFont(filepath); }
 	void	  loadAll()
 	{
 		loadTexture("res/art/tileset.png", TEX_TILESET);
+		loadTexture("res/art/portraits.png", TEX_PORTRAITS);
 		loadSfx("res/sound/playerSfx/hit.wav", SFX_HIT);
 		loadSfx("res/sound/playerSfx/step_grass.wav", SFX_STEP_GRASS);
 		loadSfx("res/sound/playerSfx/step_rock.wav", SFX_STEP_ROCK);
 		loadSfx("res/sound/goblin.wav", SFX_GOBLIN_SHORT);
 		loadSfx("res/sound/oof.wav", SFX_OOF);
+		loadFont("res/fonts/pixelplay.png", FONT_ID_PIXEL);
 	}
 };
 
@@ -87,6 +96,7 @@ namespace math
 	inline f32 radToDeg(f32 value) { return value * 180.f / pi; };
 	inline f32 degToRad(f32 value) { return value / 180.f * pi; };
 	inline f32 sq(f32 value) { return value * value; }
+	inline s32 divCeil(s32 x, s32 y) { return (x + y - 1) / y; }
 
 	s32 limit(s32 value, s32 min, s32 max)
 	{
