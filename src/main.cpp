@@ -5,7 +5,8 @@
 
 Entities   ENTITIES;
 WorldState WORLD;
-Dialog	   DIALOG;
+DialogBox  DIALOGBOX;
+Narrative  NARRATIVE;
 
 bool canClimb(v3i& pos)
 {
@@ -80,6 +81,8 @@ int main(void)
 	G.entDude		= Player::add({32, 32, 0});
 	Player& dude	= Player::get(G.entDude);
 	Entity& eDude	= dude.getEntity();
+	NARRATIVE.init();
+    NARRATIVE.start(0);
 
 	while (!done)
 	{
@@ -93,13 +96,7 @@ int main(void)
 		F.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), G.camera);
 		F.mousePosWindow = GetMousePosition();
 
-		if (IsKeyPressed(KEY_T))
-			DIALOG.pushText(
-				"SRAKA, SRAKA, abcdefghijklmnoprstuwxz0123456789 9876543210 "
-				"asdfasdfasdfljlkjlkjlkjlkjlkjlkjasdfasdf",
-				"RUMCAJS",
-				{256, 256});
-		if (!DIALOG.input(IsKeyPressed(KEY_F)))
+		if (!DIALOGBOX.input(IsKeyPressed(KEY_F)))
 		{
 			F.progressLogic = dude.input(IsKeyPressed(KEY_W),
 										 IsKeyPressed(KEY_S),
@@ -119,6 +116,7 @@ int main(void)
 			dude.move();
 			EFFECTS.updateAll(0.016f);
 		}
+        NARRATIVE.update();
 
 		G.camera.target =
 			(v2f(G.camera.target) + (dude.getEntity().fPos - v2f(G.camera.target)) * 0.1f)
@@ -144,7 +142,7 @@ int main(void)
 				 20,
 				 YELLOW);
 		dude.drawOverlay();
-		DIALOG.draw();
+		DIALOGBOX.draw();
 
 		EndDrawing();
 		if (IsKeyPressed(KEY_Q))
