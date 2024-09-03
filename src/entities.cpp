@@ -263,10 +263,7 @@ struct Player
 	static Player& get(EntityPtr pEntity) { return *(Player*)ENTITIES.arr[pEntity].data; };
 	Entity&		   getEntity() { return ENTITIES.arr[pEntity]; }
 
-	bool input(bool up,
-			   bool down,
-			   bool left,
-			   bool right,
+	bool input(v2f heading,
 			   bool hit,
 			   bool go,
 			   bool goUp,
@@ -280,12 +277,7 @@ struct Player
 		this->canGoDown = canGoDown;
 		currentStats	= baseStats;
 
-		if (up | down | left | right)
-		{
-			// TODO: seems this could be done nicely with mouse and gamepad.
-			direction += {(f32)(right - left), (f32)(down - up)};
-			direction = direction.norm().round();
-		}
+        direction = heading;
 		if (go)
 			e.iMoveTarget = e.iPos + toV3i(direction);
 		if (canGoDown && go && direction.isZero())

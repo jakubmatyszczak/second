@@ -1,4 +1,5 @@
 #include "engine/fileio.cpp"
+#include "engine/input.cpp"
 #include "entities.cpp"
 #include "level.cpp"
 #include "dialogs.cpp"
@@ -82,7 +83,8 @@ int main(void)
 	Player& dude	= Player::get(G.entDude);
 	Entity& eDude	= dude.getEntity();
 	NARRATIVE.init();
-    NARRATIVE.start(0);
+	Input input;
+	// NARRATIVE.start(0);
 
 	while (!done)
 	{
@@ -98,10 +100,7 @@ int main(void)
 
 		if (!DIALOGBOX.input(IsKeyPressed(KEY_F)))
 		{
-			F.progressLogic = dude.input(IsKeyPressed(KEY_W),
-										 IsKeyPressed(KEY_S),
-										 IsKeyPressed(KEY_A),
-										 IsKeyPressed(KEY_D),
+			F.progressLogic = dude.input(input.getHeading(eDude.iPos),
 										 IsKeyPressed(KEY_E),
 										 IsKeyPressed(KEY_G),
 										 IsKeyPressed(KEY_X),
@@ -116,7 +115,7 @@ int main(void)
 			dude.move();
 			EFFECTS.updateAll(0.016f);
 		}
-        NARRATIVE.update();
+		NARRATIVE.update();
 
 		G.camera.target =
 			(v2f(G.camera.target) + (dude.getEntity().fPos - v2f(G.camera.target)) * 0.1f)
