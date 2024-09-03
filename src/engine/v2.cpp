@@ -174,6 +174,9 @@ struct v3i
 		y = math::limit(y, 1);
 		z = math::limit(z, 1);
 	}
+	float getLengthSquared() const { return (f32)x * x + (f32)y * y + (f32)z * z; }
+	float getLength() const { return sqrtf(getLengthSquared()); }
+
 	static bool compareXY(const v3i& a, const v3i& b) { return (a.x == b.x || a.y == b.y); }
 };
 v3i	 operator*(f32 lhs, const v3i& rhs) { return rhs * lhs; };

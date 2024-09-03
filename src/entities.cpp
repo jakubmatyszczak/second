@@ -160,7 +160,8 @@ struct CreatueStats
 	f32 dmg;
 	f32 range;
 	f32 digPower;
-	s32 speed;
+	s32 movements;
+	f32 speed;
 };
 struct Unit
 {
@@ -236,13 +237,19 @@ struct Player
 	static constexpr u32 nItemsMax = 6;
 	ItemPtr				 inventory[nItemsMax];
 
+	v3i	 realPos;
 	v2f	 direction;
 	bool canClimb;
 	bool canGoDown;
 	Unit unit;
 
-	CreatueStats baseStats = {
-		.maxHp = 10, .strikeCooldown = 1, .dmg = 1, .range = 0, .digPower = 1, .speed = 1};
+	CreatueStats baseStats = {.maxHp		  = 10,
+							  .strikeCooldown = 1,
+							  .dmg			  = 1,
+							  .range		  = 0,
+							  .digPower		  = 1,
+							  .movements	  = 1,
+							  .speed		  = 0.06f};
 	CreatueStats currentStats;
 
 	static s32 add(v3i pos)
@@ -263,13 +270,7 @@ struct Player
 	static Player& get(EntityPtr pEntity) { return *(Player*)ENTITIES.arr[pEntity].data; };
 	Entity&		   getEntity() { return ENTITIES.arr[pEntity]; }
 
-	bool input(v2f heading,
-			   bool hit,
-			   bool go,
-			   bool goUp,
-			   bool use,
-			   bool canClimb,
-			   bool canGoDown)
+	bool input(v2f heading, bool hit, bool go, bool goUp, bool use, bool canClimb, bool canGoDown)
 	{
 		Entity& e		= ENTITIES.arr[pEntity];
 		e.iMoveTarget	= e.iPos;
@@ -277,9 +278,14 @@ struct Player
 		this->canGoDown = canGoDown;
 		currentStats	= baseStats;
 
-        direction = heading;
+		direction = heading;
 		if (go)
-			e.iMoveTarget = e.iPos + toV3i(direction);
+		{
+			if ((realPos - e.iMoveTarget).getLength() < currentStats.movements * 2.f)
+				e.iMoveTarget = e.iPos + toV3i(direction);
+			else
+				go = false;
+		}
 		if (canGoDown && go && direction.isZero())
 			e.iMoveTarget.z--;
 		if (canClimb && goUp && direction.isZero())
@@ -306,9 +312,9 @@ struct Player
 	void update(f32 dt)
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * 0.1f;
+		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * currentStats.speed;
 		e.fPos += e.fVel;
-		v3i realPos	  = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
+		realPos		  = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
 		F.dudePos	  = e.iPos;
 		F.dudeAimTile = realPos + toV3i(direction);
 		if (F.dudeAimTile == F.dudePos)
@@ -535,8 +541,13 @@ struct Goblin
 
 	SoundPtr pGrawlShort;
 
-	CreatueStats baseStats = {
-		.maxHp = 3, .strikeCooldown = 2, .dmg = 1, .range = 1.5f, .digPower = 0, .speed = 2};
+	CreatueStats baseStats = {.maxHp		  = 3,
+							  .strikeCooldown = 2,
+							  .dmg			  = 1,
+							  .range		  = 1.5f,
+							  .digPower		  = 0,
+							  .movements	  = 2,
+							  .speed		  = 0.1f};
 	CreatueStats currentStats;
 	Unit		 unit;
 
@@ -579,22 +590,22 @@ void updateGoblin(void* data, f32 dt)
 		v2f toDude = (toV2f(F.dudePos - e.iPos));
 		if (toDude.getLength() > g.currentStats.range)
 		{  // Move
-			v3i targetPos = e.iPos + toV3i((toDude.norm() * g.currentStats.speed).round());
+			v3i targetPos = e.iPos + toV3i((toDude.norm() * g.currentStats.movements).round());
 			if (tryMove(targetPos))
 				e.iPos = targetPos;
 			else  // cannot move on the shortest path
-				e.iPos = computeMoveToTarget(e.iPos, F.dudePos, g.currentStats.speed);
+				e.iPos = computeMoveToTarget(e.iPos, F.dudePos, g.currentStats.movements);
 		}
 		else if (g.unit.strikeCooldown <= 0)
 		{  // Attack!
 			if (g.unit.role == Unit::FIGHTER)
 				Strike::add(F.dudePos, g.currentStats.dmg, g.pEntity, G.entDude);
 			if (g.unit.role == Unit::ARCHER)
-				Arrow::add(e.iPos, toV2f(F.dudePos - e.iPos), g.currentStats.dmg, 1, 7);
+				Arrow::add(e.iPos, toV2f(F.dudePos - e.iPos), g.currentStats.dmg, 2.5f, 7.f);
 			g.unit.strikeCooldown = g.currentStats.strikeCooldown;
 		}
 	}
-	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * 0.1f;
+	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * g.currentStats.speed;
 	e.fPos += e.fVel;
 	if (unitUpdate(g.unit, dt, F.progressLogic))
 	{
