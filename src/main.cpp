@@ -98,15 +98,16 @@ int main(void)
 		F.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), G.camera);
 		F.mousePosWindow = GetMousePosition();
 
-		if (!DIALOGBOX.input(IsKeyPressed(KEY_F)))
+		if (!DIALOGBOX.input(input.getAction()))
 		{
-			F.progressLogic = dude.input(input.getHeading(eDude.iPos),
-										 IsKeyPressed(KEY_E),
-										 IsKeyPressed(KEY_G),
-										 IsKeyPressed(KEY_X),
-										 IsKeyPressed(KEY_F),
-										 canClimb(eDude.iPos),
-										 canGoDown(eDude.iPos));
+			F.progressLogic =
+				dude.input(input.getHeading(eDude.fPos + v2f(G.tileSize / 2.f, G.tileSize / 2.f)),
+						   input.getHit(),
+						   input.getMove(),
+						   IsKeyPressed(KEY_X),
+						   input.getAction(),
+						   canClimb(eDude.iPos),
+						   canGoDown(eDude.iPos));
 			dude.update(0.016f);
 			ENTITIES.updateAll(0.016f);
 			dude.interact();
