@@ -162,6 +162,9 @@ struct CreatueStats
 	f32 digPower;
 	s32 movements;
 	f32 speed;
+	f32 sightRange;
+	s32 idleSightRange;
+	s32 alarmedSightRange;
 };
 struct Unit
 {
@@ -178,25 +181,6 @@ struct Unit
 
 	AnimBonk aBonk;
 	AnimBonk aDead;
-};
-struct Arrow
-{
-	EntityPtr pEntity;
-	Rectangle tilesetOffset;
-
-	f32 dmg;
-	f32 range;
-
-	static s32 add(v3i pos, v2f dir, f32 dmg, f32 speed, f32 range)
-	{
-		EntityPtr pEntity = ENTITIES.add(Entity::Meta::PROJECTILE, Entity::Arch::ARROW, pos);
-		Entity&	  e		  = ENTITIES.arr[pEntity];
-		Arrow&	  a		  = *new (e.data) Arrow;
-		a = {.pEntity = pEntity, .tilesetOffset = {}, .dmg = dmg, .range = range * G.tileSize};
-		a.tilesetOffset = {16, 32, G.tileSize, G.tileSize};
-		e.fVel			= speed * dir.norm();
-		return pEntity;
-	}
 };
 // returns true if entity should be removed cuz dead
 bool unitUpdate(Unit& u, f32 dt, bool progressLogic)
@@ -225,6 +209,95 @@ bool unitHit(Unit& u, f32 animDuration, f32 dmg)
 }
 v2f unitGetAnimPos(Unit& u) { return u.aDead.getPos() + u.aBonk.getPos(); }
 f32 unitGetAnimRot(Unit& u) { return u.aDead.getRot() + u.aBonk.getRot(); }
+
+struct Action
+{
+	enum Activity
+	{
+		NONE,
+		MOVE,
+		STRIKE,
+		SHOOT,
+	};
+	Activity type;
+	v3i		 target;
+};
+struct Ai
+{
+	enum State
+	{
+		IDLE,
+		CHASE
+	};
+	State  state;
+	Action action;
+	bool   alarmed;
+
+	const Action& update(const v3i iPos, const CreatueStats& stats, const Unit& unit)
+	{
+		action.type	   = Action::NONE;
+		if ((F.dudePos - iPos).getLength() < stats.sightRange)
+		{
+			alarmed = true;
+			state	= State::CHASE;
+		}
+		else
+			state = State::IDLE;
+		switch (state)
+		{
+			case IDLE:
+				action.type	  = Action::NONE;
+				action.target = iPos;
+				break;
+			case CHASE:
+			{
+				v2f toDude = (toV2f(F.dudePos - iPos));
+				if (toDude.getLength() > stats.range)
+				{  // Move
+					action.type	  = Action::MOVE;
+					v3i targetPos = iPos + toV3i((toDude.norm() * stats.movements).round());
+					if (tryMove(targetPos))
+						action.target = targetPos;
+					else  // cannot move on the shortest path
+						action.target = computeMoveToTarget(iPos, F.dudePos, stats.movements);
+				}
+				else if (unit.strikeCooldown <= 0)
+				{  // Attack!
+					if (unit.role == Unit::FIGHTER)
+						action.type = action.STRIKE;
+					if (unit.role == Unit::ARCHER)
+						action.type = action.SHOOT;
+					if (F.dudeHit)
+						action.target = F.dudePos;
+					else
+						action.target = F.dudeAimTile;
+				}
+			}
+			break;
+		};
+		return action;
+	}
+};
+
+struct Arrow
+{
+	EntityPtr pEntity;
+	Rectangle tilesetOffset;
+
+	f32 dmg;
+	f32 range;
+
+	static s32 add(v3i pos, v2f dir, f32 dmg, f32 speed, f32 range)
+	{
+		EntityPtr pEntity = ENTITIES.add(Entity::Meta::PROJECTILE, Entity::Arch::ARROW, pos);
+		Entity&	  e		  = ENTITIES.arr[pEntity];
+		Arrow&	  a		  = *new (e.data) Arrow;
+		a = {.pEntity = pEntity, .tilesetOffset = {}, .dmg = dmg, .range = range * G.tileSize};
+		a.tilesetOffset = {16, 32, G.tileSize, G.tileSize};
+		e.fVel			= speed * dir.norm();
+		return pEntity;
+	}
+};
 
 struct Player
 {
@@ -541,15 +614,19 @@ struct Goblin
 
 	SoundPtr pGrawlShort;
 
-	CreatueStats baseStats = {.maxHp		  = 3,
-							  .strikeCooldown = 2,
-							  .dmg			  = 1,
-							  .range		  = 1.5f,
-							  .digPower		  = 0,
-							  .movements	  = 2,
-							  .speed		  = 0.1f};
+	CreatueStats baseStats = {.maxHp			 = 3,
+							  .strikeCooldown	 = 2,
+							  .dmg				 = 1,
+							  .range			 = 1.5f,
+							  .digPower			 = 0,
+							  .movements		 = 2,
+							  .speed			 = 0.1f,
+							  .sightRange		 = 4,
+							  .idleSightRange	 = 4,
+							  .alarmedSightRange = 10};
 	CreatueStats currentStats;
 	Unit		 unit;
+	Ai			 ai;
 
 	static s32 add(v3i pos, Unit::Role role)
 	{
@@ -573,36 +650,33 @@ struct Goblin
 };
 void updateGoblin(void* data, f32 dt)
 {
-	Goblin& g = *(Goblin*)data;
-	Entity& e = ENTITIES.arr[g.pEntity];
-
+	Goblin& g	   = *(Goblin*)data;
+	Entity& e	   = ENTITIES.arr[g.pEntity];
 	g.currentStats = g.baseStats;
+	g.currentStats.sightRange =
+		g.ai.alarmed ? g.baseStats.alarmedSightRange : g.baseStats.idleSightRange;
+
 	if (F.progressLogic)
 	{
+		const Action& action = g.ai.update(e.iPos, g.currentStats, g.unit);
+		if (action.type == action.MOVE)
+			e.iPos = action.target;
+		if (action.type == action.STRIKE)
+		{
+			Strike::add(action.target, g.currentStats.dmg, g.pEntity, G.entDude);
+			g.unit.strikeCooldown = g.currentStats.strikeCooldown;
+		}
+		if (action.type == action.SHOOT)
+		{
+			g.unit.strikeCooldown = g.currentStats.strikeCooldown;
+			Arrow::add(e.iPos, toV2f(action.target - e.iPos), g.currentStats.dmg, 1.5f, 4.f);
+		}
 		if (F.dudeHit && F.dudeAimTile == e.iPos)
 		{
 			unitHit(g.unit, 0.2f, Player::get(G.entDude).currentStats.dmg);
-			F.dudeHit = false;
 			SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(1.2f, 1.8f));
 			SetSoundVolume(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
 			PlaySound(C.sounds[g.pGrawlShort]);
-		}
-		v2f toDude = (toV2f(F.dudePos - e.iPos));
-		if (toDude.getLength() > g.currentStats.range)
-		{  // Move
-			v3i targetPos = e.iPos + toV3i((toDude.norm() * g.currentStats.movements).round());
-			if (tryMove(targetPos))
-				e.iPos = targetPos;
-			else  // cannot move on the shortest path
-				e.iPos = computeMoveToTarget(e.iPos, F.dudePos, g.currentStats.movements);
-		}
-		else if (g.unit.strikeCooldown <= 0)
-		{  // Attack!
-			if (g.unit.role == Unit::FIGHTER)
-				Strike::add(F.dudePos, g.currentStats.dmg, g.pEntity, G.entDude);
-			if (g.unit.role == Unit::ARCHER)
-				Arrow::add(e.iPos, toV2f(F.dudePos - e.iPos), g.currentStats.dmg, 2.5f, 7.f);
-			g.unit.strikeCooldown = g.currentStats.strikeCooldown;
 		}
 	}
 	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * g.currentStats.speed;
@@ -630,6 +704,8 @@ void drawGoblin(void* data)
 				   v2f(size / 2).toVector2(),
 				   math::radToDeg(unitGetAnimRot(g.unit)),
 				   g.unit.gotHit > 0 ? RED : WHITE);
+	if (G.debugDrawSightRange)
+		DrawCircleV(drawPos.toVector2(), g.currentStats.sightRange * G.tileSize, RED_CLEAR);
 };
 struct OldMan
 {
@@ -685,7 +761,7 @@ void updateArrow(void* data, f32 dt)
 		ENTITIES.remove(a.pEntity);
 
 	Entity& eDude = Player::get(G.entDude).getEntity();
-	if (e.fPos.distTo(eDude.fPos) < 5.f)
+	if (e.fPos.distTo(eDude.fPos) < G.tileSize * 0.4f)
 	{
 		Player::tryHit(G.entDude, a.dmg);
 		e.fVel = 0.f;

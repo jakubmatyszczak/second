@@ -92,6 +92,7 @@ int main(void)
 			saveGame();
 		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_L))
 			loadGame();
+		G.debugDrawSightRange = IsKeyDown(KEY_LEFT_CONTROL);
 
 		frame++;
 		F.clear();

@@ -35,6 +35,8 @@ struct Globals
 	EntityPtr entDude;
 	u32		  screenX;
 	u32		  screenY;
+    
+    bool debugDrawSightRange;
 };
 
 FrameData F;
