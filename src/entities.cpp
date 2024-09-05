@@ -319,7 +319,7 @@ struct Player
 	static constexpr u32 nItemsMax = 6;
 	ItemPtr				 inventory[nItemsMax];
 	s32					 itemsInInventory = 0;
-	s32					 itemHeld		  = 0;
+	s32					 itemHeld		  = -1;
 
 	v3i	 realPos;
 	v2f	 direction;
@@ -445,7 +445,9 @@ struct Player
 				if (inventory[i])
 					continue;
 				inventory[i] = F.itemUsed;
-                itemsInInventory++;
+				itemsInInventory++;
+				if (itemsInInventory == 1)
+					itemHeld = 0;
 				break;
 			}
 		}
@@ -469,6 +471,13 @@ struct Player
 					   {size / 2, size / 2},
 					   math::radToDeg(unitGetAnimRot(unit)),
 					   unit.gotHit > 0 ? RED : WHITE);
+		if (itemHeld >= 0)
+			DrawTexturePro(C.textures[ITEMS.tileset],
+						   ITEMS.arr[inventory[itemHeld]].tilesetOffset,
+						   {drawPos.x, drawPos.y, G.tileSize * 0.8f, G.tileSize * 0.8f},
+						   {G.tileSize * 0.2f, G.tileSize * 0.8f},
+						   30.f,
+						   WHITE);
 		static f32 t = 0.f;
 		t += 0.128f;
 		f32 scaling = 8.f + ((sinf(t) * 0.5f + 0.5f) * 2.f);
