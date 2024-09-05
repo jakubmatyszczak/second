@@ -62,4 +62,12 @@ struct Input
 			return true;
 		return false;
 	}
+	bool getSwap()
+	{
+		if (IsKeyPressed(KEY_Q))
+			return true;
+		if (GetMouseWheelMove() > 1)
+			return true;
+		return false;
+	}
 };

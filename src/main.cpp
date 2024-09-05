@@ -16,7 +16,7 @@ WorldState WORLD;
 bool canClimb(v3i& pos)
 {
 	MapLayer& lcurrent = MAP.level[pos.z];
-	MapLayer& labove	= MAP.level[pos.z + 1];
+	MapLayer& labove   = MAP.level[pos.z + 1];
 	if (lcurrent.containsXYZ(pos) && lcurrent.getTileAt(pos).type == MapLayer::Tile::EMPTY)
 		if (labove.containsXY(pos))
 		{
@@ -29,7 +29,7 @@ bool canClimb(v3i& pos)
 bool canGoDown(v3i& pos)
 {
 	MapLayer& lcurrent = MAP.level[pos.z];
-	MapLayer& lbelow	= MAP.level[pos.z - 1];
+	MapLayer& lbelow   = MAP.level[pos.z - 1];
 	if (lcurrent.containsXYZ(pos) && lcurrent.getTileAt(pos).type == MapLayer::Tile::EMPTY)
 		if (lbelow.containsXY(pos))
 		{
@@ -68,18 +68,20 @@ int main(void)
 	InitAudioDevice();
 	C.loadAll();
 
-	createLevelSurface({6, 6, 0}, MAP.level[0]);
-	createLevelUnderground({6, 6, -1}, MAP.level[-1]);
-	createLevelUnderground({6, 6, -2}, MAP.level[-2]);
-	createLevelDeepUnderground({6, 6, -3}, MAP.level[-3]);
-	createLevelDeepUnderground({6, 6, -4}, MAP.level[-4]);
-	createLevelDeepUnderground({6, 6, -5}, MAP.level[-5]);
+	createLevelSurface({0, 0, 0}, MAP.level[0]);
+	createLevelUnderground({0, 0, -1}, MAP.level[-1]);
+	createLevelUnderground({0, 0, -2}, MAP.level[-2]);
+	createLevelDeepUnderground({0, 0, -3}, MAP.level[-3]);
+	createLevelDeepUnderground({0, 0, -4}, MAP.level[-4]);
+	createLevelDeepUnderground({0, 0, -5}, MAP.level[-5]);
+	Pickaxe::add({10, 52, 0});
+	Sword::add({10, 54, 0});
 
 	G.camera.zoom	= 6.f;
 	G.camera.offset = {660, 360};
 	u32	 frame		= 0;
 	bool done		= false;
-	G.entDude		= Player::add({32, 32, 0});
+	G.entDude		= Player::add({8, 53, 0});
 	Player& dude	= Player::get(G.entDude);
 	Entity& eDude	= dude.getEntity();
 	NARRATIVE.init();
@@ -107,6 +109,7 @@ int main(void)
 						   input.getMove(),
 						   IsKeyPressed(KEY_X),
 						   input.getAction(),
+						   input.getSwap(),
 						   canClimb(eDude.iPos),
 						   canGoDown(eDude.iPos));
 			dude.update(0.016f);
@@ -145,8 +148,6 @@ int main(void)
 		DIALOGBOX.draw();
 
 		EndDrawing();
-		if (IsKeyPressed(KEY_Q))
-			done = true;
 	}
 	return 0;
 }

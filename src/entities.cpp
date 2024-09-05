@@ -318,6 +318,8 @@ struct Player
 
 	static constexpr u32 nItemsMax = 6;
 	ItemPtr				 inventory[nItemsMax];
+	s32					 itemsInInventory = 0;
+	s32					 itemHeld		  = 0;
 
 	v3i	 realPos;
 	v2f	 direction;
@@ -352,7 +354,14 @@ struct Player
 	static Player& get(EntityPtr pEntity) { return *(Player*)ENTITIES.arr[pEntity].data; };
 	Entity&		   getEntity() { return ENTITIES.arr[pEntity]; }
 
-	bool input(v2f heading, bool hit, bool go, bool goUp, bool use, bool canClimb, bool canGoDown)
+	bool input(v2f	heading,
+			   bool hit,
+			   bool go,
+			   bool goUp,
+			   bool use,
+			   bool swap,
+			   bool canClimb,
+			   bool canGoDown)
 	{
 		Entity& e		= ENTITIES.arr[pEntity];
 		e.iMoveTarget	= e.iPos;
@@ -381,13 +390,22 @@ struct Player
 		}
 		if (use)
 			F.dudeUse = true;
+		if (swap)
+		{
+			itemHeld++;
+			if (itemHeld >= itemsInInventory)
+				itemHeld = 0;
+		}
 
 		for (u32 i = 0; i < nItemsMax; i++)
 		{
 			if (!inventory[i])
 				continue;
-			currentStats.digPower += ITEMS.arr[inventory[i]].digPower;
-			currentStats.dmg += ITEMS.arr[inventory[i]].dmg;
+			if (itemHeld == i)
+			{
+				currentStats.digPower += ITEMS.arr[inventory[i]].digPower;
+				currentStats.dmg += ITEMS.arr[inventory[i]].dmg;
+			}
 		}
 		if (use || hit || go)
 			return true;
@@ -427,6 +445,7 @@ struct Player
 				if (inventory[i])
 					continue;
 				inventory[i] = F.itemUsed;
+                itemsInInventory++;
 				break;
 			}
 		}
@@ -494,6 +513,8 @@ struct Player
 			DrawRectangle(itemPos.x, itemPos.y, 64, 64, GRAY_CLEAR);
 			if (!inventory[i])
 				continue;
+			if (i == itemHeld)
+				DrawCircle(itemPos.x + 64 / 2.f, itemPos.y + 64 / 2.f, 24, RED_CLEAR);
 			DrawTexturePro(C.textures[ITEMS.tileset],
 						   ITEMS.arr[inventory[i]].tilesetOffset,
 						   {itemPos.x, itemPos.y, 64, 64},
