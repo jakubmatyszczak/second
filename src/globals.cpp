@@ -17,13 +17,14 @@ struct FrameData
 	v3i	 dudePos;
 	v3i	 dudeAimTile;
 	bool dudeHit;
+	f32	 dudeDigPower;
 
 	bool	  dudeUse;
 	EntityPtr entUsed;
 	ItemPtr	  itemUsed;
 
 	bool progressLogic;
-    bool progressDialog;
+	bool progressDialog;
 
 	void clear() { memset(this, 0, sizeof(FrameData)); }
 };
@@ -35,8 +36,8 @@ struct Globals
 	EntityPtr entDude;
 	u32		  screenX;
 	u32		  screenY;
-    
-    bool debugDrawSightRange;
+
+	bool debugDrawSightRange;
 };
 
 FrameData F;

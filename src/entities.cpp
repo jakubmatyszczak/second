@@ -3,6 +3,9 @@
 #include "globals.cpp"
 #include "effects.cpp"
 #include "animation.cpp"
+#include "map.cpp"
+
+extern Map MAP;
 
 void updatePickaxe(void*, f32);
 void drawPickaxe(void*);
@@ -15,8 +18,7 @@ void drawSword(void*);
 void updateOldMan(void*, f32);
 void drawOldMan(void*);
 
-bool tryMove(v3i pos);
-v3i	 computeMoveToTarget(v3i start, v3i target, s32 speed);
+v3i computeMoveToTarget(v3i start, v3i target, s32 speed);
 
 struct Entity
 {
@@ -129,6 +131,13 @@ struct Entities
 				}
 			}
 	}
+	bool tryMove(v3i pos)
+	{
+		for (u32 i = 0; i < nMax; i++)
+			if (active[i] && arr[i].iPos == pos)
+				return false;
+		return true;
+	}
 };
 
 extern Entities	 ENTITIES;
@@ -235,7 +244,7 @@ struct Ai
 
 	const Action& update(const v3i iPos, const CreatueStats& stats, const Unit& unit)
 	{
-		action.type	   = Action::NONE;
+		action.type = Action::NONE;
 		if ((F.dudePos - iPos).getLength() < stats.sightRange)
 		{
 			alarmed = true;
@@ -256,7 +265,7 @@ struct Ai
 				{  // Move
 					action.type	  = Action::MOVE;
 					v3i targetPos = iPos + toV3i((toDude.norm() * stats.movements).round());
-					if (tryMove(targetPos))
+					if (ENTITIES.tryMove(targetPos) && MAP.tryMove(targetPos))
 						action.target = targetPos;
 					else  // cannot move on the shortest path
 						action.target = computeMoveToTarget(iPos, F.dudePos, stats.movements);
@@ -354,10 +363,12 @@ struct Player
 		direction = heading;
 		if (go)
 		{
-			if ((realPos - e.iMoveTarget).getLength() < currentStats.movements * 2.f)
-				e.iMoveTarget = e.iPos + toV3i(direction);
-			else
-				go = false;
+			e.iMoveTarget = e.iPos + toV3i(direction);
+			if (!MAP.tryMove(e.iMoveTarget) && ENTITIES.tryMove(e.iMoveTarget))
+			{
+				e.iMoveTarget = e.iPos;
+				go			  = false;
+			}
 		}
 		if (canGoDown && go && direction.isZero())
 			e.iMoveTarget.z--;
@@ -791,13 +802,6 @@ bool tryHit(v3i pos, EntityPtr target, f32 dmg)
 			return Player::tryHit(target, dmg);
 	return false;
 }
-bool tryMove(v3i pos)
-{
-	for (u32 i = 0; i < ENTITIES.nMax; i++)
-		if (ENTITIES.active[i] && ENTITIES.arr[i].iPos == pos)
-			return false;
-	return true;
-}
 
 v3i computeMoveToTarget(v3i start, v3i target, s32 speed)
 {
@@ -825,7 +829,7 @@ v3i computeMoveToTarget(v3i start, v3i target, s32 speed)
 				}
 		}
 	for (u32 i = 0; i < nPoints; i++)
-		if (tryMove(bestPos[i]))
+		if (ENTITIES.tryMove(bestPos[i]))
 			return bestPos[i];
 	return start;
 }

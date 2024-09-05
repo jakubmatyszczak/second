@@ -27,7 +27,7 @@ struct Content
 	enum TEX_ID
 	{
 		TEX_TILESET,
-        TEX_PORTRAITS,
+		TEX_PORTRAITS,
 		TEX_ID_MAX
 	};
 	enum SFX_ID
@@ -43,13 +43,19 @@ struct Content
 	{
 		FONT_ID_PIXEL,
 	};
+	enum TEX_LEVEL
+	{
+		LEVEL_CAMP,
+	};
 	Texture2D textures[32];
 	Sound	  sounds[32];
 	Font	  fonts[8];
+	Image	  levelMap[32];
 	void	  loadTexture(const char* filepath, TEX_ID id) { textures[id] = LoadTexture(filepath); }
-	void	  loadSfx(const char* filepath, SFX_ID id) { sounds[id] = LoadSound(filepath); }
-	void	  loadFont(const char* filepath, FONT_ID id) { fonts[id] = LoadFont(filepath); }
-	void	  loadAll()
+	void loadLevelMap(const char* filepath, TEX_LEVEL id) { levelMap[id] = LoadImage(filepath); }
+	void loadSfx(const char* filepath, SFX_ID id) { sounds[id] = LoadSound(filepath); }
+	void loadFont(const char* filepath, FONT_ID id) { fonts[id] = LoadFont(filepath); }
+	void loadAll()
 	{
 		loadTexture("res/art/tileset.png", TEX_TILESET);
 		loadTexture("res/art/portraits.png", TEX_PORTRAITS);
@@ -59,6 +65,7 @@ struct Content
 		loadSfx("res/sound/goblin.wav", SFX_GOBLIN_SHORT);
 		loadSfx("res/sound/oof.wav", SFX_OOF);
 		loadFont("res/fonts/pixelplay.png", FONT_ID_PIXEL);
+		loadLevelMap("res/level/camp.png", LEVEL_CAMP);
 	}
 };
 

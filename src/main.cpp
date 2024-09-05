@@ -1,36 +1,40 @@
 #include "engine/fileio.cpp"
 #include "engine/input.cpp"
 #include "entities.cpp"
-#include "level.cpp"
+#include "map.cpp"
 #include "dialogs.cpp"
 
+struct WorldState
+{
+};
+Map		   MAP;
 Entities   ENTITIES;
-WorldState WORLD;
 DialogBox  DIALOGBOX;
 Narrative  NARRATIVE;
+WorldState WORLD;
 
 bool canClimb(v3i& pos)
 {
-	Level& lcurrent = WORLD.level[pos.z];
-	Level& labove	= WORLD.level[pos.z + 1];
-	if (lcurrent.containsXYZ(pos) && lcurrent.getTileAt(pos).type == Level::Tile::EMPTY)
+	MapLayer& lcurrent = MAP.level[pos.z];
+	MapLayer& labove	= MAP.level[pos.z + 1];
+	if (lcurrent.containsXYZ(pos) && lcurrent.getTileAt(pos).type == MapLayer::Tile::EMPTY)
 		if (labove.containsXY(pos))
 		{
-			Level::Tile& tileAbove = labove.getTileAt(pos);
-			if (tileAbove.type == Level::Tile::EMPTY)
+			MapLayer::Tile& tileAbove = labove.getTileAt(pos);
+			if (tileAbove.type == MapLayer::Tile::EMPTY)
 				return true;
 		}
 	return false;
 }
 bool canGoDown(v3i& pos)
 {
-	Level& lcurrent = WORLD.level[pos.z];
-	Level& lbelow	= WORLD.level[pos.z - 1];
-	if (lcurrent.containsXYZ(pos) && lcurrent.getTileAt(pos).type == Level::Tile::EMPTY)
+	MapLayer& lcurrent = MAP.level[pos.z];
+	MapLayer& lbelow	= MAP.level[pos.z - 1];
+	if (lcurrent.containsXYZ(pos) && lcurrent.getTileAt(pos).type == MapLayer::Tile::EMPTY)
 		if (lbelow.containsXY(pos))
 		{
-			Level::Tile& tileBelow = lbelow.getTileAt(pos);
-			if (tileBelow.type == Level::Tile::EMPTY)
+			MapLayer::Tile& tileBelow = lbelow.getTileAt(pos);
+			if (tileBelow.type == MapLayer::Tile::EMPTY)
 				return true;
 		}
 	return false;
@@ -38,8 +42,6 @@ bool canGoDown(v3i& pos)
 
 void saveGame()
 {
-	WORLD.entities = ENTITIES;
-	WORLD.globals  = G;
 	if (fileio::saveRawFile("1.save", &WORLD, sizeof(WORLD)))
 		printf("GAME SAVED!\n");
 }
@@ -52,9 +54,7 @@ bool loadGame()
 	else if (ret != sizeof(loaded))
 		exitWithMessage("Failed to load save!");
 	memcpy(&WORLD, &loaded, sizeof(loaded));
-	WORLD.reloadPtr();
-	ENTITIES = loaded.entities;
-	G		 = loaded.globals;
+	MAP.reloadPtr();
 	printf("GAME LOADED!\n");
 	return true;
 }
@@ -68,12 +68,12 @@ int main(void)
 	InitAudioDevice();
 	C.loadAll();
 
-	createLevelSurface({6, 6, 0}, WORLD.level[0]);
-	createLevelUnderground({6, 6, -1}, WORLD.level[-1]);
-	createLevelUnderground({6, 6, -2}, WORLD.level[-2]);
-	createLevelDeepUnderground({6, 6, -3}, WORLD.level[-3]);
-	createLevelDeepUnderground({6, 6, -4}, WORLD.level[-4]);
-	createLevelDeepUnderground({6, 6, -5}, WORLD.level[-5]);
+	createLevelSurface({6, 6, 0}, MAP.level[0]);
+	createLevelUnderground({6, 6, -1}, MAP.level[-1]);
+	createLevelUnderground({6, 6, -2}, MAP.level[-2]);
+	createLevelDeepUnderground({6, 6, -3}, MAP.level[-3]);
+	createLevelDeepUnderground({6, 6, -4}, MAP.level[-4]);
+	createLevelDeepUnderground({6, 6, -5}, MAP.level[-5]);
 
 	G.camera.zoom	= 6.f;
 	G.camera.offset = {660, 360};
@@ -112,8 +112,7 @@ int main(void)
 			dude.update(0.016f);
 			ENTITIES.updateAll(0.016f);
 			dude.interact();
-			updateLevels(WORLD.level);
-			collideLevel(WORLD.level[eDude.iPos.z], dude.pEntity);
+			updateLevels(MAP.level);
 			dude.move();
 			EFFECTS.updateAll(0.016f);
 		}
@@ -128,7 +127,7 @@ int main(void)
 			ClearBackground(SKYBLUE);
 			BeginMode2D(G.camera);
 			{
-				drawLevel(WORLD.level, eDude.iPos.z - 2, eDude.iPos.z);
+				drawLevel(MAP.level, eDude.iPos.z - 2, eDude.iPos.z);
 				ENTITIES.drawAll();
 				dude.draw();
 				EFFECTS.drawAll();
