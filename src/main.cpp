@@ -77,6 +77,7 @@ int main(void)
 	Item::add(Item::PICKAXE, {10, 52, 0});
 	Item::add(Item::SWORD, {10, 53, 0});
 	Item::add(Item::SWORD, {11, 53, 0});
+    Goblin::add({20,50,0}, Unit::Role::FIGHTER);
 
 	G.camera.zoom	= 6.f;
 	G.camera.offset = {660, 360};

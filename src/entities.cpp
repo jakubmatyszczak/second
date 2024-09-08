@@ -17,7 +17,7 @@ void drawItemEquipped(EntityPtr pEntity, v2f carrierPos);
 void drawItemThumbnail(EntityPtr pEntity, v2f pos);
 
 v3i	 computeMoveToTarget(v3i start, v3i target, s32 speed);
-void itemUse(EntityPtr pItem, bool hit, bool use, v2f dir);
+void itemUse(EntityPtr user, EntityPtr pItem, bool hit, bool use, v2f dir);
 
 struct Entity
 {
@@ -152,10 +152,11 @@ struct Item
 	char	  name[16];
 	Rectangle tilesetOffset;
 
-	v2f	 gripOffset;
-	f32	 rotOffset;
-	v2f	 direction;
-	bool isPicked;
+	EntityPtr carrier;
+	v2f		  gripOffset;
+	f32		  rotOffset;
+	v2f		  direction;
+	bool	  isPicked;
 
 	bool		 swingFwd;
 	AnimSwingFwd aSwingFwd;
@@ -313,7 +314,7 @@ struct Ai
 					if (F.dudeHit)
 						action.target = F.dudePos;
 					else
-						action.target = F.dudeAimTile;
+						action.target = {F.dudeAimTile.x, F.dudeAimTile.y, F.dudePos.z};
 				}
 			}
 			break;
@@ -426,7 +427,7 @@ struct Player
 		if (use)
 			F.dudeUse = true;
 		if (itemHeld >= 0)
-			itemUse(inventory[itemHeld], hit, use, direction);
+			itemUse(pEntity, inventory[itemHeld], hit, use, direction);
 		if (swap)
 		{
 			itemHeld++;
@@ -571,7 +572,7 @@ void updateItem(void* data, f32 dt)
 
 	if (F.dudeUse && F.dudePos == e.iPos && !i.isPicked)
 	{
-		i.isPicked = true;
+        itemUse(G.entDude, i.pEntity, false, true, {});
 		F.entUsed  = i.pEntity;
 	}
 	if (!i.isPicked)
@@ -641,12 +642,17 @@ void drawItem(void* data)
 					   WHITE);
 	}
 }
-void itemUse(EntityPtr pItem, bool hit, bool use, v2f dir)
+void itemUse(EntityPtr user, EntityPtr pItem, bool hit, bool use, v2f dir)
 {
 	Entity& e = ENTITIES.arr[pItem];
 	if (e.arch != Entity::ITEM)
 		return;
-	Item& i		= *(Item*)e.data;
+	Item& i = *(Item*)e.data;
+	if (use && !i.isPicked)
+	{
+		i.carrier  = user;
+		i.isPicked = true;
+	}
 	i.direction = dir.norm();
 	if (hit)
 	{
@@ -688,6 +694,7 @@ struct Goblin
 	CreatueStats currentStats;
 	Unit		 unit;
 	Ai			 ai;
+	EntityPtr	 itemHeld = -1;
 
 	static s32 add(v3i pos, Unit::Role role)
 	{
@@ -700,6 +707,11 @@ struct Goblin
 		g.pGrawlShort	  = C.SFX_GOBLIN_SHORT;
 		g.unit.hitpoints  = g.baseStats.maxHp;
 		g.unit.role		  = role;
+		if (role == Unit::Role::FIGHTER)
+		{
+			g.itemHeld = Item::add(Item::Arch::SWORD, e.iPos);
+			itemUse(g.pEntity, g.itemHeld, false, true, {});
+		}
 		if (role == Unit::Role::ARCHER)
 		{
 			g.baseStats.maxHp -= 1;
@@ -766,6 +778,7 @@ void drawGoblin(void* data)
 				   v2f(size / 2).toVector2(),
 				   math::radToDeg(unitGetAnimRot(g.unit)),
 				   g.unit.gotHit > 0 ? RED : WHITE);
+    drawItemEquipped(g.itemHeld, e.fPos);
 	if (G.debugDrawSightRange)
 		DrawCircleV(drawPos.toVector2(), g.currentStats.sightRange * G.tileSize, RED_CLEAR);
 };
@@ -853,6 +866,10 @@ bool tryHit(v3i pos, EntityPtr target, f32 dmg)
 		if (e.meta == Entity::Meta::PLAYER)
 			return Player::tryHit(target, dmg);
 	return false;
+}
+bool isDead(EntityPtr pEntity)
+{
+    return !ENTITIES.active[pEntity];
 }
 
 v3i computeMoveToTarget(v3i start, v3i target, s32 speed)

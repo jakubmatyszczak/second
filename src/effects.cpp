@@ -6,6 +6,7 @@
 
 typedef s32 EffectPtr;
 
+extern bool isDead(EntityPtr);
 extern bool tryHit(v3i, EntityPtr, f32);
 void		updateStrike(void*, f32);
 void		drawStrike(void*);
@@ -118,8 +119,8 @@ struct Strike
 	const Rectangle	 hitXOffset		 = {64, 16, G.tileSize, G.tileSize};
 	f32				 crossRot		 = 0.f;
 	f32				 crossScale		 = 1.f;
-	f32				 fadeOutTime	 = 0.333f;
 	f32				 dmg;
+	AnimFadeout		 aFadeout;
 	static EffectPtr add(v3i pos, f32 dmg, EntityPtr source, EntityPtr target)
 	{
 		EffectPtr effect =
@@ -135,16 +136,22 @@ void updateStrike(void* data, f32 dt)
 	Strike& s = *(Strike*)data;
 	Effect& e = EFFECTS.arr[s.pEffect];
 
+	bool finished = s.aFadeout.update(dt);
 	s.crossRot += dt * 128;
 	if (F.progressLogic)
 		e.timer++;
-	if (e.timer < e.length)
-		return;
-	if (s.fadeOutTime >= s.fadeOutTime)
-		tryHit(e.iPos, e.target, s.dmg);
-	s.fadeOutTime -= dt;
-	if (s.fadeOutTime <= 0.f)
+	if (e.timer == e.length)
+	{
+		if (!s.aFadeout.anim.active && !finished)
+		{
+			s.aFadeout.activate(0.2f);
+			tryHit(e.iPos, e.target, s.dmg);
+		}
+	}
+	if (e.timer > e.length || finished)
 		EFFECTS.remove(s.pEffect);
+    if(isDead(e.source))
+        EFFECTS.remove(s.pEffect);
 }
 void drawStrike(void* data)
 {
@@ -155,23 +162,20 @@ void drawStrike(void* data)
 	f32 crossSize = G.tileSize * s.crossScale;
 	v2f drawPos(e.iPos.x * G.tileSize + G.tileSize / 2.f, e.iPos.y * G.tileSize + G.tileSize / 2.f);
 
-	f32 hitXScale = s.fadeOutTime * 6.f;
-	f32 hitXSize  = G.tileSize * hitXScale;
-
-	if (s.fadeOutTime >= s.fadeOutTime)
+	if (e.timer < e.length)
 		DrawTexturePro(C.textures[EFFECTS.pTexture],
 					   s.crosshairOffset,
 					   {drawPos.x, drawPos.y, crossSize, crossSize},
 					   {crossSize / 2, crossSize / 2},
 					   s.crossRot,
-					   WHITE);
+					   s.aFadeout.getColor());
 	else
 		DrawTexturePro(C.textures[EFFECTS.pTexture],
 					   s.hitXOffset,
-					   {drawPos.x, drawPos.y, hitXSize, hitXSize},
-					   {hitXSize / 2, hitXSize / 2},
+					   {drawPos.x, drawPos.y, G.tileSize, G.tileSize},
+					   {G.tileSize / 2, G.tileSize / 2},
 					   0.f,
-					   WHITE);
+					   s.aFadeout.getColor());
 }
 struct Swoosh
 {
