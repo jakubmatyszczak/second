@@ -2,6 +2,7 @@
 #include "engine/commons.cpp"
 #include "engine/v2.cpp"
 #include "globals.cpp"
+#include "animation.cpp"
 
 typedef s32 EffectPtr;
 
@@ -178,6 +179,7 @@ struct Swoosh
 	const Rectangle swooshOffset = {80, 16, G.tileSize, G.tileSize};
 	v2f				dir;
 	f32				drawRot;
+	AnimFadeout		aFadeOut;
 
 	static EffectPtr add(v2f pos, f32 len, v2f dir)
 	{
@@ -195,9 +197,12 @@ void updateSwoosh(void* data, f32 dt)
 {
 	Swoosh& s = *(Swoosh*)data;
 	Effect& e = EFFECTS.arr[s.pEffect];
+	e.timer += dt;
+	s.aFadeOut.update(dt);
 
 	e.fPos += s.dir * (e.length - e.timer);
-	e.timer += dt;
+	if (e.timer > e.length * 0.5f && !s.aFadeOut.anim.active)
+		s.aFadeOut.activate(e.length * 0.5f);
 	if (e.timer > e.length)
 		EFFECTS.remove(s.pEffect);
 }
@@ -210,5 +215,5 @@ void drawSwoosh(void* data)
 				   {e.fPos.x, e.fPos.y, G.tileSize, G.tileSize},
 				   {G.tileSize * 0.5f, G.tileSize * 0.5f},
 				   math::radToDeg(s.drawRot),
-				   WHITE);
+				   s.aFadeOut.getColor());
 }

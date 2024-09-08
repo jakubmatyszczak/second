@@ -647,13 +647,13 @@ void itemUse(EntityPtr pItem, bool hit, bool use, v2f dir)
 	if (e.arch != Entity::ITEM)
 		return;
 	Item& i		= *(Item*)e.data;
-	i.direction = dir;
+	i.direction = dir.norm();
 	if (hit)
 	{
 		if (i.aSwingFwd.activate(i.swingLen))
 		{
-			v2f swooshStart = e.fPos + v2f(G.tileSize * .5f) + dir * G.tileSize * e.fScale;
-			Swoosh::add(swooshStart, i.swingLen, dir);
+			v2f swooshStart = e.fPos + v2f(G.tileSize * .5f) + i.direction * G.tileSize;
+			Swoosh::add(swooshStart, i.swingLen, i.direction);
 			i.swingFwd = !i.swingFwd;
 		}
 	}
