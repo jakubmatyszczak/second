@@ -652,8 +652,17 @@ void itemUse(EntityPtr pItem, bool hit, bool use, v2f dir)
 	{
 		if (i.aSwingFwd.activate(i.swingLen))
 		{
-			v2f swooshStart = e.fPos + v2f(G.tileSize * .5f) + i.direction * G.tileSize;
-			Swoosh::add(swooshStart, i.swingLen, i.direction);
+			switch (i.arch)
+			{
+				case Item::SWORD:
+				{
+					v2f swooshStart = e.fPos + v2f(G.tileSize * .5f) + i.direction * G.tileSize;
+					Swoosh::add(swooshStart, i.swingLen, i.direction);
+					break;
+				}
+				default:
+					break;
+			}
 			i.swingFwd = !i.swingFwd;
 		}
 	}
