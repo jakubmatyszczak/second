@@ -14,16 +14,18 @@ struct Keyframe
 };
 struct Animation
 {
-	bool reversed  = false;
-	bool active	   = false;
-	bool looped	   = false;
-	f32	 scale	   = 1.f;
-	v2f	 posOffset = {};
-	f32	 rotOffset = {};
+	bool reversed	 = false;
+	bool active		 = false;
+	bool looped		 = false;
+	f32	 scaleOffset = 1.f;
+	v2f	 posOffset	 = {};
+	f32	 rotOffset	 = {};
 
 	f32 timer  = 0.f;
 	f32 period = 1.f;
 	s32 frame  = 0;
+
+	bool init = false;
 
 	void activate(u32 nKeyFrames, f32 animPeriod, bool loop = false)
 	{
@@ -38,6 +40,13 @@ struct Animation
 	[[nodiscard]]
 	bool update(f32 dt, Keyframe keyFrames[], u32 nKeyFrames)
 	{
+		if (!init)
+		{
+			posOffset	= keyFrames[0].pos;
+			rotOffset	= keyFrames[0].rot;
+			scaleOffset = keyFrames[0].scale;
+			init		= true;
+		}
 		if (!active)
 			return false;
 		timer += dt;
@@ -71,7 +80,7 @@ struct Animation
 		f32 timeNorm = math::limit((timer / (current.duration * period)), 0.f, 1.f);
 		posOffset	 = lerp(previous.pos, current.pos, timeNorm);
 		rotOffset	 = lerp(previous.rot, current.rot, timeNorm);
-		scale		 = lerp(previous.scale, current.scale, timeNorm);
+		scaleOffset	 = lerp(previous.scale, current.scale, timeNorm);
 
 		if (finished)
 		{
@@ -102,4 +111,58 @@ struct AnimBonk
 	bool update(f32 dt) { return anim.update(dt, keyFrames, nKeyFrames); }
 	v2f	 getPos() { return anim.posOffset; }
 	f32	 getRot() { return anim.rotOffset; }
+};
+struct AnimSwingFwd
+{
+	static constexpr s32 steps			   = 2;
+	static constexpr u32 nKeyFramesPerStep = 4;
+
+	Animation anim[steps];
+	s32		  currentStep						  = 0;
+	Keyframe  keyFrames[steps][nKeyFramesPerStep] = {
+		 {
+			 {.pos = {0.f, -8.f}, .rot = 0.f, .duration = 0.05},
+			 {.pos = {16.f, 0.f}, .rot = math::pi, .duration = 0.15f},
+			 {.pos = {-1.f, 8.f}, .rot = math::pi * 2.1f, .duration = 0.6f},
+			 {.pos = {0.f, 8.f}, .rot = math::tau, .duration = 0.2f},
+		 },
+		 {
+			 {.pos = {0.f, 8.f}, .rot = 0, .duration = 0.05},
+			 {.pos = {16.f, 0.f}, .rot = -math::pi, .duration = 0.15f},
+			 {.pos = {-1.f, -8.f}, .rot = -math::pi * 2.1f, .duration = 0.6f},
+			 {.pos = {0.f, -8.f}, .rot = -math::tau, .duration = 0.2f},
+		 }};
+
+    // returns true if activated, false if not (anim already running)
+	bool activate(f32 period)
+	{
+		if (anim[0].active || anim[1].active)
+			return false;
+		if (++currentStep >= steps)
+			currentStep = 0;
+		anim[currentStep].activate(nKeyFramesPerStep, period, false);
+        return true;
+	}
+	// returns true if completed
+	bool update(f32 dt)
+	{
+		if (anim[currentStep].update(dt, keyFrames[currentStep], nKeyFramesPerStep))
+		{
+			return true;
+		}
+		return false;
+	}
+	v2f getPos(bool mirrorx, f32 angle)
+	{
+		v2f pos = anim[currentStep].posOffset;
+		if (mirrorx)
+			pos.x = -pos.x;
+		return pos.rotate(angle);
+	}
+	f32 getRot(bool mirrorx, f32 angle)
+	{
+		if (mirrorx)
+			return -anim[currentStep].rotOffset + math::pi + angle;
+		return anim[currentStep].rotOffset + angle;
+	}
 };

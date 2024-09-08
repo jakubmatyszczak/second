@@ -74,8 +74,9 @@ int main(void)
 	createLevelDeepUnderground({0, 0, -3}, MAP.level[-3]);
 	createLevelDeepUnderground({0, 0, -4}, MAP.level[-4]);
 	createLevelDeepUnderground({0, 0, -5}, MAP.level[-5]);
-	Pickaxe::add({10, 52, 0});
-	Sword::add({10, 54, 0});
+	Item::add(Item::PICKAXE, {10, 52, 0});
+	Item::add(Item::SWORD, {10, 53, 0});
+	Item::add(Item::SWORD, {11, 53, 0});
 
 	G.camera.zoom	= 6.f;
 	G.camera.offset = {660, 360};

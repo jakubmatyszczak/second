@@ -5,20 +5,19 @@
 #include "animation.cpp"
 #include "map.cpp"
 
-extern Map MAP;
-
-void updatePickaxe(void*, f32);
-void drawPickaxe(void*);
 void updateGoblin(void*, f32);
 void drawGoblin(void*);
 void updateArrow(void*, f32);
 void drawArrow(void*);
-void updateSword(void*, f32);
-void drawSword(void*);
 void updateOldMan(void*, f32);
 void drawOldMan(void*);
+void updateItem(void*, f32);
+void drawItem(void*);
+void drawItemEquipped(EntityPtr pEntity, v2f carrierPos);
+void drawItemThumbnail(EntityPtr pEntity, v2f pos);
 
-v3i computeMoveToTarget(v3i start, v3i target, s32 speed);
+v3i	 computeMoveToTarget(v3i start, v3i target, s32 speed);
+void itemUse(EntityPtr pItem, bool hit, bool use, v2f dir);
 
 struct Entity
 {
@@ -35,11 +34,10 @@ struct Entity
 	{
 		UNKNOWN = 0,
 		DUDE,
-		PICKAXE,
 		GOBLIN,
 		ARROW,
-		SWORD,
 		OLD_MAN,
+		ITEM,
 	};
 	Arch arch;
 	Meta meta;
@@ -47,6 +45,9 @@ struct Entity
 	v3i	 iMoveTarget;
 	v2f	 fPos;
 	v2f	 fVel;
+	f32	 fScale;
+	v2f	 fDrawPos;
+	f32	 fDrawRot;
 	u8	 data[1024];
 };
 struct Entities
@@ -62,12 +63,13 @@ struct Entities
 			if (active[i])
 				continue;
 			memset(&arr[i], 0, sizeof(arr[i]));
-			arr[i].arch = archetype;
-			arr[i].meta = meta;
-			arr[i].iPos = pos;
-			arr[i].fPos = {(f32)pos.x * G.tileSize, (f32)pos.y * G.tileSize};
-			arr[i].fVel = {};
-			active[i]	= true;
+			arr[i].arch	  = archetype;
+			arr[i].meta	  = meta;
+			arr[i].iPos	  = pos;
+			arr[i].fPos	  = {(f32)pos.x * G.tileSize, (f32)pos.y * G.tileSize};
+			arr[i].fVel	  = {};
+			arr[i].fScale = 1.f;
+			active[i]	  = true;
 			return i;
 		}
 		return -1;
@@ -84,21 +86,17 @@ struct Entities
 						break;
 					case Entity::DUDE:
 						break;
-					case Entity::PICKAXE:
-						updatePickaxe(arr[i].data, dt);
-						break;
 					case Entity::GOBLIN:
 						updateGoblin(arr[i].data, dt);
 						break;
 					case Entity::ARROW:
 						updateArrow(arr[i].data, dt);
 						break;
-					case Entity::SWORD:
-						updateSword(arr[i].data, dt);
-						break;
 					case Entity::OLD_MAN:
 						updateOldMan(arr[i].data, dt);
 						break;
+					case Entity::ITEM:
+						updateItem(arr[i].data, dt);
 				}
 			}
 	}
@@ -113,20 +111,17 @@ struct Entities
 						break;
 					case Entity::DUDE:
 						break;
-					case Entity::PICKAXE:
-						drawPickaxe(arr[i].data);
-						break;
 					case Entity::GOBLIN:
 						drawGoblin(arr[i].data);
 						break;
 					case Entity::ARROW:
 						drawArrow(arr[i].data);
 						break;
-					case Entity::SWORD:
-						drawSword(arr[i].data);
-						break;
 					case Entity::OLD_MAN:
 						drawOldMan(arr[i].data);
+						break;
+					case Entity::ITEM:
+						drawItem(arr[i].data);
 						break;
 				}
 			}
@@ -140,27 +135,66 @@ struct Entities
 	}
 };
 
+extern Map		 MAP;
 extern Entities	 ENTITIES;
 extern Content	 C;
 extern FrameData F;
 
-struct ItemData
-{
-	char	  name[16];
-	Rectangle tilesetOffset;
-	f32		  digPower;
-	f32		  dmg;
-};
-struct Items
-{
-	TexturePtr tileset = C.TEX_TILESET;
-	ItemData   arr[32] = {};
-};
-Items ITEMS;
 struct Item
 {
-	ItemPtr pItem;
-	bool	picked;
+	enum Arch
+	{
+		PICKAXE,
+		SWORD,
+	};
+	EntityPtr pEntity;
+	Arch	  arch;
+	char	  name[16];
+	Rectangle tilesetOffset;
+
+	v2f	 gripOffset;
+	f32	 rotOffset;
+	v2f	 direction;
+	bool isPicked;
+
+	bool		 swingFwd;
+	AnimSwingFwd aSwingFwd;
+
+	f32 digPower;
+	f32 dmg;
+	f32 swingLen;
+
+	static s32 add(Arch type, v3i pos)
+	{
+		static_assert(sizeof(Item) <= sizeof(Entity::data), "ITEM does not fir into ENTITY");
+		s32		pEntity = ENTITIES.add(Entity::Meta::ITEM, Entity::ITEM, pos);
+		Entity& e		= ENTITIES.arr[pEntity];
+		Item&	item	= *new (e.data) Item();
+		item.pEntity	= pEntity;
+		item.arch		= type;
+		switch (type)
+		{
+			case Arch::PICKAXE:
+				strcpy(item.name, "Pickaxe");
+				e.fScale		   = 0.7f;
+				item.tilesetOffset = {0, 32, G.tileSize, G.tileSize};
+				item.gripOffset	   = {13, 13};
+				item.rotOffset	   = -math::pi4;
+				item.digPower	   = 1;
+				item.swingLen	   = 0.6f;
+				break;
+			case Arch::SWORD:
+				strcpy(item.name, "Sword");
+				e.fScale		   = 0.7f;
+				item.tilesetOffset = {32, 32, G.tileSize, G.tileSize};
+				item.gripOffset	   = {14, 14};
+				item.rotOffset	   = -math::pi4;
+				item.dmg		   = 1;
+				item.swingLen	   = 0.4;
+				break;
+		}
+		return pEntity;
+	}
 };
 struct CreatueStats
 {
@@ -316,10 +350,10 @@ struct Player
 	SoundPtr   pSfxStepGrass;
 	SoundPtr   pSfxStepRock;
 
-	static constexpr u32 nItemsMax = 6;
-	ItemPtr				 inventory[nItemsMax];
-	s32					 itemsInInventory = 0;
-	s32					 itemHeld		  = -1;
+	static const u32 nItemsMax = 3;
+	EntityPtr		 inventory[nItemsMax];
+	EntityPtr		 itemHeld		  = -1;
+	s32				 itemsInInventory = 0;
 
 	v3i	 realPos;
 	v2f	 direction;
@@ -338,6 +372,7 @@ struct Player
 
 	static s32 add(v3i pos)
 	{
+		static_assert(sizeof(Player) <= sizeof(Entity::data), "Player does not fir into ENTITY");
 		s32		pEntity		= ENTITIES.add(Entity::Meta::PLAYER, Entity::DUDE, pos);
 		Entity& e			= ENTITIES.arr[pEntity];
 		Player& dude		= *new (e.data) Player();
@@ -390,6 +425,8 @@ struct Player
 		}
 		if (use)
 			F.dudeUse = true;
+		if (itemHeld >= 0)
+			itemUse(inventory[itemHeld], hit, use, direction);
 		if (swap)
 		{
 			itemHeld++;
@@ -403,8 +440,8 @@ struct Player
 				continue;
 			if (itemHeld == i)
 			{
-				currentStats.digPower += ITEMS.arr[inventory[i]].digPower;
-				currentStats.dmg += ITEMS.arr[inventory[i]].dmg;
+				// currentStats.digPower += ITEMS.arr[inventory[i]].digPower;
+				// currentStats.dmg += ITEMS.arr[inventory[i]].dmg;
 			}
 		}
 		if (use || hit || go)
@@ -438,13 +475,13 @@ struct Player
 	void interact()
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-		if (F.itemUsed)
+		if (F.entUsed)
 		{
 			for (u32 i = 0; i < nItemsMax; i++)
 			{
 				if (inventory[i])
 					continue;
-				inventory[i] = F.itemUsed;
+				inventory[i] = F.entUsed;
 				itemsInInventory++;
 				if (itemsInInventory == 1)
 					itemHeld = 0;
@@ -472,12 +509,8 @@ struct Player
 					   math::radToDeg(unitGetAnimRot(unit)),
 					   unit.gotHit > 0 ? RED : WHITE);
 		if (itemHeld >= 0)
-			DrawTexturePro(C.textures[ITEMS.tileset],
-						   ITEMS.arr[inventory[itemHeld]].tilesetOffset,
-						   {drawPos.x, drawPos.y, G.tileSize * 0.8f, G.tileSize * 0.8f},
-						   {G.tileSize * 0.2f, G.tileSize * 0.8f},
-						   30.f,
-						   WHITE);
+			drawItemEquipped(inventory[itemHeld], e.fPos);
+
 		static f32 t = 0.f;
 		t += 0.128f;
 		f32 scaling = 8.f + ((sinf(t) * 0.5f + 0.5f) * 2.f);
@@ -516,136 +549,114 @@ struct Player
 				 40,
 				 20,
 				 RED);
-		for (u32 i = 0; i < 6; i++)
+		for (u32 i = 0; i < nItemsMax; i++)
 		{
-			Vector2 itemPos = {10.f + 74 * i, 720 - 64 - 10};
-			DrawRectangle(itemPos.x, itemPos.y, 64, 64, GRAY_CLEAR);
+			Vector2 slotPos = {10.f + 74 * i, 720 - 64 - 10};
+			DrawRectangle(slotPos.x, slotPos.y, 64, 64, GRAY_CLEAR);
 			if (!inventory[i])
 				continue;
 			if (i == itemHeld)
-				DrawCircle(itemPos.x + 64 / 2.f, itemPos.y + 64 / 2.f, 24, RED_CLEAR);
-			DrawTexturePro(C.textures[ITEMS.tileset],
-						   ITEMS.arr[inventory[i]].tilesetOffset,
-						   {itemPos.x, itemPos.y, 64, 64},
-						   {0, 0},
-						   0.f,
-						   WHITE);
+				DrawCircle(slotPos.x + 64 / 2.f, slotPos.y + 64 / 2.f, 24, RED_CLEAR);
+			drawItemThumbnail(inventory[i], slotPos);
 		}
 		DrawRectangle(50, 10, 110, 20, BLACK);
 		DrawRectangle(55, 15, (s32)(100.f * (unit.hitpoints / baseStats.maxHp)), 10, RED);
 	}
 };
-void itemInit()
+
+void updateItem(void* data, f32 dt)
 {
-	static bool init = false;
-	if (init)
-		return;
+	Item&	i = *(Item*)data;
+	Entity& e = ENTITIES.arr[i.pEntity];
+
+	if (F.dudeUse && F.dudePos == e.iPos && !i.isPicked)
 	{
-		ItemData& item = ITEMS.arr[1];
-		strncpy(item.name, "Basic Pickaxe", 15);
-		item.digPower	   = 1;
-		item.tilesetOffset = {0, 32, G.tileSize, G.tileSize};
+		i.isPicked = true;
+		F.entUsed  = i.pEntity;
 	}
-	{
-		ItemData& item = ITEMS.arr[2];
-		strncpy(item.name, "Basic Sword", 15);
-		item.tilesetOffset = {32, 32, G.tileSize, G.tileSize};
-		item.dmg		   = 1;
-	}
-	init = true;
-};
-void updateItem(Item& item, Entity& eItem)
-{
-	if (F.dudeUse && F.dudePos == eItem.iPos && !item.picked)
-	{
-		item.picked = true;
-		F.itemUsed	= item.pItem;
-	}
-	if (!item.picked)
-		eItem.fPos = toV2f(eItem.iPos) * G.tileSize;
+	if (!i.isPicked)
+		e.fPos = toV2f(e.iPos) * G.tileSize;
 	else
-		eItem.iPos = F.dudePos;
-}
-void drawItem(Item& item, Entity& eItem, ItemData& data)
-{
-	Texture&   tex	   = C.textures[ITEMS.tileset];
-	v2f		   origin  = {4, 4};
-	v2f		   drawPos = eItem.fPos + origin * 2;
-	static f32 t	   = 0;
-	t += 0.064f;
-	f32 breath = ((sinf(t) + 1) * 0.5f) * 0.25f + 0.75f;
-	if (!item.picked)
 	{
-		DrawEllipse(drawPos.x, drawPos.y + 6, 4 * breath, 2 * breath, GRAY_CLEAR);
+		Entity& eDude = ENTITIES.arr[G.entDude];
+		e.fPos		  = eDude.fPos;
+		e.iPos		  = eDude.iPos;
+	}
+	i.aSwingFwd.update(dt);
+}
+void drawItemThumbnail(EntityPtr pEntity, v2f pos)
+{
+	Entity&	 eItem = ENTITIES.arr[pEntity];
+	Item&	 i	   = *(Item*)eItem.data;
+	Texture& tex   = C.textures[Content::TEX_TILESET];
+	DrawTexturePro(tex, i.tilesetOffset, {pos.x, pos.y, 64, 64}, {}, 0.f, WHITE);
+}
+v2f follow(v2f target, v2f current, f32 magnitude0to1)
+{
+	return current + (target - current) * magnitude0to1;
+}
+f32 follow(f32 target, f32 current, f32 magnitude0to1)
+{
+	return current + (target - current) * magnitude0to1;
+}
+void drawItemEquipped(EntityPtr pEntity, v2f carrierPos)
+{
+	Entity& e = ENTITIES.arr[pEntity];
+	Item&	i = *(Item*)e.data;
+
+	Texture& tex	 = C.textures[Content::TEX_TILESET];
+	bool	 mirrorx = i.direction.x < 0;
+	f32		 angle	 = i.direction.y * i.direction.x * math::pi4;
+	if (i.direction.x == 0)
+		angle = i.direction.y * math::pi2;
+	e.fDrawPos = follow(
+		carrierPos + v2f(G.tileSize * 0.5f) + i.aSwingFwd.getPos(mirrorx, angle), e.fDrawPos, 0.7f);
+	v2f drawOrigin = i.gripOffset * e.fScale;
+	e.fDrawRot	   = follow(i.rotOffset + i.aSwingFwd.getRot(mirrorx, angle), e.fDrawRot, 0.7f);
+	DrawTexturePro(tex,
+				   i.tilesetOffset,
+				   {e.fDrawPos.x, e.fDrawPos.y, G.tileSize * e.fScale, G.tileSize * e.fScale},
+				   drawOrigin.toVector2(),
+				   math::radToDeg(e.fDrawRot),
+				   WHITE);
+}
+void drawItem(void* data)
+{
+	Item&	 i	   = *(Item*)data;
+	Entity&	 eItem = ENTITIES.arr[i.pEntity];
+	Texture& tex   = C.textures[Content::TEX_TILESET];
+	if (!i.isPicked)
+	{
+		v2f		   origin  = v2f(G.tileSize * 0.5f * 0.5f);
+		v2f		   drawPos = eItem.fPos + origin * 2;
+		static f32 t	   = 0;
+		t += 0.064f;
+		f32 breath = ((sinf(t) + 1) * 0.5f) * 0.25f + 0.75f;
+		DrawEllipse(drawPos.x, drawPos.y + 5, 4 * breath, 2 * breath, GRAY_CLEAR);
 		DrawTexturePro(tex,
-					   data.tilesetOffset,
-					   {drawPos.x, drawPos.y - 4 * breath, 8.f, 8.f},
+					   i.tilesetOffset,
+					   {drawPos.x, drawPos.y - 4 * breath, G.tileSize * .5f, G.tileSize * .5f},
 					   origin.toVector2(),
-					   45.f,
+					   0.f,
 					   WHITE);
 	}
 }
-struct Pickaxe
+void itemUse(EntityPtr pItem, bool hit, bool use, v2f dir)
 {
-	EntityPtr pEntity;
-	Item	  item;
-
-	static s32 add(v3i pos)
-	{
-		itemInit();
-		s32		 pEntity = ENTITIES.add(Entity::Meta::ITEM, Entity::PICKAXE, pos);
-		Entity&	 e		 = ENTITIES.arr[pEntity];
-		Pickaxe& item	 = *new (e.data) Pickaxe();
-		item.pEntity	 = pEntity;
-		item.item.pItem	 = 1;
-		return pEntity;
-	}
-};
-void updatePickaxe(void* data, f32 dt)
-{
-	Pickaxe& pick = *(Pickaxe*)data;
-	Entity&	 e	  = ENTITIES.arr[pick.pEntity];
-	updateItem(pick.item, e);
-}
-void drawPickaxe(void* data)
-{
-	Pickaxe&  pick	   = *(Pickaxe*)data;
-	Entity&	  e		   = ENTITIES.arr[pick.pEntity];
-	ItemData& itemData = ITEMS.arr[pick.item.pItem];
-	if (F.dudePos.z != e.iPos.z)
+	Entity& e = ENTITIES.arr[pItem];
+	if (e.arch != Entity::ITEM)
 		return;
-	drawItem(pick.item, e, itemData);
-}
-struct Sword
-{
-	EntityPtr pEntity;
-	Item	  item;
-
-	static s32 add(v3i pos)
+	Item& i		= *(Item*)e.data;
+	i.direction = dir;
+	if (hit)
 	{
-		itemInit();
-		s32		pEntity = ENTITIES.add(Entity::Meta::ITEM, Entity::SWORD, pos);
-		Entity& e		= ENTITIES.arr[pEntity];
-		Sword&	item	= *new (e.data) Sword();
-		item.pEntity	= pEntity;
-		item.item.pItem = 2;
-		return pEntity;
+		if (i.aSwingFwd.activate(i.swingLen))
+		{
+			v2f swooshStart = e.fPos + v2f(G.tileSize * .5f) + dir * G.tileSize * e.fScale;
+			Swoosh::add(swooshStart, i.swingLen, dir);
+			i.swingFwd = !i.swingFwd;
+		}
 	}
-};
-void updateSword(void* data, f32 dt)
-{
-	Sword&	item = *(Sword*)data;
-	Entity& e	 = ENTITIES.arr[item.pEntity];
-	updateItem(item.item, e);
-}
-void drawSword(void* data)
-{
-	Sword&	  item	   = *(Sword*)data;
-	Entity&	  e		   = ENTITIES.arr[item.pEntity];
-	ItemData& itemData = ITEMS.arr[item.item.pItem];
-	if (F.dudePos.z != e.iPos.z)
-		return;
-	drawItem(item.item, e, itemData);
 }
 
 struct Goblin
@@ -671,6 +682,7 @@ struct Goblin
 
 	static s32 add(v3i pos, Unit::Role role)
 	{
+		static_assert(sizeof(Goblin) < sizeof(Entity::data), "GOBLIN does not fit into ENTITY");
 		EntityPtr pEntity = ENTITIES.add(Entity::Meta::ENEMY, Entity::Arch::GOBLIN, pos);
 		Entity&	  e		  = ENTITIES.arr[pEntity];
 		Goblin&	  g		  = *new (e.data) Goblin;
@@ -755,6 +767,7 @@ struct OldMan
 
 	static s32 add(v3i pos)
 	{
+		static_assert(sizeof(OldMan) < sizeof(Entity::data), "OLDMAN does not fit into ENTITY");
 		EntityPtr pEntity = ENTITIES.add(Entity::Meta::NPC, Entity::Arch::OLD_MAN, pos);
 		Entity&	  e		  = ENTITIES.arr[pEntity];
 		OldMan&	  om	  = *new (e.data) OldMan;

@@ -21,7 +21,6 @@ struct FrameData
 
 	bool	  dudeUse;
 	EntityPtr entUsed;
-	ItemPtr	  itemUsed;
 
 	bool progressLogic;
 	bool progressDialog;

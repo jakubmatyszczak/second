@@ -8,13 +8,16 @@ typedef s32 EffectPtr;
 extern bool tryHit(v3i, EntityPtr, f32);
 void		updateStrike(void*, f32);
 void		drawStrike(void*);
+void		updateSwoosh(void*, f32);
+void		drawSwoosh(void*);
 
 struct Effect
 {
 	enum Arch
 	{
 		UNKNOWN,
-		STRIKE
+		STRIKE,
+		SWOOSH
 	};
 	enum class Type
 	{
@@ -23,6 +26,7 @@ struct Effect
 		TURNBASED
 	};
 	v3i	 iPos;
+	v2f	 fPos;
 	Type type;
 	Arch arch;
 
@@ -30,9 +34,6 @@ struct Effect
 	f32		  timer;
 	EntityPtr source;
 	EntityPtr target;
-	f32		  fadeOutTimer;
-	f32		  crossRot	 = 0.f;
-	f32		  crossScale = 1.f;
 	u8		  data[256];
 };
 struct Effects
@@ -41,12 +42,10 @@ struct Effects
 
 	Effect	   arr[nMax];
 	bool	   active[nMax];
-	TexturePtr pTexture		   = Content::TEX_TILESET;
-	Rectangle  crosshairOffset = {48, 16, G.tileSize, G.tileSize};
-	Rectangle  hitXOffset	   = {64, 16, G.tileSize, G.tileSize};
-	f32		   fadeOutTime	   = 0.333f;
+	TexturePtr pTexture = Content::TEX_TILESET;
 
-	EffectPtr add(v3i		   pos,
+	EffectPtr add(v3i		   iPos,
+				  v2f		   fPos,
 				  Effect::Type type,
 				  Effect::Arch arch,
 				  f32		   length,
@@ -58,7 +57,7 @@ struct Effects
 			if (active[i])
 				continue;
 			Effect& e = arr[i];
-			e		  = {pos, type, arch, length, 0.f, source, target, fadeOutTime, 0.f, 0.f, {}};
+			e		  = {iPos, fPos, type, arch, length, 0.f, source, target, {}};
 			if (type == Effect::Type::TURNBASED)
 				e.length = roundf(length) < 1 ? 1 : roundf(length);
 			else
@@ -83,6 +82,9 @@ struct Effects
 				case Effect::STRIKE:
 					updateStrike(arr[i].data, dt);
 					break;
+				case Effect::SWOOSH:
+					updateSwoosh(arr[i].data, dt);
+					break;
 			}
 		}
 	}
@@ -99,6 +101,9 @@ struct Effects
 				case Effect::STRIKE:
 					drawStrike(arr[i].data);
 					break;
+				case Effect::SWOOSH:
+					drawSwoosh(arr[i].data);
+					break;
 			}
 		}
 	}
@@ -108,11 +113,16 @@ Effects EFFECTS;
 struct Strike
 {
 	EffectPtr		 pEffect;
+	const Rectangle	 crosshairOffset = {48, 16, G.tileSize, G.tileSize};
+	const Rectangle	 hitXOffset		 = {64, 16, G.tileSize, G.tileSize};
+	f32				 crossRot		 = 0.f;
+	f32				 crossScale		 = 1.f;
+	f32				 fadeOutTime	 = 0.333f;
 	f32				 dmg;
 	static EffectPtr add(v3i pos, f32 dmg, EntityPtr source, EntityPtr target)
 	{
 		EffectPtr effect =
-			EFFECTS.add(pos, Effect::Type::TURNBASED, Effect::STRIKE, 2, source, target);
+			EFFECTS.add(pos, {}, Effect::Type::TURNBASED, Effect::STRIKE, 2, source, target);
 		Strike& strike = *new (EFFECTS.arr[effect].data) Strike;
 		strike.pEffect = effect;
 		strike.dmg	   = dmg;
@@ -124,15 +134,15 @@ void updateStrike(void* data, f32 dt)
 	Strike& s = *(Strike*)data;
 	Effect& e = EFFECTS.arr[s.pEffect];
 
-	e.crossRot += dt * 128;
+	s.crossRot += dt * 128;
 	if (F.progressLogic)
 		e.timer++;
 	if (e.timer < e.length)
 		return;
-	if (e.fadeOutTimer >= EFFECTS.fadeOutTime)
+	if (s.fadeOutTime >= s.fadeOutTime)
 		tryHit(e.iPos, e.target, s.dmg);
-	e.fadeOutTimer -= dt;
-	if (e.fadeOutTimer <= 0.f)
+	s.fadeOutTime -= dt;
+	if (s.fadeOutTime <= 0.f)
 		EFFECTS.remove(s.pEffect);
 }
 void drawStrike(void* data)
@@ -140,25 +150,65 @@ void drawStrike(void* data)
 	Strike& s = *(Strike*)data;
 	Effect& e = EFFECTS.arr[s.pEffect];
 
-	e.crossScale  = 0.9f + sinf(math::degToRad(e.crossRot)) * 0.1f;
-	f32 crossSize = G.tileSize * e.crossScale;
+	s.crossScale  = 0.9f + sinf(math::degToRad(s.crossRot)) * 0.1f;
+	f32 crossSize = G.tileSize * s.crossScale;
 	v2f drawPos(e.iPos.x * G.tileSize + G.tileSize / 2.f, e.iPos.y * G.tileSize + G.tileSize / 2.f);
 
-	f32 hitXScale = e.fadeOutTimer * 6.f;
+	f32 hitXScale = s.fadeOutTime * 6.f;
 	f32 hitXSize  = G.tileSize * hitXScale;
 
-	if (e.fadeOutTimer >= EFFECTS.fadeOutTime)
+	if (s.fadeOutTime >= s.fadeOutTime)
 		DrawTexturePro(C.textures[EFFECTS.pTexture],
-					   EFFECTS.crosshairOffset,
+					   s.crosshairOffset,
 					   {drawPos.x, drawPos.y, crossSize, crossSize},
 					   {crossSize / 2, crossSize / 2},
-					   e.crossRot,
+					   s.crossRot,
 					   WHITE);
 	else
 		DrawTexturePro(C.textures[EFFECTS.pTexture],
-					   EFFECTS.hitXOffset,
+					   s.hitXOffset,
 					   {drawPos.x, drawPos.y, hitXSize, hitXSize},
 					   {hitXSize / 2, hitXSize / 2},
 					   0.f,
 					   WHITE);
+}
+struct Swoosh
+{
+	EffectPtr		pEffect;
+	const Rectangle swooshOffset = {80, 16, G.tileSize, G.tileSize};
+	v2f				dir;
+	f32				drawRot;
+
+	static EffectPtr add(v2f pos, f32 len, v2f dir)
+	{
+		EffectPtr pEffect =
+			EFFECTS.add({}, pos, Effect::Type::CONTINOUS, Effect::SWOOSH, len, -1, -1);
+		Swoosh& effect = *new (EFFECTS.arr[pEffect].data) Swoosh;
+		effect.pEffect = pEffect;
+		effect.dir	   = dir.norm();
+		effect.drawRot = atan2f(dir.y, dir.x);
+
+		return pEffect;
+	}
+};
+void updateSwoosh(void* data, f32 dt)
+{
+	Swoosh& s = *(Swoosh*)data;
+	Effect& e = EFFECTS.arr[s.pEffect];
+
+	e.fPos += s.dir * (e.length - e.timer);
+	e.timer += dt;
+	if (e.timer > e.length)
+		EFFECTS.remove(s.pEffect);
+}
+void drawSwoosh(void* data)
+{
+	Swoosh& s = *(Swoosh*)data;
+	Effect& e = EFFECTS.arr[s.pEffect];
+	DrawTexturePro(C.textures[EFFECTS.pTexture],
+				   s.swooshOffset,
+				   {e.fPos.x, e.fPos.y, G.tileSize, G.tileSize},
+				   {G.tileSize * 0.5f, G.tileSize * 0.5f},
+				   math::radToDeg(s.drawRot),
+				   WHITE);
 }

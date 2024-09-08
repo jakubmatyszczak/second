@@ -20,7 +20,6 @@ typedef float	 f32;
 typedef s32 EntityPtr;
 typedef s32 TexturePtr;
 typedef s32 SoundPtr;
-typedef s32 ItemPtr;
 
 struct Content
 {
