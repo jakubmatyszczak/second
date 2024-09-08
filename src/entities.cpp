@@ -266,6 +266,27 @@ struct Action
 	Activity type;
 	v3i		 target;
 };
+
+bool canSee(v3i source, EntityPtr target, f32 sightRange, bool draw = false)
+{
+	v2f dir			  = (toV2f(ENTITIES.arr[target].iPos) - toV2f(source)).norm();
+	v2f posWithOffset = toV2f(source) * G.tileSize + v2f(G.tileSize * 0.5f);
+    f32 resolution = G.tileSize * 0.5f;
+	for (s32 i = 0; i <= sightRange; i++)
+	{
+		v3i tilePos;
+		if (MAP.level[source.z].containsFPos(posWithOffset + dir * i * resolution, tilePos))
+			if (MAP.level[source.z].tile[tilePos.x][tilePos.y].crossable)
+			{
+				if (draw)
+					DrawRectangle(
+						tilePos.x * G.tileSize, tilePos.y * G.tileSize, 16, 16, BLUESKY_CLEAR);
+				continue;
+			}
+		return false;
+	}
+	return true;
+}
 struct Ai
 {
 	enum State
@@ -277,10 +298,10 @@ struct Ai
 	Action action;
 	bool   alarmed;
 
-	const Action& update(const v3i iPos, const CreatueStats& stats, const Unit& unit)
+	const Action& update(const v3i& iPos, const CreatueStats& stats, const Unit& unit)
 	{
 		action.type = Action::NONE;
-		if ((F.dudePos - iPos).getLength() < stats.sightRange)
+		if (canSee(iPos, G.entDude, stats.sightRange))
 		{
 			alarmed = true;
 			state	= State::CHASE;
@@ -572,8 +593,8 @@ void updateItem(void* data, f32 dt)
 
 	if (F.dudeUse && F.dudePos == e.iPos && !i.isPicked)
 	{
-        itemUse(G.entDude, i.pEntity, false, true, {});
-		F.entUsed  = i.pEntity;
+		itemUse(G.entDude, i.pEntity, false, true, {});
+		F.entUsed = i.pEntity;
 	}
 	if (!i.isPicked)
 		e.fPos = toV2f(e.iPos) * G.tileSize;
@@ -734,7 +755,8 @@ void updateGoblin(void* data, f32 dt)
 	{
 		const Action& action = g.ai.update(e.iPos, g.currentStats, g.unit);
 		if (action.type == action.MOVE)
-			e.iPos = action.target;
+			e.iPos = e.iPos;
+		// e.iPos = action.target;
 		if (action.type == action.STRIKE)
 		{
 			Strike::add(action.target, g.currentStats.dmg, g.pEntity, G.entDude);
@@ -778,9 +800,10 @@ void drawGoblin(void* data)
 				   v2f(size / 2).toVector2(),
 				   math::radToDeg(unitGetAnimRot(g.unit)),
 				   g.unit.gotHit > 0 ? RED : WHITE);
-    drawItemEquipped(g.itemHeld, e.fPos);
+	drawItemEquipped(g.itemHeld, e.fPos);
 	if (G.debugDrawSightRange)
 		DrawCircleV(drawPos.toVector2(), g.currentStats.sightRange * G.tileSize, RED_CLEAR);
+	canSee(e.iPos, G.entDude, g.currentStats.sightRange, true);
 };
 struct OldMan
 {
@@ -867,10 +890,7 @@ bool tryHit(v3i pos, EntityPtr target, f32 dmg)
 			return Player::tryHit(target, dmg);
 	return false;
 }
-bool isDead(EntityPtr pEntity)
-{
-    return !ENTITIES.active[pEntity];
-}
+bool isDead(EntityPtr pEntity) { return !ENTITIES.active[pEntity]; }
 
 v3i computeMoveToTarget(v3i start, v3i target, s32 speed)
 {

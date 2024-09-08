@@ -30,11 +30,9 @@ struct MapLayer
 	v3i	 origin					  = {};
 	Tile tile[nTiles][nTiles]	  = {};
 	v3i	 posWorld[nTiles][nTiles] = {};
-	v3i	 toLocalCoords(v3i worldPos)
-	{
-		v3i local = worldPos - origin;
-		return local;
-	}
+	v3i	 toLocalCoords(v3i worldPos) { return worldPos - origin; }
+	v3i	 toWorldCoords(v3i localPos) { return localPos + origin; }
+
 	bool containsXY(v3i worldPos)
 	{
 		v3i local = toLocalCoords(worldPos);
@@ -55,6 +53,16 @@ struct MapLayer
 		return tile[local.x][local.y];
 	}
 	bool tryMove(v3i pos) { return getTileAt(pos).crossable; }
+	bool containsFPos(v2f fPosWorld, v3i& iWorldCoords)
+	{
+		v3i iPosWorld = toV3i(fPosWorld / G.tileSize);
+		if (containsXY(iPosWorld))
+		{
+			iWorldCoords = iPosWorld;
+			return true;
+		}
+		return false;
+	}
 };
 
 struct Map

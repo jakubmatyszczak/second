@@ -77,13 +77,14 @@ int main(void)
 	Item::add(Item::PICKAXE, {10, 52, 0});
 	Item::add(Item::SWORD, {10, 53, 0});
 	Item::add(Item::SWORD, {11, 53, 0});
-    Goblin::add({20,50,0}, Unit::Role::FIGHTER);
+    Goblin::add({23,24,0}, Unit::Role::FIGHTER);
 
-	G.camera.zoom	= 6.f;
+	G.camera.zoom	= 3.f;
 	G.camera.offset = {660, 360};
 	u32	 frame		= 0;
 	bool done		= false;
-	G.entDude		= Player::add({8, 53, 0});
+	// G.entDude		= Player::add({8, 53, 0});
+	G.entDude		= Player::add({26, 26, 0});
 	Player& dude	= Player::get(G.entDude);
 	Entity& eDude	= dude.getEntity();
 	NARRATIVE.init();
