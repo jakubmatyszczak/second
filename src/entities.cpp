@@ -269,20 +269,27 @@ struct Action
 
 bool canSee(v3i source, EntityPtr target, f32 sightRange, bool draw = false)
 {
-	v2f dir			  = (toV2f(ENTITIES.arr[target].iPos) - toV2f(source)).norm();
-	v2f posWithOffset = toV2f(source) * G.tileSize + v2f(G.tileSize * 0.5f);
-    f32 resolution = G.tileSize * 0.5f;
-	for (s32 i = 0; i <= sightRange; i++)
+	v2f dir	 = (toV2f(ENTITIES.arr[target].iPos) - toV2f(source));
+	f32 dist = dir.getLength();
+	if (dist > sightRange)
+		return false;
+	dir = dir.norm();
+
+	v2f		  posWithOffset = toV2f(source) * G.tileSize + v2f(G.tileSize * 0.5f);
+	f32		  resolution	= G.tileSize * 0.5f;
+	s32		  checks		= sightRange * G.tileSize / resolution;
+	MapLayer& level			= MAP.level[source.z];
+	for (s32 i = 0; i <= checks; i++)
 	{
+		v2f point = posWithOffset + dir * i * resolution;
+		DrawCircle(point.x, point.y, 4, WHITE);
 		v3i tilePos;
-		if (MAP.level[source.z].containsFPos(posWithOffset + dir * i * resolution, tilePos))
-			if (MAP.level[source.z].tile[tilePos.x][tilePos.y].crossable)
-			{
-				if (draw)
-					DrawRectangle(
-						tilePos.x * G.tileSize, tilePos.y * G.tileSize, 16, 16, BLUESKY_CLEAR);
-				continue;
-			}
+		if (level.containsFPos(point, tilePos) && level.tile[tilePos.x][tilePos.y].crossable)
+		{
+			if (dist * G.tileSize < i * resolution)
+				return true;
+			continue;
+		}
 		return false;
 	}
 	return true;
@@ -803,7 +810,8 @@ void drawGoblin(void* data)
 	drawItemEquipped(g.itemHeld, e.fPos);
 	if (G.debugDrawSightRange)
 		DrawCircleV(drawPos.toVector2(), g.currentStats.sightRange * G.tileSize, RED_CLEAR);
-	canSee(e.iPos, G.entDude, g.currentStats.sightRange, true);
+	if (canSee(e.iPos, G.entDude, g.currentStats.sightRange, true))
+		DrawCircle(drawPos.x, drawPos.y, 10, BLUE);
 };
 struct OldMan
 {
