@@ -4,14 +4,16 @@
 #include "map.cpp"
 #include "dialogs.cpp"
 
+#include "raylib.h"
+
 struct WorldState
 {
 };
-Map		   MAP;
-Entities   ENTITIES;
-DialogBox  DIALOGBOX;
-Narrative  NARRATIVE;
-WorldState WORLD;
+Map			  MAP;
+Entities	  ENTITIES;
+DialogBox	  DIALOGBOX;
+Narrative	  NARRATIVE;
+WorldState	  WORLD;
 
 bool canClimb(v3i& pos)
 {
@@ -76,32 +78,41 @@ int main(void)
 	createLevelDeepUnderground({0, 0, -5}, MAP.level[-5]);
 	Item::add(Item::PICKAXE, {10, 52, 0});
 	Item::add(Item::SWORD, {10, 53, 0});
-    Goblin::add({24,30,0}, Unit::Role::FIGHTER);
-    Goblin::add({25,31,0}, Unit::Role::ARCHER);
-    Goblin::add({24,32,0}, Unit::Role::FIGHTER);
-    Goblin::add({23,31,0}, Unit::Role::FIGHTER);
+	Goblin::add({24, 30, 0}, Unit::Role::FIGHTER);
+	Goblin::add({25, 31, 0}, Unit::Role::ARCHER);
+	Goblin::add({24, 32, 0}, Unit::Role::FIGHTER);
+	Goblin::add({23, 31, 0}, Unit::Role::FIGHTER);
 
-    Goblin::add({38,32,0}, Unit::Role::FIGHTER);
-    Goblin::add({40,32,0}, Unit::Role::ARCHER);
-    Goblin::add({39,41,0}, Unit::Role::FIGHTER);
-    Goblin::add({39,33,0}, Unit::Role::FIGHTER);
+	Goblin::add({38, 32, 0}, Unit::Role::FIGHTER);
+	Goblin::add({40, 32, 0}, Unit::Role::ARCHER);
+	Goblin::add({39, 41, 0}, Unit::Role::FIGHTER);
+	Goblin::add({39, 33, 0}, Unit::Role::FIGHTER);
 
-    Goblin::add({35,41,0}, Unit::Role::FIGHTER);
-    Goblin::add({30,41,0}, Unit::Role::FIGHTER);
+	Goblin::add({35, 41, 0}, Unit::Role::FIGHTER);
+	Goblin::add({30, 41, 0}, Unit::Role::FIGHTER);
 
-    Goblin::add({43,21,0}, Unit::Role::ARCHER);
+	Goblin::add({43, 21, 0}, Unit::Role::ARCHER);
 
 	G.camera.zoom	= 3.f;
 	G.camera.offset = {660, 360};
 	u32	 frame		= 0;
 	bool done		= false;
-	// G.entDude		= Player::add({8, 53, 0});
-	G.entDude		= Player::add({26, 26, 0});
-	Player& dude	= Player::get(G.entDude);
-	Entity& eDude	= dude.getEntity();
+	G.entDude		= Player::add({8, 53, 0});
+	// G.entDude	  = Player::add({26, 26, 0});
+	Player& dude  = Player::get(G.entDude);
+	Entity& eDude = dude.getEntity();
 	NARRATIVE.init();
 	Input input;
 	// NARRATIVE.start(0);
+
+	RenderTexture2D lightText = LoadRenderTexture(660, 360);
+	BeginTextureMode(lightText);
+	ClearBackground(BLACK);
+	// DrawCircle(330, 180, 120, WHITE);
+	DrawCircle(330, 180, 100, WHITE_CLEAR);
+	DrawCircle(330, 180, 80, WHITE);
+	// DrawCircleGradient(330, 180, 150, WHITE, BLACK);
+	EndTextureMode();
 
 	while (!done)
 	{
@@ -113,7 +124,7 @@ int main(void)
 
 		frame++;
 		FD.clear();
-		FD.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), G.camera);
+		FD.mousePosWorld  = GetScreenToWorld2D(GetMousePosition(), G.camera);
 		FD.mousePosWindow = GetMousePosition();
 
 		if (!DIALOGBOX.input(input.getAction()))
@@ -152,6 +163,10 @@ int main(void)
 			}
 			EndMode2D();
 		}
+		BeginBlendMode(BLEND_MULTIPLIED);
+		u8 c = 200;
+		DrawTextureEx(lightText.texture, {0, 0}, 0.f, 2.f, {c, c, c, c});
+		EndBlendMode();
 		DrawText(
 			TextFormat("%d, %d, %d", eDude.iPos.x, eDude.iPos.y, eDude.iPos.z), 10, 10, 20, YELLOW);
 		DrawText(TextFormat("%d, %d, %d", FD.dudeAimTile.x, FD.dudeAimTile.y, FD.dudeAimTile.z),
