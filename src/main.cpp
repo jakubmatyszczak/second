@@ -76,8 +76,20 @@ int main(void)
 	createLevelDeepUnderground({0, 0, -5}, MAP.level[-5]);
 	Item::add(Item::PICKAXE, {10, 52, 0});
 	Item::add(Item::SWORD, {10, 53, 0});
-	Item::add(Item::SWORD, {11, 53, 0});
-    Goblin::add({23,24,0}, Unit::Role::FIGHTER);
+    Goblin::add({24,30,0}, Unit::Role::FIGHTER);
+    Goblin::add({25,31,0}, Unit::Role::ARCHER);
+    Goblin::add({24,32,0}, Unit::Role::FIGHTER);
+    Goblin::add({23,31,0}, Unit::Role::FIGHTER);
+
+    Goblin::add({38,32,0}, Unit::Role::FIGHTER);
+    Goblin::add({40,32,0}, Unit::Role::ARCHER);
+    Goblin::add({39,41,0}, Unit::Role::FIGHTER);
+    Goblin::add({39,33,0}, Unit::Role::FIGHTER);
+
+    Goblin::add({35,41,0}, Unit::Role::FIGHTER);
+    Goblin::add({30,41,0}, Unit::Role::FIGHTER);
+
+    Goblin::add({43,21,0}, Unit::Role::ARCHER);
 
 	G.camera.zoom	= 3.f;
 	G.camera.offset = {660, 360};

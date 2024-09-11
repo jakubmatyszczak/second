@@ -597,8 +597,8 @@ struct Player
 				DrawCircle(slotPos.x + 64 / 2.f, slotPos.y + 64 / 2.f, 24, RED_CLEAR);
 			drawItemThumbnail(inventory[i], slotPos);
 		}
-		DrawRectangle(50, 10, 110, 20, BLACK);
-		DrawRectangle(55, 15, (s32)(100.f * (unit.hitpoints / baseStats.maxHp)), 10, RED);
+		DrawRectangle(100, 10, 110, 20, BLACK);
+		DrawRectangle(105, 15, (s32)(100.f * (unit.hitpoints / baseStats.maxHp)), 10, RED);
 	}
 };
 
