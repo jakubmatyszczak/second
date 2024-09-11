@@ -932,7 +932,7 @@ v3i computeMoveToTarget(v3i start, v3i target, s32 speed)
 				}
 		}
 	for (u32 i = 0; i < nPoints; i++)
-		if (ENTITIES.tryMove(bestPos[i]))
+		if (ENTITIES.tryMove(bestPos[i]) && MAP.tryMove(bestPos[i]))
 			return bestPos[i];
 	return start;
 }
