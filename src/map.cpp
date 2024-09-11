@@ -193,35 +193,35 @@ void createLevelDeepUnderground(v3i origin, MapLayer& level)
 }
 void updateLevels(MapLayer levels[])
 {
-	if (!F.dudeHit)
+	if (!FD.dudeHit)
 		return;
-	MapLayer& l		 = levels[F.dudeAimTile.z];
-	MapLayer& lAbove = levels[F.dudeAimTile.z + 1];
-	MapLayer& lBelow = levels[F.dudeAimTile.z - 1];
+	MapLayer& l		 = levels[FD.dudeAimTile.z];
+	MapLayer& lAbove = levels[FD.dudeAimTile.z + 1];
+	MapLayer& lBelow = levels[FD.dudeAimTile.z - 1];
 
 	// below checks if we are on the surface which is a special case (crossable, non-empty tiles)
 	// todo: refactor
-	if (F.dudePos.z >= 0 && levels[F.dudePos.z].containsXY(F.dudeAimTile))
-		if (levels[F.dudePos.z].getTileAt(F.dudePos).type == MapLayer::Tile::GRASS)
-			return (void)(levels[F.dudePos.z].getTileAt(F.dudePos).type = MapLayer::Tile::EMPTY);
+	if (FD.dudePos.z >= 0 && levels[FD.dudePos.z].containsXY(FD.dudeAimTile))
+		if (levels[FD.dudePos.z].getTileAt(FD.dudePos).type == MapLayer::Tile::GRASS)
+			return (void)(levels[FD.dudePos.z].getTileAt(FD.dudePos).type = MapLayer::Tile::EMPTY);
 
-	if (l.containsXYZ(F.dudeAimTile))
+	if (l.containsXYZ(FD.dudeAimTile))
 	{
-		MapLayer::Tile& tile = l.getTileAt(F.dudeAimTile);
+		MapLayer::Tile& tile = l.getTileAt(FD.dudeAimTile);
 		tile.hitPoints -= 1;
 		if (tile.hitPoints > 0)
 			return;
 		tile.type		= tile.EMPTY;
 		tile.crossable	= true;
 		tile.discovered = true;
-		if (lAbove.containsXY(F.dudeAimTile) &&
-			lAbove.getTileAt(F.dudeAimTile).type == MapLayer::Tile::EMPTY)
-			lAbove.getTileAt(F.dudeAimTile).floor = false;
+		if (lAbove.containsXY(FD.dudeAimTile) &&
+			lAbove.getTileAt(FD.dudeAimTile).type == MapLayer::Tile::EMPTY)
+			lAbove.getTileAt(FD.dudeAimTile).floor = false;
 		for (s32 x = -1; x <= 1; x++)
 			for (s32 y = -1; y <= 1; y++)
-				if (l.containsXYZ(F.dudeAimTile + v3i(x, y, 0)))
+				if (l.containsXYZ(FD.dudeAimTile + v3i(x, y, 0)))
 				{
-					MapLayer::Tile& tile = l.getTileAt(F.dudeAimTile + v3i(x, y, 0));
+					MapLayer::Tile& tile = l.getTileAt(FD.dudeAimTile + v3i(x, y, 0));
 					tile.discovered		 = true;
 				}
 	}
@@ -251,7 +251,7 @@ void drawLevel(MapLayer levels[], s32 bottomLevel, s32 topLevel)
 					else
 						DrawRectangleV(
 							tilePos.toVector2(), {G.tileSize, G.tileSize}, BLUESKY_CLEAR);
-					if (z == F.dudePos.z && !lAbove.tile[x][y].floor && !tile.surface)
+					if (z == FD.dudePos.z && !lAbove.tile[x][y].floor && !tile.surface)
 						DrawCircleGradient(tilePos.x + 8, tilePos.y + 8, 8, YELLOW, {});
 				}
 				else if (tile.discovered)

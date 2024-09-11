@@ -135,10 +135,11 @@ struct Entities
 	}
 };
 
-extern Map		 MAP;
-extern Entities	 ENTITIES;
-extern Content	 C;
-extern FrameData F;
+extern Map			  MAP;
+extern Entities		  ENTITIES;
+extern Content		  C;
+extern FrameData	  FD;
+extern PersistantData PD;
 
 struct Item
 {
@@ -267,9 +268,9 @@ struct Action
 	v3i		 target;
 };
 
-bool canSee(v3i source, EntityPtr target, f32 sightRange, bool draw = false)
+bool canSee(v3i source, v3i target, f32 sightRange, bool draw = false)
 {
-	v2f dir	 = (toV2f(ENTITIES.arr[target].iPos) - toV2f(source));
+	v2f dir	 = (toV2f(target) - toV2f(source));
 	f32 dist = dir.getLength();
 	if (dist > sightRange)
 		return false;
@@ -282,7 +283,6 @@ bool canSee(v3i source, EntityPtr target, f32 sightRange, bool draw = false)
 	for (s32 i = 0; i <= checks; i++)
 	{
 		v2f point = posWithOffset + dir * i * resolution;
-		DrawCircle(point.x, point.y, 4, WHITE);
 		v3i tilePos;
 		if (level.containsFPos(point, tilePos) && level.tile[tilePos.x][tilePos.y].crossable)
 		{
@@ -308,7 +308,10 @@ struct Ai
 	const Action& update(const v3i& iPos, const CreatueStats& stats, const Unit& unit)
 	{
 		action.type = Action::NONE;
-		if (canSee(iPos, G.entDude, stats.sightRange))
+		if (canSee(iPos, ENTITIES.arr[G.entDude].iPos, stats.sightRange) ||
+			canSee(iPos, PD.dudesBreadcrumbs[0], stats.sightRange) ||
+			canSee(iPos, PD.dudesBreadcrumbs[0], stats.sightRange) ||
+			canSee(iPos, PD.dudesBreadcrumbs[1], stats.sightRange))
 		{
 			alarmed = true;
 			state	= State::CHASE;
@@ -323,7 +326,7 @@ struct Ai
 				break;
 			case CHASE:
 			{
-				v2f toDude = (toV2f(F.dudePos - iPos));
+				v2f toDude = (toV2f(FD.dudePos - iPos));
 				if (toDude.getLength() > stats.range)
 				{  // Move
 					action.type	  = Action::MOVE;
@@ -331,7 +334,7 @@ struct Ai
 					if (ENTITIES.tryMove(targetPos) && MAP.tryMove(targetPos))
 						action.target = targetPos;
 					else  // cannot move on the shortest path
-						action.target = computeMoveToTarget(iPos, F.dudePos, stats.movements);
+						action.target = computeMoveToTarget(iPos, FD.dudePos, stats.movements);
 				}
 				else if (unit.strikeCooldown <= 0)
 				{  // Attack!
@@ -339,10 +342,10 @@ struct Ai
 						action.type = action.STRIKE;
 					if (unit.role == Unit::ARCHER)
 						action.type = action.SHOOT;
-					if (F.dudeHit)
-						action.target = F.dudePos;
+					if (FD.dudeHit)
+						action.target = FD.dudePos;
 					else
-						action.target = {F.dudeAimTile.x, F.dudeAimTile.y, F.dudePos.z};
+						action.target = {FD.dudeAimTile.x, FD.dudeAimTile.y, FD.dudePos.z};
 				}
 			}
 			break;
@@ -412,7 +415,7 @@ struct Player
 		dude.pSfxStepRock	= C.SFX_STEP_ROCK;
 		dude.unit.hitpoints = dude.baseStats.maxHp;
 
-		F.dudePos = pos;
+		FD.dudePos = pos;
 		return pEntity;
 	}
 	static Player& get(EntityPtr pEntity) { return *(Player*)ENTITIES.arr[pEntity].data; };
@@ -449,11 +452,11 @@ struct Player
 			e.iMoveTarget.z++;
 		if (hit)
 		{
-			F.dudeHit = true;
+			FD.dudeHit = true;
 			PlaySound(C.sounds[pSfxHit]);
 		}
 		if (use)
-			F.dudeUse = true;
+			FD.dudeUse = true;
 		if (itemHeld >= 0)
 			itemUse(pEntity, inventory[itemHeld], hit, use, direction);
 		if (swap)
@@ -482,12 +485,12 @@ struct Player
 		Entity& e = ENTITIES.arr[pEntity];
 		e.fVel	  = (toV2f(e.iPos * 16) - e.fPos) * currentStats.speed;
 		e.fPos += e.fVel;
-		realPos		  = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
-		F.dudePos	  = e.iPos;
-		F.dudeAimTile = realPos + toV3i(direction);
-		if (F.dudeAimTile == F.dudePos)
-			F.dudeAimTile.z--;
-		if (unitUpdate(unit, dt, F.progressLogic))
+		realPos		   = {(s32)((e.fPos.x + 8.f) / 16.f), (s32)((e.fPos.y + 8.f) / 16.f), e.iPos.z};
+		FD.dudePos	   = e.iPos;
+		FD.dudeAimTile = realPos + toV3i(direction);
+		if (FD.dudeAimTile == FD.dudePos)
+			FD.dudeAimTile.z--;
+		if (unitUpdate(unit, dt, FD.progressLogic))
 		{
 			exitWithMessage("XD zdech XD");
 			ENTITIES.remove(pEntity);
@@ -504,13 +507,19 @@ struct Player
 	void interact()
 	{
 		Entity& e = ENTITIES.arr[pEntity];
-		if (F.entUsed)
+		if (FD.progressLogic)
+		{
+			PD.dudesBreadcrumbs[2] = PD.dudesBreadcrumbs[1];
+			PD.dudesBreadcrumbs[1] = PD.dudesBreadcrumbs[0];
+			PD.dudesBreadcrumbs[0] = e.iPos;
+		}
+		if (FD.entUsed)
 		{
 			for (u32 i = 0; i < nItemsMax; i++)
 			{
 				if (inventory[i])
 					continue;
-				inventory[i] = F.entUsed;
+				inventory[i] = FD.entUsed;
 				itemsInInventory++;
 				if (itemsInInventory == 1)
 					itemHeld = 0;
@@ -598,10 +607,10 @@ void updateItem(void* data, f32 dt)
 	Item&	i = *(Item*)data;
 	Entity& e = ENTITIES.arr[i.pEntity];
 
-	if (F.dudeUse && F.dudePos == e.iPos && !i.isPicked)
+	if (FD.dudeUse && FD.dudePos == e.iPos && !i.isPicked)
 	{
 		itemUse(G.entDude, i.pEntity, false, true, {});
-		F.entUsed = i.pEntity;
+		FD.entUsed = i.pEntity;
 	}
 	if (!i.isPicked)
 		e.fPos = toV2f(e.iPos) * G.tileSize;
@@ -758,12 +767,11 @@ void updateGoblin(void* data, f32 dt)
 	g.currentStats.sightRange =
 		g.ai.alarmed ? g.baseStats.alarmedSightRange : g.baseStats.idleSightRange;
 
-	if (F.progressLogic)
+	if (FD.progressLogic)
 	{
 		const Action& action = g.ai.update(e.iPos, g.currentStats, g.unit);
 		if (action.type == action.MOVE)
-			e.iPos = e.iPos;
-		// e.iPos = action.target;
+			e.iPos = action.target;
 		if (action.type == action.STRIKE)
 		{
 			Strike::add(action.target, g.currentStats.dmg, g.pEntity, G.entDude);
@@ -774,7 +782,7 @@ void updateGoblin(void* data, f32 dt)
 			g.unit.strikeCooldown = g.currentStats.strikeCooldown;
 			Arrow::add(e.iPos, toV2f(action.target - e.iPos), g.currentStats.dmg, 1.5f, 4.f);
 		}
-		if (F.dudeHit && F.dudeAimTile == e.iPos)
+		if (FD.dudeHit && FD.dudeAimTile == e.iPos)
 		{
 			unitHit(g.unit, 0.2f, Player::get(G.entDude).currentStats.dmg);
 			SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(1.2f, 1.8f));
@@ -784,7 +792,7 @@ void updateGoblin(void* data, f32 dt)
 	}
 	e.fVel = (toV2f(e.iPos * G.tileSize) - e.fPos) * g.currentStats.speed;
 	e.fPos += e.fVel;
-	if (unitUpdate(g.unit, dt, F.progressLogic))
+	if (unitUpdate(g.unit, dt, FD.progressLogic))
 	{
 		SetSoundPitch(C.sounds[g.pGrawlShort], math::randomf(0.7f, 1.f));
 		PlaySound(C.sounds[g.pGrawlShort]);
@@ -796,7 +804,7 @@ void drawGoblin(void* data)
 	Goblin& g = *(Goblin*)data;
 	Entity& e = ENTITIES.arr[g.pEntity];
 
-	if (F.dudePos.z != e.iPos.z)
+	if (FD.dudePos.z != e.iPos.z)
 		return;
 	f32 scale	= 0.6f;
 	f32 size	= G.tileSize * scale;
@@ -810,8 +818,6 @@ void drawGoblin(void* data)
 	drawItemEquipped(g.itemHeld, e.fPos);
 	if (G.debugDrawSightRange)
 		DrawCircleV(drawPos.toVector2(), g.currentStats.sightRange * G.tileSize, RED_CLEAR);
-	if (canSee(e.iPos, G.entDude, g.currentStats.sightRange, true))
-		DrawCircle(drawPos.x, drawPos.y, 10, BLUE);
 };
 struct OldMan
 {
@@ -835,15 +841,15 @@ void updateOldMan(void* data, f32 dt)
 	OldMan& om = *(OldMan*)data;
 	Entity& e  = ENTITIES.arr[om.pEntity];
 
-	if (F.progressLogic)
-		if (F.dudeUse && F.dudeAimTile == e.iPos)
+	if (FD.progressLogic)
+		if (FD.dudeUse && FD.dudeAimTile == e.iPos)
 			NARRATIVE.start(1);
 }
 void drawOldMan(void* data)
 {
 	OldMan& om = *(OldMan*)data;
 	Entity& e  = ENTITIES.arr[om.pEntity];
-	if (F.dudePos.z != e.iPos.z)
+	if (FD.dudePos.z != e.iPos.z)
 		return;
 	f32 scale	= 0.6f;
 	f32 size	= G.tileSize * scale;
@@ -916,7 +922,7 @@ v3i computeMoveToTarget(v3i start, v3i target, s32 speed)
 		for (s32 y = -speed; y <= speed; y++)
 		{
 			v3i newPos = start + v3i(x, y, 0);
-			f32 dist   = (toV2f(F.dudePos) - toV2f(newPos)).getLengthSquared();
+			f32 dist   = (toV2f(FD.dudePos) - toV2f(newPos)).getLengthSquared();
 			for (s32 i = 0; i < nPoints; i++)
 				if (dist < bestDist[i])
 				{

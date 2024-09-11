@@ -100,13 +100,13 @@ int main(void)
 		G.debugDrawSightRange = IsKeyDown(KEY_LEFT_CONTROL);
 
 		frame++;
-		F.clear();
-		F.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), G.camera);
-		F.mousePosWindow = GetMousePosition();
+		FD.clear();
+		FD.mousePosWorld	 = GetScreenToWorld2D(GetMousePosition(), G.camera);
+		FD.mousePosWindow = GetMousePosition();
 
 		if (!DIALOGBOX.input(input.getAction()))
 		{
-			F.progressLogic =
+			FD.progressLogic =
 				dude.input(input.getHeading(eDude.fPos + v2f(G.tileSize / 2.f, G.tileSize / 2.f)),
 						   input.getHit(),
 						   input.getMove(),
@@ -142,7 +142,7 @@ int main(void)
 		}
 		DrawText(
 			TextFormat("%d, %d, %d", eDude.iPos.x, eDude.iPos.y, eDude.iPos.z), 10, 10, 20, YELLOW);
-		DrawText(TextFormat("%d, %d, %d", F.dudeAimTile.x, F.dudeAimTile.y, F.dudeAimTile.z),
+		DrawText(TextFormat("%d, %d, %d", FD.dudeAimTile.x, FD.dudeAimTile.y, FD.dudeAimTile.z),
 				 10,
 				 25,
 				 20,

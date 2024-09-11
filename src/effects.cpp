@@ -138,7 +138,7 @@ void updateStrike(void* data, f32 dt)
 
 	bool finished = s.aFadeout.update(dt);
 	s.crossRot += dt * 128;
-	if (F.progressLogic)
+	if (FD.progressLogic)
 		e.timer++;
 	if (e.timer == e.length)
 	{

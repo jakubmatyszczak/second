@@ -34,7 +34,7 @@ struct Input
 			}
 			case Controller::MOUSE:
 			{
-				heading = F.mousePosWorld - point;
+				heading = FD.mousePosWorld - point;
 				if (heading.getLength() < G.tileSize)
 					heading = 0;
 				break;

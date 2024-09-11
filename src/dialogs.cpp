@@ -17,7 +17,7 @@ struct DialogBox
 	// returns true if busy
 	bool input(bool progressToNext)
 	{
-		F.progressDialog = progressToNext;
+		FD.progressDialog = progressToNext;
 		if (busy && progressToNext)
 			busy = !busy;
 		return busy;
@@ -135,7 +135,7 @@ struct Narrative
 	{
 		if (active < 0)
 			return false;
-		if (dialogs[active].update(F.progressDialog))
+		if (dialogs[active].update(FD.progressDialog))
 			active = -1;
 		return true;
 	}

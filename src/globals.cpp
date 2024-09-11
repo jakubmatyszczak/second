@@ -9,6 +9,10 @@ constexpr Color BLUESKY_CLEAR = {0x87, 0xCE, 0xFF, 100};
 constexpr Color GREEN_CLEAR	  = {0, 200, 0, 100};
 constexpr Color RED_CLEAR	  = {200, 0, 0, 100};
 
+struct PersistantData
+{
+    v3i dudesBreadcrumbs[3];
+};
 struct FrameData
 {
 	v2f mousePosWorld;
@@ -39,6 +43,7 @@ struct Globals
 	bool debugDrawSightRange;
 };
 
-FrameData F;
+PersistantData PD;
+FrameData FD;
 Globals	  G;
 Content	  C;
