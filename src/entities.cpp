@@ -30,16 +30,6 @@ struct Entity
 		PROJECTILE,
 		NPC,
 	};
-	enum Arch
-	{
-		UNKNOWN = 0,
-		DUDE,
-		GOBLIN,
-		ARROW,
-		OLD_MAN,
-		ITEM,
-	};
-	Arch arch;
 	Meta meta;
 	v3i	 iPos;
 	v3i	 iMoveTarget;
@@ -61,14 +51,13 @@ struct Entities
 	bool   active[nMax]		   = {};
 	bool   isLightSource[nMax] = {};
 
-	s32 add(Entity::Meta meta, Entity::Arch archetype, v3i pos)
+	s32 add(Entity::Meta meta, v3i pos)
 	{
 		for (u32 i = 1; i < nMax; i++)
 		{
 			if (active[i])
 				continue;
 			memset(&arr[i], 0, sizeof(arr[i]));
-			arr[i].arch	  = archetype;
 			arr[i].meta	  = meta;
 			arr[i].iPos	  = pos;
 			arr[i].fPos	  = {(f32)pos.x * G.tileSize, (f32)pos.y * G.tileSize};
@@ -85,22 +74,22 @@ struct Entities
 		for (u32 i = 1; i < nMax; i++)
 			if (active[i])
 			{
-				switch (arr[i].arch)
+				switch (arr[i].meta)
 				{
-					case Entity::UNKNOWN:
+					case Entity::Meta::UNKNOWN:
 						break;
-					case Entity::DUDE:
+					case Entity::Meta::PLAYER:
 						break;
-					case Entity::GOBLIN:
+					case Entity::Meta::ENEMY:
 						updateGoblin(arr[i].data, dt);
 						break;
-					case Entity::ARROW:
+					case Entity::Meta::PROJECTILE:
 						updateArrow(arr[i].data, dt);
 						break;
-					case Entity::OLD_MAN:
+					case Entity::Meta::NPC:
 						updateOldMan(arr[i].data, dt);
 						break;
-					case Entity::ITEM:
+					case Entity::Meta::ITEM:
 						updateItem(arr[i].data, dt);
 				}
 			}
@@ -110,22 +99,22 @@ struct Entities
 		for (u32 i = 1; i < nMax; i++)
 			if (active[i])
 			{
-				switch (arr[i].arch)
+				switch (arr[i].meta)
 				{
-					case Entity::UNKNOWN:
+					case Entity::Meta::UNKNOWN:
 						break;
-					case Entity::DUDE:
+					case Entity::Meta::PLAYER:
 						break;
-					case Entity::GOBLIN:
+					case Entity::Meta::ENEMY:
 						drawGoblin(arr[i].data);
 						break;
-					case Entity::ARROW:
+					case Entity::Meta::PROJECTILE:
 						drawArrow(arr[i].data);
 						break;
-					case Entity::OLD_MAN:
+					case Entity::Meta::NPC:
 						drawOldMan(arr[i].data);
 						break;
-					case Entity::ITEM:
+					case Entity::Meta::ITEM:
 						drawItem(arr[i].data);
 						break;
 				}
@@ -174,7 +163,7 @@ struct Item
 	static s32 add(Arch type, v3i pos)
 	{
 		static_assert(sizeof(Item) <= sizeof(Entity::data), "ITEM does not fir into ENTITY");
-		s32		pEntity = ENTITIES.add(Entity::Meta::ITEM, Entity::ITEM, pos);
+		s32		pEntity = ENTITIES.add(Entity::Meta::ITEM, pos);
 		Entity& e		= ENTITIES.arr[pEntity];
 		Item&	item	= *new (e.data) Item();
 		item.pEntity	= pEntity;
@@ -369,7 +358,7 @@ struct Arrow
 
 	static s32 add(v3i pos, v2f dir, f32 dmg, f32 speed, f32 range)
 	{
-		EntityPtr pEntity = ENTITIES.add(Entity::Meta::PROJECTILE, Entity::Arch::ARROW, pos);
+		EntityPtr pEntity = ENTITIES.add(Entity::Meta::PROJECTILE, pos);
 		Entity&	  e		  = ENTITIES.arr[pEntity];
 		Arrow&	  a		  = *new (e.data) Arrow;
 		a = {.pEntity = pEntity, .tilesetOffset = {}, .dmg = dmg, .range = range * G.tileSize};
@@ -410,7 +399,7 @@ struct Player
 	static s32 add(v3i pos)
 	{
 		static_assert(sizeof(Player) <= sizeof(Entity::data), "Player does not fir into ENTITY");
-		s32		pEntity = ENTITIES.add(Entity::Meta::PLAYER, Entity::DUDE, pos);
+		s32		pEntity = ENTITIES.add(Entity::Meta::PLAYER, pos);
 		Entity& e		= ENTITIES.arr[pEntity];
 		Player& dude	= *new (e.data) Player();
 
@@ -691,7 +680,7 @@ void drawItem(void* data)
 void itemUse(EntityPtr user, EntityPtr pItem, bool hit, bool use, v2f dir)
 {
 	Entity& e = ENTITIES.arr[pItem];
-	if (e.arch != Entity::ITEM)
+	if (e.meta != Entity::Meta::ITEM)
 		return;
 	Item& i = *(Item*)e.data;
 	if (use && !i.isPicked)
@@ -745,7 +734,7 @@ struct Goblin
 	static s32 add(v3i pos, Unit::Role role)
 	{
 		static_assert(sizeof(Goblin) < sizeof(Entity::data), "GOBLIN does not fit into ENTITY");
-		EntityPtr pEntity = ENTITIES.add(Entity::Meta::ENEMY, Entity::Arch::GOBLIN, pos);
+		EntityPtr pEntity = ENTITIES.add(Entity::Meta::ENEMY, pos);
 		Entity&	  e		  = ENTITIES.arr[pEntity];
 		Goblin&	  g		  = *new (e.data) Goblin;
 		g.pEntity		  = pEntity;
@@ -836,7 +825,7 @@ struct OldMan
 	static s32 add(v3i pos)
 	{
 		static_assert(sizeof(OldMan) < sizeof(Entity::data), "OLDMAN does not fit into ENTITY");
-		EntityPtr pEntity = ENTITIES.add(Entity::Meta::NPC, Entity::Arch::OLD_MAN, pos);
+		EntityPtr pEntity = ENTITIES.add(Entity::Meta::NPC, pos);
 		Entity&	  e		  = ENTITIES.arr[pEntity];
 		OldMan&	  om	  = *new (e.data) OldMan;
 		om.pEntity		  = pEntity;
