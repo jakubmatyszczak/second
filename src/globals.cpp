@@ -35,6 +35,7 @@ struct Globals
 {
 	static constexpr u32 tileSize = 16;
 
+    u32 frame;
 	Camera2D  camera;
 	EntityPtr entDude;
 	u32		  screenX;

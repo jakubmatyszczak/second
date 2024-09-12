@@ -48,13 +48,18 @@ struct Entity
 	f32	 fScale;
 	v2f	 fDrawPos;
 	f32	 fDrawRot;
-	u8	 data[1024];
+
+	f32 lightRadius;
+
+	u8 data[1024];
 };
 struct Entities
 {
-	static constexpr u32 nMax		  = 128;
-	Entity				 arr[nMax]	  = {};
-	bool				 active[nMax] = {};
+	static constexpr u32 nMax = 128;
+
+	Entity arr[nMax]		   = {};
+	bool   active[nMax]		   = {};
+	bool   isLightSource[nMax] = {};
 
 	s32 add(Entity::Meta meta, Entity::Arch archetype, v3i pos)
 	{
@@ -405,9 +410,13 @@ struct Player
 	static s32 add(v3i pos)
 	{
 		static_assert(sizeof(Player) <= sizeof(Entity::data), "Player does not fir into ENTITY");
-		s32		pEntity		= ENTITIES.add(Entity::Meta::PLAYER, Entity::DUDE, pos);
-		Entity& e			= ENTITIES.arr[pEntity];
-		Player& dude		= *new (e.data) Player();
+		s32		pEntity = ENTITIES.add(Entity::Meta::PLAYER, Entity::DUDE, pos);
+		Entity& e		= ENTITIES.arr[pEntity];
+		Player& dude	= *new (e.data) Player();
+
+		ENTITIES.isLightSource[pEntity] = true;
+		e.lightRadius					= 100;
+
 		dude.pEntity		= pEntity;
 		dude.pTexture		= C.TEX_TILESET;
 		dude.pSfxHit		= C.SFX_HIT;

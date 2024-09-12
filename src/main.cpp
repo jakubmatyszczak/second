@@ -3,17 +3,18 @@
 #include "entities.cpp"
 #include "map.cpp"
 #include "dialogs.cpp"
+#include "lighting.cpp"
 
 #include "raylib.h"
 
 struct WorldState
 {
 };
-Map			  MAP;
-Entities	  ENTITIES;
-DialogBox	  DIALOGBOX;
-Narrative	  NARRATIVE;
-WorldState	  WORLD;
+Map		   MAP;
+Entities   ENTITIES;
+DialogBox  DIALOGBOX;
+Narrative  NARRATIVE;
+WorldState WORLD;
 
 bool canClimb(v3i& pos)
 {
@@ -95,7 +96,6 @@ int main(void)
 
 	G.camera.zoom	= 3.f;
 	G.camera.offset = {660, 360};
-	u32	 frame		= 0;
 	bool done		= false;
 	G.entDude		= Player::add({8, 53, 0});
 	// G.entDude	  = Player::add({26, 26, 0});
@@ -105,14 +105,8 @@ int main(void)
 	Input input;
 	// NARRATIVE.start(0);
 
-	RenderTexture2D lightText = LoadRenderTexture(660, 360);
-	BeginTextureMode(lightText);
-	ClearBackground(BLACK);
-	// DrawCircle(330, 180, 120, WHITE);
-	DrawCircle(330, 180, 100, WHITE_CLEAR);
-	DrawCircle(330, 180, 80, WHITE);
-	// DrawCircleGradient(330, 180, 150, WHITE, BLACK);
-	EndTextureMode();
+	Light l;
+    l.init({1320, 720}, 0.5f);
 
 	while (!done)
 	{
@@ -122,7 +116,7 @@ int main(void)
 			loadGame();
 		G.debugDrawSightRange = IsKeyDown(KEY_LEFT_CONTROL);
 
-		frame++;
+		G.frame++;
 		FD.clear();
 		FD.mousePosWorld  = GetScreenToWorld2D(GetMousePosition(), G.camera);
 		FD.mousePosWindow = GetMousePosition();
@@ -147,9 +141,9 @@ int main(void)
 		}
 		NARRATIVE.update();
 
-		G.camera.target =
-			(v2f(G.camera.target) + (dude.getEntity().fPos - v2f(G.camera.target)) * 0.1f)
-				.toVector2();
+		G.camera.target = follow(eDude.fPos, v2f(G.camera.target), 0.2f).toVector2();
+
+		l.recomputeLights();
 
 		BeginDrawing();
 		{
@@ -163,10 +157,7 @@ int main(void)
 			}
 			EndMode2D();
 		}
-		BeginBlendMode(BLEND_MULTIPLIED);
-		u8 c = 200;
-		DrawTextureEx(lightText.texture, {0, 0}, 0.f, 2.f, {c, c, c, c});
-		EndBlendMode();
+		l.drawLight({1320, 720});
 		DrawText(
 			TextFormat("%d, %d, %d", eDude.iPos.x, eDude.iPos.y, eDude.iPos.z), 10, 10, 20, YELLOW);
 		DrawText(TextFormat("%d, %d, %d", FD.dudeAimTile.x, FD.dudeAimTile.y, FD.dudeAimTile.z),
