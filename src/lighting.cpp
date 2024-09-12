@@ -34,11 +34,8 @@ struct Light
 			Vector2 posLocal   = GetWorldToScreen2D(drawPos.toVector2(), G.camera);
 			posLocal		   = {posLocal.x * scale, posLocal.y * scale};
 			posLocal.y		   = tex.texture.height - posLocal.y;  // dunno why this is needed
-			static f32 flicker = 0.f;
-			if (G.frame % 5 == 0)
-				flicker = math::randomf(0.97, 1.03);
-			DrawCircleV(posLocal, e.lightRadius * scale * flicker, {255, 200, 200, 200});
-			DrawCircleV(posLocal, e.lightRadius * scale * 1.75f * flicker, {255, 50, 50, 20});
+			DrawCircleV(posLocal, e.lightRadius * scale, {255, 200, 200, 200});
+			DrawCircleV(posLocal, e.lightRadius * scale * 1.75f, {255, 50, 50, 20});
 		}
 		EndTextureMode();
 	}

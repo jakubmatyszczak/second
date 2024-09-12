@@ -93,6 +93,12 @@ int main(void)
 	Goblin::add({30, 41, 0}, Unit::Role::FIGHTER);
 
 	Goblin::add({43, 21, 0}, Unit::Role::ARCHER);
+	addCampfire({7, 53, 0});
+	addCampfire({20, 53, 0});
+    
+    addTorch({7, 40, 0});
+    addTorch({17, 40, 0});
+    addTorch({27, 40, 0});
 
 	G.camera.zoom	= 3.f;
 	G.camera.offset = {660, 360};
@@ -106,7 +112,7 @@ int main(void)
 	// NARRATIVE.start(0);
 
 	Light l;
-    l.init({1320, 720}, 0.5f);
+	l.init({1320, 720}, 0.5f);
 
 	while (!done)
 	{

@@ -13,6 +13,8 @@ void updateOldMan(void*, f32);
 void drawOldMan(void*);
 void updateItem(void*, f32);
 void drawItem(void*);
+void updateObject(void*, f32);
+void drawObject(void*);
 void drawItemEquipped(EntityPtr pEntity, v2f carrierPos);
 void drawItemThumbnail(EntityPtr pEntity, v2f pos);
 
@@ -29,6 +31,7 @@ struct Entity
 		ENEMY,
 		PROJECTILE,
 		NPC,
+		OBJECT
 	};
 	Meta meta;
 	v3i	 iPos;
@@ -40,6 +43,8 @@ struct Entity
 	f32	 fDrawRot;
 
 	f32 lightRadius;
+	f32 lightRadiusBase;
+	u32 lightFlickerRate;
 
 	u8 data[1024];
 };
@@ -91,6 +96,10 @@ struct Entities
 						break;
 					case Entity::Meta::ITEM:
 						updateItem(arr[i].data, dt);
+						break;
+					case Entity::Meta::OBJECT:
+						updateObject(arr[i].data, dt);
+						break;
 				}
 			}
 	}
@@ -117,6 +126,9 @@ struct Entities
 					case Entity::Meta::ITEM:
 						drawItem(arr[i].data);
 						break;
+					case Entity::Meta::OBJECT:
+						drawObject(arr[i].data);
+						break;
 				}
 			}
 	}
@@ -135,6 +147,19 @@ extern Content		  C;
 extern FrameData	  FD;
 extern PersistantData PD;
 
+struct Object
+{
+	enum Arch
+	{
+		CAMPFIRE,
+		TORCH,
+		CRATE,
+		BARREL
+	};
+	EntityPtr pEntity;
+	Arch	  arch;
+	Rectangle tilesetOffset;
+};
 struct Item
 {
 	enum Arch
@@ -404,7 +429,8 @@ struct Player
 		Player& dude	= *new (e.data) Player();
 
 		ENTITIES.isLightSource[pEntity] = true;
-		e.lightRadius					= 100;
+		e.lightRadiusBase				= 100;
+		e.lightRadius					= e.lightRadiusBase;
 
 		dude.pEntity		= pEntity;
 		dude.pTexture		= C.TEX_TILESET;
@@ -933,4 +959,76 @@ v3i computeMoveToTarget(v3i start, v3i target, s32 speed)
 		if (ENTITIES.tryMove(bestPos[i]) && MAP.tryMove(bestPos[i]))
 			return bestPos[i];
 	return start;
+}
+void addCampfire(const v3i& pos)
+{
+	// static_assert(sizeof(OldMan) < sizeof(Entity::data), "OLDMAN does not fit into ENTITY");
+	EntityPtr pEntity				= ENTITIES.add(Entity::Meta::OBJECT, pos);
+	Entity&	  e						= ENTITIES.arr[pEntity];
+	Object&	  o						= *new (e.data) Object;
+	o.arch							= Object::CAMPFIRE;
+	o.pEntity						= pEntity;
+	o.tilesetOffset					= {64, 0, G.tileSize, G.tileSize};
+	ENTITIES.isLightSource[pEntity] = true;
+	e.lightRadiusBase				= 110;
+	e.lightFlickerRate				= math::random(20, 70);
+}
+void addTorch(const v3i& pos)
+{
+	// static_assert(sizeof(OldMan) < sizeof(Entity::data), "OLDMAN does not fit into ENTITY");
+	EntityPtr pEntity				= ENTITIES.add(Entity::Meta::OBJECT, pos);
+	Entity&	  e						= ENTITIES.arr[pEntity];
+	Object&	  o						= *new (e.data) Object;
+	o.arch							= Object::TORCH;
+	o.pEntity						= pEntity;
+	o.tilesetOffset					= {48, 0, G.tileSize, G.tileSize};
+	ENTITIES.isLightSource[pEntity] = true;
+	e.lightRadiusBase				= 60;
+	e.lightFlickerRate				= math::random(20, 50);
+}
+void updateObject(void* data, f32 dt)
+{
+	Object& o = *(Object*)data;
+	Entity& e = ENTITIES.arr[o.pEntity];
+	e.fPos	  = toV2f(e.iPos) * G.tileSize;
+	switch (o.arch)
+	{
+		case Object::CAMPFIRE:
+			if (G.frame % e.lightFlickerRate == 0)
+			{
+				e.lightFlickerRate = math::random(40, 70);
+				e.lightRadius	   = e.lightRadius * math::randomf(0.99f, 1.1f);
+			}
+			e.lightRadius +=
+				(e.lightRadiusBase - e.lightRadius) * 0.01f + math::randomf(-0.04f, 0.04f);
+			break;
+		case Object::TORCH:
+			if (G.frame % e.lightFlickerRate == 0)
+			{
+				e.lightFlickerRate = math::random(20, 50);
+				e.lightRadius	   = e.lightRadius * math::randomf(0.99f, 1.05f);
+			}
+			e.lightRadius +=
+				(e.lightRadiusBase - e.lightRadius) * 0.01f + math::randomf(-0.08f, 0.08f);
+			break;
+	}
+}
+void drawObject(void* data)
+{
+	Object& o = *(Object*)data;
+	Entity& e = ENTITIES.arr[o.pEntity];
+	switch (o.arch)
+	{
+		case Object::CAMPFIRE:
+		case Object::TORCH:
+			DrawTexturePro(C.textures[C.TEX_TILESET],
+						   o.tilesetOffset,
+						   {e.fPos.x, e.fPos.y, G.tileSize, G.tileSize},
+						   {},
+						   0.f,
+						   WHITE
+
+			);
+			break;
+	}
 }
