@@ -27,6 +27,7 @@ struct Content
 	{
 		TEX_TILESET,
 		TEX_PORTRAITS,
+		TEX_TILESET_TERRAIN,
 		TEX_ID_MAX
 	};
 	enum SFX_ID
@@ -50,7 +51,8 @@ struct Content
 	Sound	  sounds[32];
 	Font	  fonts[8];
 	Image	  levelMap[32];
-	void	  loadTexture(const char* filepath, TEX_ID id) { textures[id] = LoadTexture(filepath); }
+
+	void loadTexture(const char* filepath, TEX_ID id) { textures[id] = LoadTexture(filepath); }
 	void loadLevelMap(const char* filepath, TEX_LEVEL id) { levelMap[id] = LoadImage(filepath); }
 	void loadSfx(const char* filepath, SFX_ID id) { sounds[id] = LoadSound(filepath); }
 	void loadFont(const char* filepath, FONT_ID id) { fonts[id] = LoadFont(filepath); }
@@ -58,6 +60,7 @@ struct Content
 	{
 		loadTexture("res/art/tileset.png", TEX_TILESET);
 		loadTexture("res/art/portraits.png", TEX_PORTRAITS);
+		loadTexture("res/art/tileset_terrain.png", TEX_TILESET_TERRAIN);
 		loadSfx("res/sound/playerSfx/hit.wav", SFX_HIT);
 		loadSfx("res/sound/playerSfx/step_grass.wav", SFX_STEP_GRASS);
 		loadSfx("res/sound/playerSfx/step_rock.wav", SFX_STEP_ROCK);

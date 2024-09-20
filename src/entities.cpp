@@ -151,6 +151,7 @@ struct Object
 {
 	enum Arch
 	{
+		UNKNOWN,
 		CAMPFIRE,
 		TORCH,
 		CRATE,
@@ -159,11 +160,19 @@ struct Object
 	EntityPtr pEntity;
 	Arch	  arch;
 	Rectangle tilesetOffset;
+	
+    static const Object* getObjectFromEntity(EntityPtr pEntity)
+	{
+		if (ENTITIES.arr[pEntity].meta == Entity::Meta::OBJECT && ENTITIES.active[pEntity])
+			return (Object*)ENTITIES.arr[pEntity].data;
+        return nullptr;
+	}
 };
 struct Item
 {
 	enum Arch
 	{
+		UNKNOWN,
 		PICKAXE,
 		SWORD,
 	};
@@ -185,6 +194,13 @@ struct Item
 	f32 dmg;
 	f32 swingLen;
 
+	static const Item* getItemFromEntity(EntityPtr pEntity)
+	{
+		if (ENTITIES.arr[pEntity].meta == Entity::Meta::ITEM && ENTITIES.active[pEntity])
+			return (Item*)ENTITIES.arr[pEntity].data;
+        return nullptr;
+	}
+
 	static s32 add(Arch type, v3i pos)
 	{
 		static_assert(sizeof(Item) <= sizeof(Entity::data), "ITEM does not fir into ENTITY");
@@ -195,6 +211,8 @@ struct Item
 		item.arch		= type;
 		switch (type)
 		{
+			case Arch::UNKNOWN:
+				exitWithMessage("Tried to add UNKNOWN item!");
 			case Arch::PICKAXE:
 				strcpy(item.name, "Pickaxe");
 				e.fScale		   = 0.7f;
@@ -960,31 +978,36 @@ v3i computeMoveToTarget(v3i start, v3i target, s32 speed)
 			return bestPos[i];
 	return start;
 }
-void addCampfire(const v3i& pos)
+bool addCampfire(const v3i& pos)
 {
-	// static_assert(sizeof(OldMan) < sizeof(Entity::data), "OLDMAN does not fit into ENTITY");
-	EntityPtr pEntity				= ENTITIES.add(Entity::Meta::OBJECT, pos);
-	Entity&	  e						= ENTITIES.arr[pEntity];
-	Object&	  o						= *new (e.data) Object;
+	EntityPtr pEntity = ENTITIES.add(Entity::Meta::OBJECT, pos);
+	if (pEntity < 0)
+		return false;
+	Entity& e						= ENTITIES.arr[pEntity];
+	Object& o						= *new (e.data) Object;
 	o.arch							= Object::CAMPFIRE;
 	o.pEntity						= pEntity;
 	o.tilesetOffset					= {64, 0, G.tileSize, G.tileSize};
 	ENTITIES.isLightSource[pEntity] = true;
 	e.lightRadiusBase				= 110;
 	e.lightFlickerRate				= math::random(20, 70);
+	return true;
 }
-void addTorch(const v3i& pos)
+bool addTorch(const v3i& pos)
 {
 	// static_assert(sizeof(OldMan) < sizeof(Entity::data), "OLDMAN does not fit into ENTITY");
-	EntityPtr pEntity				= ENTITIES.add(Entity::Meta::OBJECT, pos);
-	Entity&	  e						= ENTITIES.arr[pEntity];
-	Object&	  o						= *new (e.data) Object;
+	EntityPtr pEntity = ENTITIES.add(Entity::Meta::OBJECT, pos);
+	if (pEntity < 0)
+		return false;
+	Entity& e						= ENTITIES.arr[pEntity];
+	Object& o						= *new (e.data) Object;
 	o.arch							= Object::TORCH;
 	o.pEntity						= pEntity;
 	o.tilesetOffset					= {48, 0, G.tileSize, G.tileSize};
 	ENTITIES.isLightSource[pEntity] = true;
 	e.lightRadiusBase				= 60;
 	e.lightFlickerRate				= math::random(20, 50);
+	return true;
 }
 void updateObject(void* data, f32 dt)
 {
@@ -993,6 +1016,8 @@ void updateObject(void* data, f32 dt)
 	e.fPos	  = toV2f(e.iPos) * G.tileSize;
 	switch (o.arch)
 	{
+		case Object::UNKNOWN:
+			exitWithMessage("Tried to add UNKNOWN object!");
 		case Object::CAMPFIRE:
 			if (G.frame % e.lightFlickerRate == 0)
 			{
@@ -1019,6 +1044,8 @@ void drawObject(void* data)
 	Entity& e = ENTITIES.arr[o.pEntity];
 	switch (o.arch)
 	{
+		case Object::Arch::UNKNOWN:
+			return;
 		case Object::CAMPFIRE:
 		case Object::TORCH:
 			DrawTexturePro(C.textures[C.TEX_TILESET],
@@ -1031,4 +1058,31 @@ void drawObject(void* data)
 			);
 			break;
 	}
+}
+
+bool placeObject(Object::Arch arch, v3i pos)
+{
+	switch (arch)
+	{
+		case Object::Arch::UNKNOWN:
+			return true;
+		case Object::Arch::CAMPFIRE:
+			return addCampfire(pos);
+		case Object::Arch::TORCH:
+			return addTorch(pos);
+	}
+	return false;
+}
+bool placeItem(Item::Arch arch, v3i pos)
+{
+	switch (arch)
+	{
+		case Item::Arch::UNKNOWN:
+			return true;
+		case Item::Arch::SWORD:
+			return addCampfire(pos);
+		case Item::Arch::PICKAXE:
+			return addTorch(pos);
+	}
+	return false;
 }

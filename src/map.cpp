@@ -8,15 +8,11 @@ struct MapLayer
 	{
 		enum Type
 		{
-			GRASS = 0,
+			EMPTY = -1,
+			GRASS,
 			DIRT,
 			ROCK,
-			TORCH,
-			CAMPFIRE,
 			WOODWALL,
-			CRATE,
-			BARREL,
-			EMPTY
 		};
 		s32	 hitPoints;
 		Type type;
@@ -24,6 +20,53 @@ struct MapLayer
 		bool discovered;
 		bool floor;
 		bool surface;
+
+		void placeTile(MapLayer::Tile::Type type, bool surface = false)
+		{
+			switch (type)
+			{
+				case MapLayer::Tile::EMPTY:
+				*this = {.hitPoints	= 0,
+							.type		= type,
+							.crossable	= true,
+							.discovered = true,
+							.floor		= false,
+							.surface	= surface};
+					return;
+				case MapLayer::Tile::GRASS:
+				*this = {.hitPoints	= 2,
+							.type		= type,
+							.crossable	= true,
+							.discovered = true,
+							.floor		= true,
+							.surface	= true};
+					return;
+				case MapLayer::Tile::DIRT:
+				*this = {.hitPoints	= 4,
+							.type		= type,
+							.crossable	= false,
+							.discovered = surface,
+							.floor		= true,
+							.surface	= surface};
+					return;
+				case MapLayer::Tile::ROCK:
+				*this = {.hitPoints	= 10,
+							.type		= type,
+							.crossable	= false,
+							.discovered = surface,
+							.floor		= true,
+							.surface	= surface};
+					return;
+				case MapLayer::Tile::WOODWALL:
+				*this = {.hitPoints	= 40,
+							.type		= type,
+							.crossable	= false,
+							.discovered = surface,
+							.floor		= true,
+							.surface	= surface};
+					return;
+			};
+		}
 	};
 	static const u32 nTiles = 64;
 
@@ -77,91 +120,13 @@ struct Map
 	bool	  tryMove(v3i pos) { return level[pos.z].tryMove(pos); }
 };
 
-void placeTile(MapLayer::Tile& tile, MapLayer::Tile::Type type, bool surface = false)
-{
-	switch (type)
-	{
-		case MapLayer::Tile::EMPTY:
-			tile = {.hitPoints	= 0,
-					.type		= type,
-					.crossable	= true,
-					.discovered = true,
-					.floor		= false,
-					.surface	= surface};
-			return;
-		case MapLayer::Tile::GRASS:
-			tile = {.hitPoints	= 2,
-					.type		= type,
-					.crossable	= true,
-					.discovered = true,
-					.floor		= true,
-					.surface	= true};
-			return;
-		case MapLayer::Tile::DIRT:
-			tile = {.hitPoints	= 4,
-					.type		= type,
-					.crossable	= false,
-					.discovered = surface,
-					.floor		= true,
-					.surface	= surface};
-			return;
-		case MapLayer::Tile::ROCK:
-			tile = {.hitPoints	= 10,
-					.type		= type,
-					.crossable	= false,
-					.discovered = surface,
-					.floor		= true,
-					.surface	= surface};
-			return;
-		case MapLayer::Tile::Type::TORCH:
-			tile = {.hitPoints	= 3,
-					.type		= type,
-					.crossable	= false,
-					.discovered = surface,
-					.floor		= true,
-					.surface	= surface};
-			return;
-		case MapLayer::Tile::CAMPFIRE:
-			tile = {.hitPoints	= 999,
-					.type		= type,
-					.crossable	= false,
-					.discovered = surface,
-					.floor		= true,
-					.surface	= surface};
-			return;
-		case MapLayer::Tile::WOODWALL:
-			tile = {.hitPoints	= 40,
-					.type		= type,
-					.crossable	= false,
-					.discovered = surface,
-					.floor		= true,
-					.surface	= surface};
-			return;
-		case MapLayer::Tile::CRATE:
-			tile = {.hitPoints	= 10,
-					.type		= type,
-					.crossable	= false,
-					.discovered = surface,
-					.floor		= true,
-					.surface	= surface};
-			return;
-		case MapLayer::Tile::BARREL:
-			tile = {.hitPoints	= 8,
-					.type		= type,
-					.crossable	= false,
-					.discovered = surface,
-					.floor		= true,
-					.surface	= surface};
-			return;
-	};
-}
 void loadLevelFromTexture(MapLayer& level, Content::TEX_LEVEL levelMap, v3i origin)
 {
 	level.origin	   = origin;
 	Color* levelLayout = LoadImageColors(C.levelMap[levelMap]);
 	for (u32 x = 0; x < level.nTiles; x++)
 		for (u32 y = 0; y < level.nTiles; y++)
-			placeTile(level.tile[x][y], (MapLayer::Tile::Type)(levelLayout[64 * y + x].r), true);
+			level.tile[x][y].placeTile((MapLayer::Tile::Type)(levelLayout[64 * y + x].r), true);
 }
 void createLevelSurface(v3i origin, MapLayer& level)
 {
@@ -236,7 +201,7 @@ void drawLevel(MapLayer levels[], s32 bottomLevel, s32 topLevel)
 				MapLayer&		lAbove	 = levels[z + 1];
 				MapLayer&		lBelow	 = levels[z - 1];
 				MapLayer::Tile& tile	 = l.tile[x][y];
-				Texture2D*		tTexture = &C.textures[C.TEX_TILESET];
+				Texture2D*		tTexture = &C.textures[C.TEX_TILESET_TERRAIN];
 				v3i tilePos = (l.origin * G.tileSize) + v3i(x * G.tileSize, y * G.tileSize, 0);
 				if (tile.type == MapLayer::Tile::EMPTY)
 				{

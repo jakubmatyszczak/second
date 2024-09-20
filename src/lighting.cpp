@@ -39,12 +39,14 @@ struct Light
 		}
 		EndTextureMode();
 	}
-	void drawLight(v2f targetSize)
+	void drawLight(v2f targetSize, s32 darknessOverride = 0)
 	{
 		static f32 t = 0;
 		t += 0.016f;
 		darkness   = (sinf(t*0.1f) * 0.5f + 0.5f);
 		u8 darkClr = (u8)(darkness * 220.f);
+        if(darknessOverride)
+            darkClr = 50;
 		BeginBlendMode(BLEND_MULTIPLIED);
 		DrawTexturePro(tex.texture,
 					   source,
