@@ -35,6 +35,7 @@ struct MapLayerTemplate
 				placeObject(tmp.objects[x][y], pos);
 				placeItem(tmp.items[x][y], pos);
 			}
+        std::cout << "Loading from: " << filename << std::endl;
 		return true;
 	}
 	static bool save(MapLayer& layer, const char* filename)
@@ -57,6 +58,7 @@ struct MapLayerTemplate
 			if (object)
 				tmp.objects[pos.x][pos.y] = object->arch;
 		}
+        std::cout << "Saving to: " << filename << std::endl;
 		return fileio::saveRawFile(filename, &tmp, sizeof(tmp));
 	}
 };
@@ -119,12 +121,6 @@ int main(void)
 	Goblin::add({30, 41, 0}, Unit::Role::FIGHTER);
 
 	Goblin::add({43, 21, 0}, Unit::Role::ARCHER);
-	addCampfire({7, 53, 0});
-	addCampfire({20, 53, 0});
-
-	addTorch({7, 40, 0});
-	addTorch({17, 40, 0});
-	addTorch({27, 40, 0});
 
 	G.camera.zoom	= 3.f;
 	G.camera.offset = {660, 360};
@@ -142,6 +138,7 @@ int main(void)
 
 	bool editor			= false;
 	u32	 editorTileType = 0;
+	s32	 editorSetType	= 0;
 	G.time				= 0.f;
 
 	while (!done)
@@ -184,6 +181,10 @@ int main(void)
 		NARRATIVE.update();
 		if (editor)
 		{
+			if (IsKeyPressed(KEY_PERIOD))
+				editorSetType--;
+			if (IsKeyPressed(KEY_COMMA))
+				editorSetType++;
 			for (int i = 0; i < 10; i++)
 				if (IsKeyPressed(KEY_ZERO + i))
 					editorTileType = i;
@@ -191,8 +192,13 @@ int main(void)
 			{
 				v3i mousePosTile = toV3i(FD.mousePosWorld / G.tileSize);
 				if (MAP.level[FD.dudePos.z].containsXY(mousePosTile))
-					MAP.level->getTileAt(mousePosTile)
-						.placeTile((MapLayer::Tile::Type)editorTileType, true);
+				{
+					if (editorSetType == 0)
+						MAP.level->getTileAt(mousePosTile)
+							.placeTile((MapLayer::Tile::Type)editorTileType, true);
+					if (editorSetType == 1)
+						placeObject((Object::Arch)(editorTileType + 1), mousePosTile);
+				}
 			}
 		}
 
@@ -221,13 +227,25 @@ int main(void)
 		{
 			DrawRectangle(256, 6, 64 * 8 + 4, 64 + 8, BLACK_CLEAR);
 			DrawRectangle(256 + editorTileType * 64, 6, 64 + 8, 64 + 8, RED);
-			DrawTextureEx(C.textures[C.TEX_TILESET_TERRAIN], {260, 10}, 0, 4, WHITE);
+			Texture2D textureTileset = C.textures[C.TEX_TILESET_TERRAIN];
+			switch (editorSetType)
+			{
+				case 0:
+					textureTileset = C.textures[C.TEX_TILESET_TERRAIN];
+					break;
+				case 1:
+					textureTileset = C.textures[C.TEX_TILESET_OBJECTS];
+					break;
+				default:
+					break;
+			}
+			DrawTextureEx(textureTileset, {260, 10}, 0, 4, WHITE);
 			DrawText("EDITOR", 10, 10, 60, YELLOW);
 			f32 bScale = 1.f + 0.1 * sinf(G.time * 5);
 			DrawRectangle(
 				FD.mousePosWindow.x + 8, FD.mousePosWindow.y + 8, 37 * bScale, 37 * bScale, BLACK);
 			DrawTexturePro(
-				C.textures[C.TEX_TILESET_TERRAIN],
+				textureTileset,
 				{(f32)editorTileType * G.tileSize, 0, G.tileSize, G.tileSize},
 				{FD.mousePosWindow.x + 10, FD.mousePosWindow.y + 10, 32 * bScale, 32 * bScale},
 				{},

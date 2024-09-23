@@ -28,6 +28,7 @@ struct Content
 		TEX_TILESET,
 		TEX_PORTRAITS,
 		TEX_TILESET_TERRAIN,
+		TEX_TILESET_OBJECTS,
 		TEX_ID_MAX
 	};
 	enum SFX_ID
@@ -61,6 +62,7 @@ struct Content
 		loadTexture("res/art/tileset.png", TEX_TILESET);
 		loadTexture("res/art/portraits.png", TEX_PORTRAITS);
 		loadTexture("res/art/tileset_terrain.png", TEX_TILESET_TERRAIN);
+		loadTexture("res/art/tileset_objects.png", TEX_TILESET_OBJECTS);
 		loadSfx("res/sound/playerSfx/hit.wav", SFX_HIT);
 		loadSfx("res/sound/playerSfx/step_grass.wav", SFX_STEP_GRASS);
 		loadSfx("res/sound/playerSfx/step_rock.wav", SFX_STEP_ROCK);

@@ -160,12 +160,12 @@ struct Object
 	EntityPtr pEntity;
 	Arch	  arch;
 	Rectangle tilesetOffset;
-	
-    static const Object* getObjectFromEntity(EntityPtr pEntity)
+
+	static const Object* getObjectFromEntity(EntityPtr pEntity)
 	{
 		if (ENTITIES.arr[pEntity].meta == Entity::Meta::OBJECT && ENTITIES.active[pEntity])
 			return (Object*)ENTITIES.arr[pEntity].data;
-        return nullptr;
+		return nullptr;
 	}
 };
 struct Item
@@ -198,7 +198,7 @@ struct Item
 	{
 		if (ENTITIES.arr[pEntity].meta == Entity::Meta::ITEM && ENTITIES.active[pEntity])
 			return (Item*)ENTITIES.arr[pEntity].data;
-        return nullptr;
+		return nullptr;
 	}
 
 	static s32 add(Arch type, v3i pos)
@@ -987,7 +987,7 @@ bool addCampfire(const v3i& pos)
 	Object& o						= *new (e.data) Object;
 	o.arch							= Object::CAMPFIRE;
 	o.pEntity						= pEntity;
-	o.tilesetOffset					= {64, 0, G.tileSize, G.tileSize};
+	o.tilesetOffset					= {0, 0, G.tileSize, G.tileSize};
 	ENTITIES.isLightSource[pEntity] = true;
 	e.lightRadiusBase				= 110;
 	e.lightFlickerRate				= math::random(20, 70);
@@ -995,7 +995,6 @@ bool addCampfire(const v3i& pos)
 }
 bool addTorch(const v3i& pos)
 {
-	// static_assert(sizeof(OldMan) < sizeof(Entity::data), "OLDMAN does not fit into ENTITY");
 	EntityPtr pEntity = ENTITIES.add(Entity::Meta::OBJECT, pos);
 	if (pEntity < 0)
 		return false;
@@ -1003,10 +1002,34 @@ bool addTorch(const v3i& pos)
 	Object& o						= *new (e.data) Object;
 	o.arch							= Object::TORCH;
 	o.pEntity						= pEntity;
-	o.tilesetOffset					= {48, 0, G.tileSize, G.tileSize};
+	o.tilesetOffset					= {16, 0, G.tileSize, G.tileSize};
 	ENTITIES.isLightSource[pEntity] = true;
 	e.lightRadiusBase				= 60;
 	e.lightFlickerRate				= math::random(20, 50);
+	return true;
+}
+bool addBarrel(const v3i& pos)
+{
+	EntityPtr pEntity = ENTITIES.add(Entity::Meta::OBJECT, pos);
+	if (pEntity < 0)
+		return false;
+	Entity& e		= ENTITIES.arr[pEntity];
+	Object& o		= *new (e.data) Object;
+	o.arch			= Object::BARREL;
+	o.pEntity		= pEntity;
+	o.tilesetOffset = {48, 0, G.tileSize, G.tileSize};
+	return true;
+}
+bool addCrate(const v3i& pos)
+{
+	EntityPtr pEntity = ENTITIES.add(Entity::Meta::OBJECT, pos);
+	if (pEntity < 0)
+		return false;
+	Entity& e		= ENTITIES.arr[pEntity];
+	Object& o		= *new (e.data) Object;
+	o.arch			= Object::CRATE;
+	o.pEntity		= pEntity;
+	o.tilesetOffset = {32, 0, G.tileSize, G.tileSize};
 	return true;
 }
 void updateObject(void* data, f32 dt)
@@ -1048,7 +1071,18 @@ void drawObject(void* data)
 			return;
 		case Object::CAMPFIRE:
 		case Object::TORCH:
-			DrawTexturePro(C.textures[C.TEX_TILESET],
+			DrawTexturePro(C.textures[C.TEX_TILESET_OBJECTS],
+						   o.tilesetOffset,
+						   {e.fPos.x, e.fPos.y, G.tileSize, G.tileSize},
+						   {},
+						   0.f,
+						   WHITE
+
+			);
+			break;
+		case Object::CRATE:
+		case Object::BARREL:
+			DrawTexturePro(C.textures[C.TEX_TILESET_OBJECTS],
 						   o.tilesetOffset,
 						   {e.fPos.x, e.fPos.y, G.tileSize, G.tileSize},
 						   {},
@@ -1070,6 +1104,10 @@ bool placeObject(Object::Arch arch, v3i pos)
 			return addCampfire(pos);
 		case Object::Arch::TORCH:
 			return addTorch(pos);
+		case Object::Arch::BARREL:
+			return addBarrel(pos);
+		case Object::Arch::CRATE:
+			return addCrate(pos);
 	}
 	return false;
 }
