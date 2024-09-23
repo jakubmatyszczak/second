@@ -40,6 +40,7 @@ struct Globals
 	EntityPtr entDude;
 	u32		  screenX;
 	u32		  screenY;
+    f32 time;
 
 	bool debugDrawSightRange;
 };

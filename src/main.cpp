@@ -7,14 +7,10 @@
 
 #include "raylib.h"
 
-struct WorldState
-{
-};
-Map		   MAP;
-Entities   ENTITIES;
-DialogBox  DIALOGBOX;
-Narrative  NARRATIVE;
-WorldState WORLD;
+Map		  MAP;
+Entities  ENTITIES;
+DialogBox DIALOGBOX;
+Narrative NARRATIVE;
 
 struct MapLayerTemplate
 {
@@ -92,25 +88,6 @@ bool canGoDown(v3i& pos)
 	return false;
 }
 
-void saveGame()
-{
-	if (fileio::saveRawFile("1.save", &WORLD, sizeof(WORLD)))
-		printf("GAME SAVED!\n");
-}
-bool loadGame()
-{
-	WorldState loaded;
-	s32		   ret = fileio::loadRawFile("1.save", sizeof(loaded), &loaded);
-	if (ret < 0)
-		return false;
-	else if (ret != sizeof(loaded))
-		exitWithMessage("Failed to load save!");
-	memcpy(&WORLD, &loaded, sizeof(loaded));
-	MAP.reloadPtr();
-	printf("GAME LOADED!\n");
-	return true;
-}
-
 int main(void)
 {
 	G.screenX = 1320;
@@ -165,20 +142,20 @@ int main(void)
 
 	bool editor			= false;
 	u32	 editorTileType = 0;
+	G.time				= 0.f;
 
 	while (!done)
 	{
 		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S))
 			MapLayerTemplate::save(MAP.level[0], "surface.asdf");
-		// saveGame();
 		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_L))
 			MapLayerTemplate::load(MAP.level[0], "surface.asdf");
-		// loadGame();
 		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_E))
 			editor = !editor;
 		G.debugDrawSightRange = IsKeyDown(KEY_LEFT_CONTROL);
 
 		G.frame++;
+		G.time += GetFrameTime();
 		FD.clear();
 		FD.mousePosWorld  = GetScreenToWorld2D(GetMousePosition(), G.camera);
 		FD.mousePosWindow = GetMousePosition();
@@ -242,13 +219,20 @@ int main(void)
 		dude.drawOverlay();
 		if (editor)
 		{
+			DrawRectangle(256, 6, 64 * 8 + 4, 64 + 8, BLACK_CLEAR);
+			DrawRectangle(256 + editorTileType * 64, 6, 64 + 8, 64 + 8, RED);
+			DrawTextureEx(C.textures[C.TEX_TILESET_TERRAIN], {260, 10}, 0, 4, WHITE);
 			DrawText("EDITOR", 10, 10, 60, YELLOW);
-			DrawTexturePro(C.textures[C.TEX_TILESET_TERRAIN],
-						   {(f32)editorTileType * G.tileSize, 0, G.tileSize, G.tileSize},
-						   {FD.mousePosWindow.x, FD.mousePosWindow.y, 64, 64},
-						   {},
-						   0.f,
-						   WHITE);
+			f32 bScale = 1.f + 0.1 * sinf(G.time * 5);
+			DrawRectangle(
+				FD.mousePosWindow.x + 8, FD.mousePosWindow.y + 8, 37 * bScale, 37 * bScale, BLACK);
+			DrawTexturePro(
+				C.textures[C.TEX_TILESET_TERRAIN],
+				{(f32)editorTileType * G.tileSize, 0, G.tileSize, G.tileSize},
+				{FD.mousePosWindow.x + 10, FD.mousePosWindow.y + 10, 32 * bScale, 32 * bScale},
+				{},
+				0.f,
+				WHITE);
 		}
 		DIALOGBOX.draw();
 
