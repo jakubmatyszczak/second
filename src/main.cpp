@@ -30,7 +30,7 @@ struct MapLayerTemplate
 			return false;
 		if (layer.nTiles != tmp.size)
 			return false;
-        bool isSurface = (layer.origin.z == 0);
+		bool isSurface = (layer.origin.z == 0);
 		for (s32 x = 0; x < size; x++)
 			for (s32 y = 0; y < size; y++)
 			{
@@ -241,7 +241,15 @@ int main(void)
 				 YELLOW);
 		dude.drawOverlay();
 		if (editor)
+		{
 			DrawText("EDITOR", 10, 10, 60, YELLOW);
+			DrawTexturePro(C.textures[C.TEX_TILESET_TERRAIN],
+						   {(f32)editorTileType * G.tileSize, 0, G.tileSize, G.tileSize},
+						   {FD.mousePosWindow.x, FD.mousePosWindow.y, 64, 64},
+						   {},
+						   0.f,
+						   WHITE);
+		}
 		DIALOGBOX.draw();
 
 		EndDrawing();
